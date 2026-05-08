@@ -89,7 +89,7 @@ export default function ChildrenListPage() {
 
   const downloadLatestMap = async (childId?: string, latestRecordId?: string) => {
     if (!childId || !latestRecordId) return;
-    const startedAt = Date.now();
+    const startedAt = new Date().getTime();
     setDownloadingId(childId);
     try {
       const [aRes, hRes] = await Promise.all([
@@ -112,7 +112,7 @@ export default function ChildrenListPage() {
         format: "map",
         childId,
         recordId: assessment._id,
-        durationMs: Date.now() - startedAt,
+        durationMs: new Date().getTime() - startedAt,
         warnings: validation.warnings
       });
     } catch (err) {
@@ -122,7 +122,7 @@ export default function ChildrenListPage() {
         format: "map",
         childId,
         recordId: latestRecordId,
-        durationMs: Date.now() - startedAt,
+        durationMs: new Date().getTime() - startedAt,
         error: err instanceof Error ? err.message : "unknown"
       });
       setMessage(tc("error"));
