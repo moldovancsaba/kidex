@@ -9,6 +9,7 @@ import { Link } from "@/i18n/navigation";
 import { PdfService } from "@/lib/pdf-service";
 import { getUsers } from "@/services/user-service";
 import { withDisplayNamesForReport } from "@/lib/report-user-display";
+import { logPdfExportTelemetry, validatePdfExport } from "@/lib/pdf-export-guards";
 import { 
   PolarAngleAxis, 
   PolarGrid, 
@@ -61,6 +62,11 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
 
   const downloadPdf = async () => {
     if (!record) return;
+    const startedAt = Date.now();
+    const validation = validatePdfExport(record, history);
+    if (validation.warnings.length > 0) {
+      console.warn("PDF export warnings:", validation.warnings);
+    }
     setDownloadingPdf(true);
     try {
       const users = await getUsers();
@@ -70,8 +76,25 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
       } else {
         await PdfService.generateOriginalReport(printableRecord, t, tc, ts);
       }
+      logPdfExportTelemetry({
+        status: "success",
+        format: reportFormat === "map" ? "map" : "original",
+        childId: record.childId,
+        recordId: record._id,
+        durationMs: Date.now() - startedAt,
+        warnings: validation.warnings
+      });
     } catch (error) {
       console.error("PDF generation failed:", error);
+      logPdfExportTelemetry({
+        status: "failed",
+        format: reportFormat === "map" ? "map" : "original",
+        childId: record.childId,
+        recordId: record._id,
+        durationMs: Date.now() - startedAt,
+        warnings: validation.warnings,
+        error: error instanceof Error ? error.message : "unknown"
+      });
     } finally {
       setDownloadingPdf(false);
     }

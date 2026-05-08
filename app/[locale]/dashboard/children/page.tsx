@@ -13,6 +13,7 @@ import type { ChildProfile } from "@/repositories/child.repository";
 import { PdfService } from "@/lib/pdf-service";
 import { getUsers } from "@/services/user-service";
 import { withDisplayNamesForReport } from "@/lib/report-user-display";
+import { logPdfExportTelemetry, validatePdfExport } from "@/lib/pdf-export-guards";
 import type { AssessmentRecord } from "@/types/assessment";
 
 export default function ChildrenListPage() {
@@ -88,6 +89,7 @@ export default function ChildrenListPage() {
 
   const downloadLatestMap = async (childId?: string, latestRecordId?: string) => {
     if (!childId || !latestRecordId) return;
+    const startedAt = Date.now();
     setDownloadingId(childId);
     try {
       const [aRes, hRes] = await Promise.all([
@@ -99,12 +101,30 @@ export default function ChildrenListPage() {
       
       const { assessment } = (await aRes.json()) as { assessment: AssessmentRecord };
       const historyData = hRes.ok ? (await hRes.json()).assessments : [];
+      const validation = validatePdfExport(assessment, historyData);
+      if (validation.warnings.length > 0) console.warn("PDF export warnings:", validation.warnings);
       
       const users = await getUsers();
       const printableRecord = withDisplayNamesForReport(assessment, users);
       await PdfService.generateMapReport(printableRecord, ta, tc, ts, tr, historyData);
+      logPdfExportTelemetry({
+        status: "success",
+        format: "map",
+        childId,
+        recordId: assessment._id,
+        durationMs: Date.now() - startedAt,
+        warnings: validation.warnings
+      });
     } catch (err) {
       console.error(err);
+      logPdfExportTelemetry({
+        status: "failed",
+        format: "map",
+        childId,
+        recordId: latestRecordId,
+        durationMs: Date.now() - startedAt,
+        error: err instanceof Error ? err.message : "unknown"
+      });
       setMessage(tc("error"));
       setError(true);
     } finally {

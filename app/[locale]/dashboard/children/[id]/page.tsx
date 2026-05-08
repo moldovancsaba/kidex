@@ -13,6 +13,7 @@ import { formatScore } from "@/lib/utils";
 import { PdfService } from "@/lib/pdf-service";
 import { getUsers } from "@/services/user-service";
 import { withDisplayNamesForReport } from "@/lib/report-user-display";
+import { logPdfExportTelemetry, validatePdfExport } from "@/lib/pdf-export-guards";
 import { SectionCard } from "@/components/ui/SectionCard";
 import { getDomainMainColor, type AssessmentDomain } from "@/lib/domain-colors";
 import { LongitudinalChart } from "@/components/analytics/LongitudinalChart";
@@ -50,15 +51,35 @@ export default function ChildHistoryPage({ params }: { params: Promise<{ id: str
 
   async function downloadPdf() {
     if (!data || data.assessments.length === 0) return;
+    const startedAt = Date.now();
+    const latestRecord = data.assessments[0];
+    const validation = validatePdfExport(latestRecord, data.assessments);
+    if (validation.warnings.length > 0) console.warn("PDF export warnings:", validation.warnings);
 
     setDownloadingPdf(true);
     try {
-      const latestRecord = data.assessments[0];
       const users = await getUsers();
       const printableRecord = withDisplayNamesForReport(latestRecord, users);
       await PdfService.generateMapReport(printableRecord, t, tc, ts, tr, data.assessments);
+      logPdfExportTelemetry({
+        status: "success",
+        format: "map",
+        childId: latestRecord.childId,
+        recordId: latestRecord._id,
+        durationMs: Date.now() - startedAt,
+        warnings: validation.warnings
+      });
     } catch (error) {
       console.error("PDF generation failed:", error);
+      logPdfExportTelemetry({
+        status: "failed",
+        format: "map",
+        childId: latestRecord.childId,
+        recordId: latestRecord._id,
+        durationMs: Date.now() - startedAt,
+        warnings: validation.warnings,
+        error: error instanceof Error ? error.message : "unknown"
+      });
     } finally {
       setDownloadingPdf(false);
     }
