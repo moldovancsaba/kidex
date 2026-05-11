@@ -164,6 +164,10 @@
     "consentApproverStaff": "Staff-managed / no caregiver selected",
     "consentExpiredBadge": "{count, plural, one {# expired consent} other {# expired consents}}",
     "consentExpiringBadge": "{count, plural, one {# consent expiring soon} other {# consents expiring soon}}",
+    "familyConsentLinksTitle": "Family consent review links",
+    "generateConsentLink": "Generate consent link",
+    "consentLinkModalTitle": "Consent review link",
+    "consentLinkModalIntro": "Share this secure link with {caregiver} so they can review and update consent directly.",
     "consentPolicyLabel": {
       "mediaCapture": "Photo and video capture",
       "familyReport": "Family report sharing",
@@ -599,5 +603,37 @@
     "familyRecommendationsTitle": "Helpful focus areas",
     "familyNextStepsTitle": "Suggested next steps at home and in practice",
     "familyReportFooter": "This report is designed to support constructive conversations with families. It is not a diagnosis and should be reviewed together with the professional team."
+  },
+  "ConsentReview": {
+    "title": "Family Consent Review",
+    "intro": "{caregiver}, you can review and update consent settings for {child} here.",
+    "loading": "Loading consent review...",
+    "loadError": "This consent review link is invalid or has expired.",
+    "save": "Save consent choices",
+    "saveSuccess": "Your consent choices were saved.",
+    "saveError": "We could not save your consent choices.",
+    "family": "Family",
+    "child": "the child",
+    "effectiveFrom": "Effective from",
+    "expiresAt": "Expires at",
+    "notes": "Notes",
+    "policy": {
+      "mediaCapture": {
+        "label": "Photo and video capture",
+        "description": "Allow staff to capture and store photo or video evidence for this child."
+      },
+      "familyReport": {
+        "label": "Family report sharing",
+        "description": "Allow family-safe reports to be generated and shared with caregivers."
+      },
+      "dataSharing": {
+        "label": "Professional data sharing",
+        "description": "Allow reports and records to be shared with approved professional partners."
+      },
+      "publicity": {
+        "label": "Publicity and promotional use",
+        "description": "Allow selected media or materials to be used in public-facing communication."
+      }
+    }
   }
 }

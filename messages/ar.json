@@ -146,6 +146,10 @@
     "consentApproverStaff": "إدارة مهنية / لم يتم اختيار ولي أمر",
     "consentExpiredBadge": "{count, plural, one {موافقة واحدة منتهية} other {# موافقات منتهية}}",
     "consentExpiringBadge": "{count, plural, one {موافقة واحدة تنتهي قريبًا} other {# موافقات تنتهي قريبًا}}",
+    "familyConsentLinksTitle": "روابط مراجعة موافقة الأسرة",
+    "generateConsentLink": "إنشاء رابط الموافقة",
+    "consentLinkModalTitle": "رابط مراجعة الموافقة",
+    "consentLinkModalIntro": "شارك هذا الرابط الآمن مع {caregiver} ليتمكن من مراجعة الموافقات وتحديثها مباشرة.",
     "consentPolicyLabel": {
       "mediaCapture": "التقاط الصور والفيديو",
       "familyReport": "مشاركة تقرير الأسرة",
@@ -546,5 +550,37 @@
     "latestAssessment": "آخر تقييم",
     "professionalRecommendation": "التوصية المهنية",
     "assessmentReport": "التقرير المهني"
+  },
+  "ConsentReview": {
+    "title": "مراجعة موافقة الأسرة",
+    "intro": "{caregiver}، يمكنك مراجعة إعدادات الموافقة الخاصة بـ {child} وتحديثها هنا.",
+    "loading": "جارٍ تحميل مراجعة الموافقة...",
+    "loadError": "رابط مراجعة الموافقة هذا غير صالح أو منتهي الصلاحية.",
+    "save": "حفظ خيارات الموافقة",
+    "saveSuccess": "تم حفظ خيارات الموافقة.",
+    "saveError": "تعذر حفظ خيارات الموافقة.",
+    "family": "الأسرة",
+    "child": "الطفل",
+    "effectiveFrom": "ساري من",
+    "expiresAt": "ينتهي في",
+    "notes": "ملاحظات",
+    "policy": {
+      "mediaCapture": {
+        "label": "التقاط الصور والفيديو",
+        "description": "السماح للفريق المهني بالتقاط وحفظ أدلة الصور أو الفيديو الخاصة بهذا الطفل."
+      },
+      "familyReport": {
+        "label": "مشاركة تقرير الأسرة",
+        "description": "السماح بإنشاء تقارير مناسبة للأسرة ومشاركتها مع مقدمي الرعاية."
+      },
+      "dataSharing": {
+        "label": "مشاركة البيانات المهنية",
+        "description": "السماح بمشاركة التقارير والسجلات مع الشركاء المهنيين المعتمدين."
+      },
+      "publicity": {
+        "label": "الاستخدام الدعائي والترويجي",
+        "description": "السماح باستخدام مواد إعلامية مختارة في التواصل العام."
+      }
+    }
   }
 }

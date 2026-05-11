@@ -52,6 +52,9 @@ export default function ChildHistoryPage({ params }: { params: Promise<{ id: str
   const [settings, setSettings] = useState<KidexSettings | null>(null);
   const [plan, setPlan] = useState<DevelopmentPlan | null>(null);
   const [savingPlan, setSavingPlan] = useState(false);
+  const [consentLinkModalOpen, setConsentLinkModalOpen] = useState(false);
+  const [generatedConsentLink, setGeneratedConsentLink] = useState("");
+  const [consentLinkTarget, setConsentLinkTarget] = useState<{ id: string; name: string } | null>(null);
 
   useEffect(() => {
     Promise.all([
@@ -246,6 +249,19 @@ export default function ChildHistoryPage({ params }: { params: Promise<{ id: str
     } : current);
   }
 
+  async function generateConsentLink(caregiverId: string, caregiverName: string) {
+    const response = await fetch(`/api/children/${id}/consent-link`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ caregiverId, locale }),
+    }).catch(() => null);
+    if (!response?.ok) return;
+    const payload = await response.json();
+    setGeneratedConsentLink(payload.reviewLink || "");
+    setConsentLinkTarget({ id: caregiverId, name: caregiverName });
+    setConsentLinkModalOpen(true);
+  }
+
   return (
     <Stack gap="lg">
       <PageHeader 
@@ -298,6 +314,31 @@ export default function ChildHistoryPage({ params }: { params: Promise<{ id: str
       />
 
       <ConsentAlertPanel alerts={getConsentAlerts(data.child.consentPolicy)} title={t("consentAlertTitle")} t={t} />
+
+      {data.child.caregivers?.length ? (
+        <SectionCard title={t("familyConsentLinksTitle")}>
+          <Stack gap="sm">
+            {data.child.caregivers.map((caregiver) => (
+              <Paper key={caregiver.id} withBorder p="sm">
+                <Group justify="space-between" align="center">
+                  <Box>
+                    <Text fw={700}>{caregiver.name}</Text>
+                    <Text size="sm" c="dimmed">{caregiver.email || caregiver.relationship}</Text>
+                  </Box>
+                  <Button
+                    variant="light"
+                    color="kidex"
+                    onClick={() => void generateConsentLink(caregiver.id, caregiver.name)}
+                    disabled={!canWritePlans}
+                  >
+                    {t("generateConsentLink")}
+                  </Button>
+                </Group>
+              </Paper>
+            ))}
+          </Stack>
+        </SectionCard>
+      ) : null}
 
       <SectionCard title={td("skiProgression")}>
         <LongitudinalChart 
@@ -700,6 +741,19 @@ export default function ChildHistoryPage({ params }: { params: Promise<{ id: str
         onDelete={() => void deleteLatestSurvey()}
         deleting={deletingSurvey}
       />
+      <Modal
+        opened={consentLinkModalOpen}
+        onClose={() => setConsentLinkModalOpen(false)}
+        title={t("consentLinkModalTitle")}
+        centered
+      >
+        <Stack gap="sm">
+          <Text size="sm" c="dimmed">
+            {t("consentLinkModalIntro", { caregiver: consentLinkTarget?.name || "" })}
+          </Text>
+          <TextInput value={generatedConsentLink} readOnly />
+        </Stack>
+      </Modal>
     </Stack>
   );
 }

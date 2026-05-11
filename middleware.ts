@@ -17,6 +17,7 @@ export default async function middleware(request: NextRequest) {
   // 2. Identify public routes
   const isPublicRoute = 
     pathname.startsWith('/api/auth') || 
+    pathname.startsWith('/api/consent-review') ||
     pathname.startsWith('/api/oauth') ||
     pathname.startsWith('/_next') ||
     pathname === '/favicon.ico' ||
@@ -49,13 +50,14 @@ export default async function middleware(request: NextRequest) {
   const session = cookie ? await decrypt(cookie) : null;
   const isLegalPage = /\/(hu|en|ar)\/legal\//.test(pathname);
   const isLandingPage = pathname === '/' || /^\/(hu|en|ar)$/.test(pathname) || /^\/(hu|en|ar)\/$/.test(pathname);
+  const isConsentReviewPage = /^\/(hu|en|ar)\/consent\//.test(pathname);
 
   if (session && isLandingPage) {
     const locale = pathname.match(/^\/(hu|en|ar)/)?.[1] || 'en';
     return NextResponse.redirect(new URL(`/${locale}/dashboard`, request.url));
   }
 
-  if (!session && !isLandingPage && !isLegalPage) {
+  if (!session && !isLandingPage && !isLegalPage && !isConsentReviewPage) {
     return NextResponse.redirect(new URL('/', request.url));
   }
 

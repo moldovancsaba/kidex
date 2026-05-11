@@ -11,6 +11,7 @@ export type AuditAction =
   | "child.update"
   | "child.delete"
   | "child.restore"
+  | "consent.request"
   | "consent.update"
   | "export.pdf"
   | "family.upsert"

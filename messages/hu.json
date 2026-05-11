@@ -164,6 +164,10 @@
     "consentApproverStaff": "Szakmai kezelés / nincs kiválasztott gondviselő",
     "consentExpiredBadge": "{count, plural, one {# lejárt hozzájárulás} other {# lejárt hozzájárulás}}",
     "consentExpiringBadge": "{count, plural, one {# hamarosan lejáró hozzájárulás} other {# hamarosan lejáró hozzájárulás}}",
+    "familyConsentLinksTitle": "Családi hozzájárulási linkek",
+    "generateConsentLink": "Hozzájárulási link létrehozása",
+    "consentLinkModalTitle": "Hozzájárulási áttekintő link",
+    "consentLinkModalIntro": "Oszd meg ezt a biztonságos linket vele: {caregiver}, hogy közvetlenül áttekinthesse és frissíthesse a hozzájárulásokat.",
     "consentPolicyLabel": {
       "mediaCapture": "Fotó- és videókészítés",
       "familyReport": "Családi riport megosztása",
@@ -599,5 +603,37 @@
     "familyRecommendationsTitle": "Hasznos fókuszterületek",
     "familyNextStepsTitle": "Javasolt következő lépések otthon és a foglalkozásokon",
     "familyReportFooter": "Ez a riport a családokkal folytatott építő beszélgetéseket támogatja. Nem diagnózis, és a szakmai csapattal együtt érdemes értelmezni."
+  },
+  "ConsentReview": {
+    "title": "Családi hozzájárulás áttekintése",
+    "intro": "{caregiver}, itt áttekintheted és frissítheted {child} hozzájárulási beállításait.",
+    "loading": "Hozzájárulási áttekintés betöltése...",
+    "loadError": "Ez a hozzájárulási link érvénytelen vagy lejárt.",
+    "save": "Hozzájárulások mentése",
+    "saveSuccess": "A hozzájárulási döntések mentésre kerültek.",
+    "saveError": "Nem sikerült menteni a hozzájárulási döntéseket.",
+    "family": "Család",
+    "child": "a gyermek",
+    "effectiveFrom": "Érvényes ettől",
+    "expiresAt": "Lejárat",
+    "notes": "Megjegyzések",
+    "policy": {
+      "mediaCapture": {
+        "label": "Fotó- és videókészítés",
+        "description": "Engedélyezi, hogy a szakmai csapat fotó- vagy videóevidenciát rögzítsen és tároljon."
+      },
+      "familyReport": {
+        "label": "Családi riport megosztása",
+        "description": "Engedélyezi a családbarát riportok létrehozását és megosztását."
+      },
+      "dataSharing": {
+        "label": "Szakmai adatmegosztás",
+        "description": "Engedélyezi a riportok és rekordok megosztását jóváhagyott szakmai partnerekkel."
+      },
+      "publicity": {
+        "label": "Publikus és promóciós felhasználás",
+        "description": "Engedélyezi kiválasztott médiaanyagok nyilvános kommunikációban való használatát."
+      }
+    }
   }
 }
