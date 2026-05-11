@@ -1,5 +1,6 @@
 export type StandardsDomain = "movement" | "social" | "mental" | "ski";
 export type StandardsAgeGroup = "4-6" | "7-9" | "10-12";
+export type StandardsEvidenceStatus = "validated" | "provisional" | "experimental";
 
 export interface StandardsDomainThreshold {
   target: number;
@@ -19,6 +20,21 @@ export interface StandardsFormulaDefinition {
   aspirationThreshold: "target";
 }
 
+export type StandardsAgeGroupThresholdMap = Record<StandardsAgeGroup, Record<StandardsDomain, StandardsDomainThreshold>>;
+
+export interface StandardsBenchmarkVariant {
+  meta?: {
+    label?: string;
+    notes?: string;
+    pathway?: string;
+    evidenceStatus?: StandardsEvidenceStatus;
+    applicability?: string;
+  };
+  "4-6": Record<StandardsDomain, StandardsDomainThreshold>;
+  "7-9": Record<StandardsDomain, StandardsDomainThreshold>;
+  "10-12": Record<StandardsDomain, StandardsDomainThreshold>;
+}
+
 export interface StandardsVersion {
   meta?: {
     createdBy?: string;
@@ -30,6 +46,8 @@ export interface StandardsVersion {
     sourceVersion?: string;
   };
   formula?: StandardsFormulaDefinition;
+  activeVariant?: string;
+  variants?: Record<string, StandardsBenchmarkVariant>;
   "4-6": Record<StandardsDomain, StandardsDomainThreshold>;
   "7-9": Record<StandardsDomain, StandardsDomainThreshold>;
   "10-12": Record<StandardsDomain, StandardsDomainThreshold>;
@@ -42,6 +60,7 @@ export interface StandardsConfiguration {
 
 export const AGE_GROUPS: readonly StandardsAgeGroup[] = ["4-6", "7-9", "10-12"];
 export const DOMAINS: readonly StandardsDomain[] = ["movement", "social", "mental", "ski"];
+export const EVIDENCE_STATUSES: readonly StandardsEvidenceStatus[] = ["validated", "provisional", "experimental"];
 const FORMULA_DOMAINS: readonly Exclude<StandardsDomain, "ski">[] = ["movement", "social", "mental"];
 
 function toFiniteNumber(value: unknown, fallback: number): number {
@@ -104,6 +123,84 @@ function normalizeFormula(raw: unknown, fallback: StandardsFormulaDefinition): S
   };
 }
 
+function normalizeVariantMeta(raw: unknown, fallback?: StandardsBenchmarkVariant["meta"]): StandardsBenchmarkVariant["meta"] {
+  const next = raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
+  const evidenceStatus = EVIDENCE_STATUSES.includes(next.evidenceStatus as StandardsEvidenceStatus)
+    ? (next.evidenceStatus as StandardsEvidenceStatus)
+    : fallback?.evidenceStatus || "validated";
+  return {
+    label: typeof next.label === "string" && next.label.trim() ? next.label.trim() : fallback?.label || "Default benchmark set",
+    notes: typeof next.notes === "string" ? next.notes.trim() : fallback?.notes || "",
+    pathway: typeof next.pathway === "string" ? next.pathway.trim() : fallback?.pathway || "general",
+    evidenceStatus,
+    applicability: typeof next.applicability === "string" ? next.applicability.trim() : fallback?.applicability || "All children in this benchmark version.",
+  };
+}
+
+function buildThresholdMap(
+  raw: unknown,
+  fallback: StandardsAgeGroupThresholdMap,
+): StandardsAgeGroupThresholdMap {
+  const nextVersion = raw && typeof raw === "object"
+    ? (raw as Record<string, unknown>)
+    : {};
+  return Object.fromEntries(
+    AGE_GROUPS.map((ageGroup) => {
+      const fallbackAgeGroup = fallback[ageGroup];
+      const ageValue = nextVersion[ageGroup] && typeof nextVersion[ageGroup] === "object"
+        ? (nextVersion[ageGroup] as Record<string, unknown>)
+        : {};
+      return [ageGroup, Object.fromEntries(
+        DOMAINS.map((domain) => [domain, normalizeThreshold(ageValue[domain], fallbackAgeGroup[domain])]),
+      )];
+    }),
+  ) as StandardsAgeGroupThresholdMap;
+}
+
+function thresholdMapFromVersion(version: StandardsVersion): StandardsAgeGroupThresholdMap {
+  return {
+    "4-6": version["4-6"],
+    "7-9": version["7-9"],
+    "10-12": version["10-12"],
+  };
+}
+
+export function getActiveVariantName(version: StandardsVersion | undefined, requestedVariant?: string): string {
+  if (!version) return "default";
+  if (requestedVariant && version.variants?.[requestedVariant]) return requestedVariant;
+  if (version.activeVariant && version.variants?.[version.activeVariant]) return version.activeVariant;
+  const firstVariant = Object.keys(version.variants || {})[0];
+  return firstVariant || "default";
+}
+
+export function getVariantForVersion(
+  version: StandardsVersion | undefined,
+  requestedVariant?: string,
+): StandardsBenchmarkVariant | null {
+  if (!version) return null;
+  const variantName = getActiveVariantName(version, requestedVariant);
+  if (version.variants?.[variantName]) return version.variants[variantName];
+  return {
+    meta: normalizeVariantMeta(undefined),
+    ...thresholdMapFromVersion(version),
+  };
+}
+
+export function syncVersionFromVariant(
+  version: StandardsVersion,
+  variantName = getActiveVariantName(version),
+): StandardsVersion {
+  const variant = getVariantForVersion(version, variantName);
+  if (!variant) return version;
+  return {
+    ...version,
+    activeVariant: variantName,
+    "4-6": variant["4-6"],
+    "7-9": variant["7-9"],
+    "10-12": variant["10-12"],
+  };
+}
+
 export function normalizeStandardsConfiguration(
   raw: unknown,
   fallback: StandardsConfiguration,
@@ -120,18 +217,49 @@ export function normalizeStandardsConfiguration(
       const nextVersion = versionValue && typeof versionValue === "object"
         ? (versionValue as Record<string, unknown>)
         : {};
-
-      const normalizedVersion = Object.fromEntries(
-        AGE_GROUPS.map((ageGroup) => {
-          const fallbackAgeGroup = fallbackVersion[ageGroup];
-          const ageValue = nextVersion[ageGroup] && typeof nextVersion[ageGroup] === "object"
-            ? (nextVersion[ageGroup] as Record<string, unknown>)
-            : {};
-          return [ageGroup, Object.fromEntries(
-            DOMAINS.map((domain) => [domain, normalizeThreshold(ageValue[domain], fallbackAgeGroup[domain])]),
-          )];
+      const fallbackThresholds = thresholdMapFromVersion(fallbackVersion);
+      const variantsInput = nextVersion.variants && typeof nextVersion.variants === "object"
+        ? (nextVersion.variants as Record<string, unknown>)
+        : null;
+      const normalizedVariants = Object.fromEntries(
+        Object.entries(variantsInput || {
+          default: {
+            meta: {
+              label: "Default benchmark set",
+              notes: fallbackVersion.meta?.notes || "",
+              pathway: "general",
+              evidenceStatus: "validated",
+              applicability: "All children in this benchmark version.",
+            },
+            ...buildThresholdMap(nextVersion, fallbackThresholds),
+          },
+        }).map(([variantName, variantValue]) => {
+          const fallbackVariant = variantsInput
+            ? getVariantForVersion(fallbackVersion, variantName) || getVariantForVersion(fallbackVersion)
+            : {
+                meta: {
+                  label: "Default benchmark set",
+                  notes: fallbackVersion.meta?.notes || "",
+                  pathway: "general",
+                  evidenceStatus: "validated" as const,
+                  applicability: "All children in this benchmark version.",
+                },
+                ...fallbackThresholds,
+              };
+          return [variantName, {
+            meta: normalizeVariantMeta((variantValue as Record<string, unknown>)?.meta, fallbackVariant?.meta),
+            ...buildThresholdMap(variantValue, fallbackVariant as StandardsAgeGroupThresholdMap),
+          }];
         }),
-      ) as unknown as StandardsVersion;
+      ) as Record<string, StandardsBenchmarkVariant>;
+      const activeVariantInput = typeof nextVersion.activeVariant === "string" ? nextVersion.activeVariant.trim() : "";
+      const activeVariant = activeVariantInput && normalizedVariants[activeVariantInput]
+        ? activeVariantInput
+        : Object.keys(normalizedVariants)[0] || "default";
+      const activeVariantThresholds = normalizedVariants[activeVariant] || {
+        meta: normalizeVariantMeta(undefined),
+        ...fallbackThresholds,
+      };
 
       const metaInput = nextVersion.meta && typeof nextVersion.meta === "object"
         ? (nextVersion.meta as Record<string, unknown>)
@@ -146,7 +274,7 @@ export function normalizeStandardsConfiguration(
       const status = metaInput.status === "draft" || metaInput.status === "published"
         ? metaInput.status
         : fallbackVersion.meta?.status || "draft";
-      normalizedVersion.meta = {
+      const normalizedMeta = {
         createdAt: typeof metaInput.createdAt === "string" && metaInput.createdAt ? metaInput.createdAt : fallbackVersion.meta?.createdAt || now,
         createdBy: typeof metaInput.createdBy === "string" && metaInput.createdBy ? metaInput.createdBy : fallbackVersion.meta?.createdBy || actorEmail,
         notes: typeof metaInput.notes === "string" ? metaInput.notes.trim() : fallbackVersion.meta?.notes || "",
@@ -161,7 +289,15 @@ export function normalizeStandardsConfiguration(
           ? (typeof metaInput.publishedBy === "string" && metaInput.publishedBy ? metaInput.publishedBy : fallbackVersion.meta?.publishedBy || actorEmail)
           : undefined,
       };
-      normalizedVersion.formula = normalizeFormula(nextVersion.formula, fallbackFormula);
+      const normalizedVersion = {
+        meta: normalizedMeta,
+        formula: normalizeFormula(nextVersion.formula, fallbackFormula),
+        activeVariant,
+        variants: normalizedVariants,
+        "4-6": activeVariantThresholds["4-6"],
+        "7-9": activeVariantThresholds["7-9"],
+        "10-12": activeVariantThresholds["10-12"],
+      } as StandardsVersion;
 
       return [versionName, normalizedVersion];
     }),

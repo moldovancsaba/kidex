@@ -13,7 +13,7 @@ import type { AuditLogEntry } from "@/repositories/audit.repository";
 import { normalizeInstitutionId } from "@/lib/institutions";
 import { canPerformAction } from "@/lib/permissions";
 import type { SupportedRuntimeRole } from "@/lib/roles";
-import type { StandardsAgeGroup, StandardsDomain } from "@/lib/standards-config";
+import { getActiveVariantName, getVariantForVersion, syncVersionFromVariant, type StandardsAgeGroup, type StandardsDomain, type StandardsEvidenceStatus } from "@/lib/standards-config";
 import { computeReadinessImpactPreview, formulaWeightPercentages, summarizeVersionThresholds, validateStandardsVersion } from "@/lib/standards-governance";
 
 interface CurrentUser {
@@ -31,6 +31,7 @@ interface AssessmentSummary {
   childId?: string;
   session?: { date?: string; consentReport?: boolean };
   standardsVersionUsed?: string;
+  standardsVariantUsed?: string;
   computed: { ski: number | null };
 }
 
@@ -66,8 +67,10 @@ export default function SettingsPage() {
   const [deletedChildren, setDeletedChildren] = useState<Array<{ _id?: string; name: string; updatedAt?: string }>>([]);
   const [deletedAssessments, setDeletedAssessments] = useState<Array<{ _id?: string; child?: { name?: string }; session?: { date?: string }; updatedAt?: string }>>([]);
   const [newStandardsVersion, setNewStandardsVersion] = useState("");
+  const [newStandardsVariant, setNewStandardsVariant] = useState("");
   const [versionNotesDraft, setVersionNotesDraft] = useState("");
   const [selectedStandardsVersion, setSelectedStandardsVersion] = useState(DEFAULT_KIDEX_SETTINGS.standards.activeVersion);
+  const [selectedStandardsVariant, setSelectedStandardsVariant] = useState(getActiveVariantName(DEFAULT_KIDEX_SETTINGS.standards.versions[DEFAULT_KIDEX_SETTINGS.standards.activeVersion]));
   const [impactPreview, setImpactPreview] = useState<{ readyToDeveloping: number; developingToReady: number; total: number } | null>(null);
   const [allAssessments, setAllAssessments] = useState<AssessmentSummary[]>([]);
   const [governanceMetrics, setGovernanceMetrics] = useState<{ deletedChildren: number; deletedAssessments: number; missingConsentReport: number; missingChildLink: number }>({ deletedChildren: 0, deletedAssessments: 0, missingConsentReport: 0, missingChildLink: 0 });
@@ -84,6 +87,7 @@ export default function SettingsPage() {
         setSettings(sData);
         setSelectedStandardsVersion(sData.standards.activeVersion);
         setVersionNotesDraft(sData.standards.versions[sData.standards.activeVersion]?.meta?.notes || "");
+        setSelectedStandardsVariant(getActiveVariantName(sData.standards.versions[sData.standards.activeVersion]));
         setUsers(uData);
         if (meRes?.user) setMe(meRes.user);
         if (meRes?.user?.roles?.includes("admin")) {
@@ -126,10 +130,12 @@ export default function SettingsPage() {
     ? selectedStandardsVersion
     : settings.standards.activeVersion;
   const selectedVersion = settings.standards.versions[selectedVersionName];
+  const selectedVariantName = selectedVersion ? getActiveVariantName(selectedVersion, selectedStandardsVariant) : "default";
+  const selectedVariant = selectedVersion ? getVariantForVersion(selectedVersion, selectedVariantName) : null;
   const selectedVersionMeta = selectedVersion?.meta || { status: "draft" as const, notes: "" };
-  const selectedVersionIssues = selectedVersion ? validateStandardsVersion(selectedVersion) : [];
+  const selectedVersionIssues = selectedVersion ? validateStandardsVersion(selectedVersion, selectedVariantName) : [];
   const blockingVersionIssues = selectedVersionIssues.filter((issue) => issue.severity === "error");
-  const selectedVersionSummary = selectedVersion ? summarizeVersionThresholds(selectedVersion) : null;
+  const selectedVersionSummary = selectedVersion ? summarizeVersionThresholds(selectedVersion, selectedVariantName) : null;
   const selectedFormulaPercentages = formulaWeightPercentages(selectedVersion?.formula);
 
   async function handleSaveSettings() {
@@ -363,6 +369,7 @@ export default function SettingsPage() {
       },
     }));
     setSelectedStandardsVersion(versionName);
+    setSelectedStandardsVariant(getActiveVariantName(source));
     setVersionNotesDraft(`Cloned from ${sourceVersion}`);
     setImpactPreview(null);
     setNewStandardsVersion("");
@@ -373,8 +380,54 @@ export default function SettingsPage() {
       ? versionName
       : settings.standards.activeVersion;
     setSelectedStandardsVersion(nextVersion);
+    setSelectedStandardsVariant(getActiveVariantName(settings.standards.versions[nextVersion]));
     setVersionNotesDraft(settings.standards.versions[nextVersion]?.meta?.notes || "");
     setImpactPreview(null);
+  }
+
+  function selectStandardsVariant(variantName: string | null) {
+    if (!selectedVersion) return;
+    const nextVariant = variantName && selectedVersion.variants?.[variantName]
+      ? variantName
+      : getActiveVariantName(selectedVersion);
+    setSelectedStandardsVariant(nextVariant);
+    setImpactPreview(null);
+  }
+
+  function cloneSelectedVariant() {
+    if (!canWriteSettings || !selectedVersion || !selectedVariant || !newStandardsVariant.trim()) return;
+    const variantName = normalizeInstitutionId(newStandardsVariant);
+    if (!variantName || selectedVersion.variants?.[variantName]) return;
+    setSettings((prev) => {
+      const currentVersion = prev.standards.versions[selectedVersionName];
+      const sourceVariant = getVariantForVersion(currentVersion, selectedVariantName);
+      if (!currentVersion || !sourceVariant) return prev;
+      return {
+        ...prev,
+        standards: {
+          ...prev.standards,
+          versions: {
+            ...prev.standards.versions,
+            [selectedVersionName]: syncVersionFromVariant({
+              ...currentVersion,
+              variants: {
+                ...currentVersion.variants,
+                [variantName]: {
+                  ...JSON.parse(JSON.stringify(sourceVariant)),
+                  meta: {
+                    ...sourceVariant.meta,
+                    label: newStandardsVariant.trim(),
+                    notes: `Cloned from ${selectedVariantName}`,
+                  },
+                },
+              },
+            }),
+          },
+        },
+      };
+    });
+    setSelectedStandardsVariant(variantName);
+    setNewStandardsVariant("");
   }
 
   function setCurrentVersionMeta(next: { notes?: string; status?: "draft" | "published" }) {
@@ -402,6 +455,8 @@ export default function SettingsPage() {
       settings.standards.versions[settings.standards.activeVersion],
       selectedVersion,
       allAssessments,
+      getActiveVariantName(settings.standards.versions[settings.standards.activeVersion]),
+      selectedVariantName,
     ));
   }
 
@@ -420,19 +475,82 @@ export default function SettingsPage() {
         ...prev.standards,
         versions: {
           ...prev.standards.versions,
-          [selectedVersionName]: {
-            ...prev.standards.versions[selectedVersionName],
-            [ageGroup]: {
-              ...prev.standards.versions[selectedVersionName][ageGroup],
-              [domain]: {
-                ...prev.standards.versions[selectedVersionName][ageGroup][domain],
-                [key]: parsed,
+          [selectedVersionName]: (() => {
+            const currentVersion = prev.standards.versions[selectedVersionName];
+            const currentVariant = getVariantForVersion(currentVersion, selectedVariantName);
+            if (!currentVersion || !currentVariant) return currentVersion;
+            return syncVersionFromVariant({
+              ...currentVersion,
+              variants: {
+                ...currentVersion.variants,
+                [selectedVariantName]: {
+                  ...currentVariant,
+                  [ageGroup]: {
+                    ...currentVariant[ageGroup],
+                    [domain]: {
+                      ...currentVariant[ageGroup][domain],
+                      [key]: parsed,
+                    },
+                  },
+                },
               },
-            },
-          },
+            }, currentVersion.activeVariant);
+          })(),
         },
       },
     }));
+  }
+
+  function updateVariantMeta(
+    field: "label" | "pathway" | "applicability" | "notes" | "evidenceStatus",
+    value: string,
+  ) {
+    if (!canWriteSettings || !selectedVersion || !selectedVariant) return;
+    setSettings((prev) => {
+      const currentVersion = prev.standards.versions[selectedVersionName];
+      const currentVariant = getVariantForVersion(currentVersion, selectedVariantName);
+      if (!currentVersion || !currentVariant) return prev;
+      return {
+        ...prev,
+        standards: {
+          ...prev.standards,
+          versions: {
+            ...prev.standards.versions,
+            [selectedVersionName]: syncVersionFromVariant({
+              ...currentVersion,
+              variants: {
+                ...currentVersion.variants,
+                [selectedVariantName]: {
+                  ...currentVariant,
+                  meta: {
+                    ...currentVariant.meta,
+                    [field]: field === "evidenceStatus" ? (value as StandardsEvidenceStatus) : value,
+                  },
+                },
+              },
+            }, currentVersion.activeVariant),
+          },
+        },
+      };
+    });
+  }
+
+  function setActiveVariantForVersion(variantName: string) {
+    if (!canWriteSettings || !selectedVersion || !selectedVersion.variants?.[variantName]) return;
+    setSettings((prev) => ({
+      ...prev,
+      standards: {
+        ...prev.standards,
+        versions: {
+          ...prev.standards.versions,
+          [selectedVersionName]: syncVersionFromVariant({
+            ...prev.standards.versions[selectedVersionName],
+            activeVariant: variantName,
+          }, variantName),
+        },
+      },
+    }));
+    setSelectedStandardsVariant(variantName);
   }
 
   function updateFormulaWeight(domain: "movement" | "social" | "mental", value: string | number) {
@@ -944,6 +1062,41 @@ export default function SettingsPage() {
           </Group>
 
           {selectedVersion ? (
+            <Group align="end" wrap="wrap">
+              <Select
+                label="Benchmark variant"
+                value={selectedVariantName}
+                data={Object.entries(selectedVersion.variants || {}).map(([variantName, variant]) => ({
+                  value: variantName,
+                  label: variant.meta?.label?.trim() || variantName,
+                }))}
+                onChange={selectStandardsVariant}
+                style={{ minWidth: 280 }}
+              />
+              <Button
+                variant="default"
+                onClick={() => setActiveVariantForVersion(selectedVariantName)}
+                disabled={!canWriteSettings || selectedVersion.activeVariant === selectedVariantName}
+              >
+                Make active benchmark set
+              </Button>
+            </Group>
+          ) : null}
+
+          <Group align="end" wrap="wrap">
+            <TextInput
+              label="New benchmark variant"
+              placeholder="team-sport"
+              value={newStandardsVariant}
+              disabled={!canWriteSettings || !selectedVersion}
+              onChange={(event) => setNewStandardsVariant(event.currentTarget.value)}
+            />
+            <Button variant="default" onClick={cloneSelectedVariant} disabled={!newStandardsVariant.trim() || !canWriteSettings || !selectedVersion}>
+              Clone selected benchmark set
+            </Button>
+          </Group>
+
+          {selectedVersion ? (
             <Paper withBorder p="sm">
               <Stack gap="sm" mb="sm">
                 <Group gap="xs" wrap="wrap">
@@ -954,6 +1107,11 @@ export default function SettingsPage() {
                     <Badge color="kidex" variant="filled">Active in production</Badge>
                   ) : (
                     <Badge color="yellow" variant="light">Draft / non-live</Badge>
+                  )}
+                  {selectedVersion.activeVariant === selectedVariantName ? (
+                    <Badge color="teal" variant="light">Active benchmark set</Badge>
+                  ) : (
+                    <Badge color="blue" variant="light">Editing alternate benchmark set</Badge>
                   )}
                 </Group>
                 <TextInput
@@ -971,6 +1129,53 @@ export default function SettingsPage() {
                   <Text size="sm">Average minimum: {selectedVersionSummary?.averageMinimum ?? "-"}</Text>
                   <Text size="sm">Formula split: M {selectedFormulaPercentages.movement}% · S {selectedFormulaPercentages.social}% · Me {selectedFormulaPercentages.mental}%</Text>
                 </Group>
+
+                {selectedVariant ? (
+                  <Paper withBorder p="sm">
+                    <Stack gap="sm">
+                      <Text fw={700}>Benchmark variant governance</Text>
+                      <Group grow align="end">
+                        <TextInput
+                          label="Variant label"
+                          disabled={!canWriteSettings || selectedVersionMeta.status === "published"}
+                          value={selectedVariant.meta?.label || ""}
+                          onChange={(event) => updateVariantMeta("label", event.currentTarget.value)}
+                        />
+                        <TextInput
+                          label="Pathway / context"
+                          disabled={!canWriteSettings || selectedVersionMeta.status === "published"}
+                          value={selectedVariant.meta?.pathway || ""}
+                          onChange={(event) => updateVariantMeta("pathway", event.currentTarget.value)}
+                        />
+                        <Select
+                          label="Evidence status"
+                          value={selectedVariant.meta?.evidenceStatus || "validated"}
+                          data={[
+                            { value: "validated", label: "Validated" },
+                            { value: "provisional", label: "Provisional" },
+                            { value: "experimental", label: "Experimental" },
+                          ]}
+                          disabled={!canWriteSettings || selectedVersionMeta.status === "published"}
+                          onChange={(value) => value ? updateVariantMeta("evidenceStatus", value) : undefined}
+                        />
+                      </Group>
+                      <TextInput
+                        label="Applicability"
+                        disabled={!canWriteSettings || selectedVersionMeta.status === "published"}
+                        value={selectedVariant.meta?.applicability || ""}
+                        onChange={(event) => updateVariantMeta("applicability", event.currentTarget.value)}
+                      />
+                      <Textarea
+                        label="Variant notes"
+                        autosize
+                        minRows={2}
+                        disabled={!canWriteSettings || selectedVersionMeta.status === "published"}
+                        value={selectedVariant.meta?.notes || ""}
+                        onChange={(event) => updateVariantMeta("notes", event.currentTarget.value)}
+                      />
+                    </Stack>
+                  </Paper>
+                ) : null}
 
                 {selectedVersionIssues.length > 0 ? (
                   <Alert color={blockingVersionIssues.length > 0 ? "red" : "yellow"}>
@@ -1059,7 +1264,7 @@ export default function SettingsPage() {
                             min={0}
                             max={6}
                             decimalScale={2}
-                            value={selectedVersion[ageGroup][domain].target}
+                            value={selectedVariant?.[ageGroup][domain].target}
                             disabled={!canWriteSettings || selectedVersionMeta.status === "published"}
                             onChange={(value) => updateStandardValue(ageGroup, domain, "target", String(value ?? ""))}
                           />
@@ -1069,7 +1274,7 @@ export default function SettingsPage() {
                             min={0}
                             max={6}
                             decimalScale={2}
-                            value={selectedVersion[ageGroup][domain].min}
+                            value={selectedVariant?.[ageGroup][domain].min}
                             disabled={!canWriteSettings || selectedVersionMeta.status === "published"}
                             onChange={(value) => updateStandardValue(ageGroup, domain, "min", String(value ?? ""))}
                           />
@@ -1084,6 +1289,7 @@ export default function SettingsPage() {
                 Audit trail: created by {selectedVersionMeta.createdBy || "unknown"} on {selectedVersionMeta.createdAt ? new Date(selectedVersionMeta.createdAt).toLocaleString() : "-"}
                 {selectedVersionMeta.publishedAt ? ` · published by ${selectedVersionMeta.publishedBy || "unknown"} on ${new Date(selectedVersionMeta.publishedAt).toLocaleString()}` : " · not published yet"}
                 {selectedVersionMeta.sourceVersion ? ` · source version ${selectedVersionMeta.sourceVersion}` : ""}
+                {selectedVariant ? ` · benchmark ${selectedVariant.meta?.label || selectedVariantName} (${selectedVariant.meta?.evidenceStatus || "validated"})` : ""}
               </Text>
             </Paper>
           ) : null}

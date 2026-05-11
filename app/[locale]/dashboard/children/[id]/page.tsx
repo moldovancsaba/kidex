@@ -439,7 +439,7 @@ export default function ChildHistoryPage({ params }: { params: Promise<{ id: str
         <SectionCard title={tr("recommendationsTitle")}>
           <Stack gap="md">
             <Text size="sm" c="dimmed">
-              Standards version: {recommendationSummary.standardsVersionUsed || settings?.standards.activeVersion || "v1"} · SKI target {formatScore(recommendationSummary.ski.target)} · minimum {formatScore(recommendationSummary.ski.min)}
+              Standards version: {recommendationSummary.standardsVersionUsed || settings?.standards.activeVersion || "v1"}{recommendationSummary.standardsVariantUsed ? ` · benchmark ${recommendationSummary.standardsVariantUsed}` : ""} · SKI target {formatScore(recommendationSummary.ski.target)} · minimum {formatScore(recommendationSummary.ski.min)}
             </Text>
             {recommendationSummary.recommendations.map((recommendation) => (
               <Paper key={recommendation.id} withBorder p="md" radius="md">

@@ -5,6 +5,7 @@ import { parseAssessmentPayload } from "@/lib/validations";
 import { createAssessment, deleteAssessmentById, getAssessmentById, listAssessmentSummaries, restoreAssessmentById, updateAssessmentById, listDeletedAssessmentSummaries } from "@/repositories/assessment.repository";
 import { getChildById, updateChildById, upsertChild } from "@/repositories/child.repository";
 import { getGlobalSettings } from "@/repositories/settings.repository";
+import { getActiveVariantName } from "@/lib/standards-config";
 import { ObjectId } from "mongodb";
 
 export function parseObjectId(id: string) {
@@ -71,7 +72,9 @@ export async function createAssessmentFromPayload(input: unknown, actor?: Authen
 
   const settings = await getGlobalSettings();
   const standardsVersionUsed = settings?.standards?.activeVersion || "v1";
-  const activeFormula = settings?.standards?.versions?.[standardsVersionUsed]?.formula;
+  const activeVersion = settings?.standards?.versions?.[standardsVersionUsed];
+  const standardsVariantUsed = getActiveVariantName(activeVersion);
+  const activeFormula = activeVersion?.formula;
 
   return createAssessment(applyActorOwnershipToAssessment(actor || null, {
     ...payload,
@@ -83,6 +86,7 @@ export async function createAssessmentFromPayload(input: unknown, actor?: Authen
     },
     childId: child._id,
     standardsVersionUsed,
+    standardsVariantUsed,
     computed: computeAssessment(payload, activeFormula),
     createdAt: now,
     updatedAt: now,
@@ -142,7 +146,9 @@ export async function updateAssessmentFromPayload(id: ObjectId, input: unknown, 
   
   const settings = await getGlobalSettings();
   const standardsVersionUsed = settings?.standards?.activeVersion || existing?.standardsVersionUsed || "v1";
-  const activeFormula = settings?.standards?.versions?.[standardsVersionUsed]?.formula;
+  const activeVersion = settings?.standards?.versions?.[standardsVersionUsed];
+  const standardsVariantUsed = getActiveVariantName(activeVersion, existing?.standardsVariantUsed);
+  const activeFormula = activeVersion?.formula;
 
   return updateAssessmentById(id, applyActorOwnershipToAssessment(actor || null, {
     ...payload,
@@ -154,6 +160,7 @@ export async function updateAssessmentFromPayload(id: ObjectId, input: unknown, 
     },
     childId: child._id,
     standardsVersionUsed,
+    standardsVariantUsed,
     computed: computeAssessment(payload, activeFormula),
     updatedAt: now,
     updateHistory: [...updateHistory, ...(integrityIssues.length > 0 ? [`integrity:${integrityIssues.join(",")}:${now}`] : []), now]

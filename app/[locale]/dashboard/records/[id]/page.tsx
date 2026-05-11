@@ -305,7 +305,7 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
           <SectionCard title={tr("recommendationsTitle")}>
             <Stack gap="sm">
               <Text size="sm" c="dimmed">
-                Standards version: {recommendationSummary.standardsVersionUsed || settings?.standards.activeVersion || "v1"}
+                Standards version: {recommendationSummary.standardsVersionUsed || settings?.standards.activeVersion || "v1"}{recommendationSummary.standardsVariantUsed ? ` · benchmark ${recommendationSummary.standardsVariantUsed}` : ""}
               </Text>
               {recommendationSummary.recommendations.map((recommendation) => (
                 <Paper key={recommendation.id} withBorder p="sm">

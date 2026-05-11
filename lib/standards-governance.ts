@@ -1,5 +1,5 @@
-import type { StandardsAgeGroup, StandardsDomain, StandardsFormulaDefinition, StandardsVersion } from "@/lib/standards-config";
-import { AGE_GROUPS, DOMAINS } from "@/lib/standards-config";
+import type { StandardsAgeGroup, StandardsBenchmarkVariant, StandardsDomain, StandardsFormulaDefinition, StandardsVersion } from "@/lib/standards-config";
+import { AGE_GROUPS, DOMAINS, getVariantForVersion } from "@/lib/standards-config";
 
 const SCORING_DOMAINS: readonly Exclude<StandardsDomain, "ski">[] = ["movement", "social", "mental"];
 
@@ -17,8 +17,16 @@ export interface ReadinessImpactPreviewInput {
   };
 }
 
-export function summarizeVersionThresholds(version: StandardsVersion) {
-  const rows = AGE_GROUPS.flatMap((ageGroup) => DOMAINS.map((domain) => version[ageGroup][domain]));
+function variantRows(variant: StandardsBenchmarkVariant) {
+  return AGE_GROUPS.flatMap((ageGroup) => DOMAINS.map((domain) => variant[ageGroup][domain]));
+}
+
+export function summarizeVersionThresholds(version: StandardsVersion, variantName?: string) {
+  const variant = getVariantForVersion(version, variantName);
+  if (!variant) {
+    return { averageTarget: 0, averageMinimum: 0 };
+  }
+  const rows = variantRows(variant);
   const targetTotal = rows.reduce((sum, row) => sum + row.target, 0);
   const minTotal = rows.reduce((sum, row) => sum + row.min, 0);
 
@@ -28,12 +36,16 @@ export function summarizeVersionThresholds(version: StandardsVersion) {
   };
 }
 
-export function validateStandardsVersion(version: StandardsVersion): StandardsVersionIssue[] {
+export function validateStandardsVersion(version: StandardsVersion, variantName?: string): StandardsVersionIssue[] {
   const issues: StandardsVersionIssue[] = [];
+  const variant = getVariantForVersion(version, variantName);
+  if (!variant) {
+    return [{ severity: "error", message: "No benchmark variant is configured for this version." }];
+  }
 
   for (const ageGroup of AGE_GROUPS) {
     for (const domain of DOMAINS) {
-      const row = version[ageGroup][domain];
+      const row = variant[ageGroup][domain];
       if (!Number.isFinite(row.target) || !Number.isFinite(row.min)) {
         issues.push({ severity: "error", message: `${ageGroup} ${domain} contains a non-numeric threshold.` });
         continue;
@@ -64,6 +76,12 @@ export function validateStandardsVersion(version: StandardsVersion): StandardsVe
   if (!version.meta?.notes?.trim()) {
     issues.push({ severity: "warning", message: "Version notes are empty. Add rationale before publishing." });
   }
+  if (!variant.meta?.label?.trim()) {
+    issues.push({ severity: "warning", message: "Variant label is empty. Add a clear benchmark-set label." });
+  }
+  if (!variant.meta?.applicability?.trim()) {
+    issues.push({ severity: "warning", message: "Variant applicability is empty. Explain when this benchmark set should be used." });
+  }
 
   return issues;
 }
@@ -72,8 +90,13 @@ export function computeReadinessImpactPreview(
   baselineVersion: StandardsVersion | undefined,
   candidateVersion: StandardsVersion | undefined,
   assessments: ReadinessImpactPreviewInput[],
+  baselineVariantName?: string,
+  candidateVariantName?: string,
 ) {
   if (!baselineVersion || !candidateVersion) return null;
+  const baselineVariant = getVariantForVersion(baselineVersion, baselineVariantName);
+  const candidateVariant = getVariantForVersion(candidateVersion, candidateVariantName);
+  if (!baselineVariant || !candidateVariant) return null;
 
   let readyToDeveloping = 0;
   let developingToReady = 0;
@@ -85,8 +108,8 @@ export function computeReadinessImpactPreview(
     if (!ageGroup || !AGE_GROUPS.includes(ageGroup) || typeof ski !== "number") continue;
 
     total += 1;
-    const baselineReady = ski >= baselineVersion[ageGroup].ski.min;
-    const candidateReady = ski >= candidateVersion[ageGroup].ski.min;
+    const baselineReady = ski >= baselineVariant[ageGroup].ski.min;
+    const candidateReady = ski >= candidateVariant[ageGroup].ski.min;
 
     if (baselineReady && !candidateReady) readyToDeveloping += 1;
     if (!baselineReady && candidateReady) developingToReady += 1;

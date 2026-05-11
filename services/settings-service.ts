@@ -76,6 +76,36 @@ export const DEFAULT_KIDEX_SETTINGS: KidexSettings = {
           readinessThreshold: "min",
           aspirationThreshold: "target",
         },
+        activeVariant: "general",
+        variants: {
+          general: {
+            meta: {
+              label: "General baseline",
+              pathway: "general",
+              evidenceStatus: "validated",
+              applicability: "Default benchmark set for general youth-sport screening.",
+              notes: "Initial baseline benchmark set.",
+            },
+            "4-6": {
+              movement: { target: 4.5, min: 3.0 },
+              social: { target: 4.0, min: 2.5 },
+              mental: { target: 3.5, min: 2.0 },
+              ski: { target: 4.0, min: 2.5 }
+            },
+            "7-9": {
+              movement: { target: 5.0, min: 3.5 },
+              social: { target: 4.5, min: 3.0 },
+              mental: { target: 4.0, min: 2.5 },
+              ski: { target: 4.5, min: 3.0 }
+            },
+            "10-12": {
+              movement: { target: 5.5, min: 4.0 },
+              social: { target: 5.0, min: 3.5 },
+              mental: { target: 4.5, min: 3.0 },
+              ski: { target: 5.0, min: 3.5 }
+            }
+          }
+        },
         "4-6": {
           movement: { target: 4.5, min: 3.0 },
           social: { target: 4.0, min: 2.5 },

@@ -20,6 +20,7 @@ describe("standards governance helpers", () => {
   it("flags invalid thresholds and unbalanced formula weights", () => {
     const version = structuredClone(DEFAULT_KIDEX_SETTINGS.standards.versions.v1);
     version["4-6"].movement.min = 5.2;
+    version.variants!.general["4-6"].movement.min = 5.2;
     version.formula = {
       ...version.formula!,
       domainWeights: {
@@ -36,11 +37,29 @@ describe("standards governance helpers", () => {
     expect(issues.some((issue) => issue.message.includes("Version notes are empty"))).toBe(true);
   });
 
+  it("validates variant metadata and can target a specific variant", () => {
+    const version = structuredClone(DEFAULT_KIDEX_SETTINGS.standards.versions.v1);
+    version.variants!.pilot = structuredClone(version.variants!.general);
+    version.variants!.pilot.meta = {
+      label: "",
+      evidenceStatus: "experimental",
+      applicability: "",
+      pathway: "team-sport",
+      notes: "",
+    };
+
+    const issues = validateStandardsVersion(version, "pilot");
+    expect(issues.some((issue) => issue.message.includes("Variant label is empty"))).toBe(true);
+    expect(issues.some((issue) => issue.message.includes("Variant applicability is empty"))).toBe(true);
+  });
+
   it("computes readiness impact across age-group-specific ski thresholds", () => {
     const baseline = structuredClone(DEFAULT_KIDEX_SETTINGS.standards.versions.v1);
     const candidate = structuredClone(DEFAULT_KIDEX_SETTINGS.standards.versions.v1);
     candidate["4-6"].ski.min = 3.2;
     candidate["10-12"].ski.min = 3.2;
+    candidate.variants!.general["4-6"].ski.min = 3.2;
+    candidate.variants!.general["10-12"].ski.min = 3.2;
 
     expect(computeReadinessImpactPreview(baseline, candidate, [
       { child: { ageGroup: "4-6" }, computed: { ski: 3.1 } },

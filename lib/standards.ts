@@ -1,4 +1,4 @@
-import type { StandardsConfiguration, StandardsVersion } from "@/lib/standards-config";
+import { getActiveVariantName, getVariantForVersion, type StandardsConfiguration, type StandardsVersion } from "@/lib/standards-config";
 
 export interface DomainStandard {
   target: number;
@@ -41,7 +41,8 @@ export function getStandardForAgeGroup(ageGroup: string): AgeGroupStandard | nul
         const parsed = JSON.parse(raw) as { standards?: { activeVersion?: string; versions?: Record<string, StandardsVersion> } };
         const active = parsed.standards?.activeVersion;
         const version = active ? parsed.standards?.versions?.[active] : undefined;
-        if (version && (ageGroup === "4-6" || ageGroup === "7-9" || ageGroup === "10-12")) return version[ageGroup];
+        const variant = getVariantForVersion(version);
+        if (variant && (ageGroup === "4-6" || ageGroup === "7-9" || ageGroup === "10-12")) return variant[ageGroup];
       }
     } catch {
       // fallback to defaults
@@ -54,13 +55,18 @@ export function getStandardForAssessment(
   configuration: StandardsConfiguration | undefined,
   versionName: string | undefined,
   ageGroup: string,
+  variantName?: string,
 ): AgeGroupStandard | null {
   if (configuration && (ageGroup === "4-6" || ageGroup === "7-9" || ageGroup === "10-12")) {
     const requestedVersion = versionName && configuration.versions[versionName]
       ? configuration.versions[versionName]
       : configuration.versions[configuration.activeVersion];
-    if (requestedVersion?.[ageGroup]) {
-      return requestedVersion[ageGroup];
+    const resolvedVariant = getVariantForVersion(
+      requestedVersion,
+      variantName || getActiveVariantName(requestedVersion),
+    );
+    if (resolvedVariant?.[ageGroup]) {
+      return resolvedVariant[ageGroup];
     }
   }
   return getStandardForAgeGroup(ageGroup);

@@ -32,6 +32,7 @@ export interface RecommendationEvidence {
 export interface RecommendationSummary {
   readinessStatus: RecommendationStatus;
   standardsVersionUsed?: string;
+  standardsVariantUsed?: string;
   ski: {
     current: number | null;
     baseline: number | null;
@@ -203,6 +204,7 @@ export function buildRecommendationSummary(
   return {
     readinessStatus,
     standardsVersionUsed: record.standardsVersionUsed,
+    standardsVariantUsed: record.standardsVariantUsed,
     ski: {
       current: record.computed.ski,
       baseline: baseline?.computed.ski ?? null,
