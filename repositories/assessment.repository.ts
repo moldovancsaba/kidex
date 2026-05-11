@@ -108,7 +108,7 @@ export async function listAssessmentsByChildId(childId: string): Promise<Assessm
 
 export async function updateAssessmentsForChildProfile(
   childId: string,
-  nextChild: { name: string; birthDate: string; ageGroup?: "4-6" | "7-9" | "10-12" | ""; knownTraits?: string; parentSignals?: string; dominantHand?: string; dominantEye?: string; dominantFoot?: string; consentPhoto?: boolean; consentReport?: boolean }
+  nextChild: { name: string; birthDate: string; ageGroup?: "4-6" | "7-9" | "10-12" | ""; knownTraits?: string; parentSignals?: string; dominantHand?: string; dominantEye?: string; dominantFoot?: string }
 ) {
   const db = await getDatabase();
   const objectId = ObjectId.isValid(childId) ? new ObjectId(childId) : null;
@@ -126,8 +126,6 @@ export async function updateAssessmentsForChildProfile(
         "child.dominantHand": nextChild.dominantHand || "",
         "child.dominantEye": nextChild.dominantEye || "",
         "child.dominantFoot": nextChild.dominantFoot || "",
-        "session.consentPhoto": Boolean(nextChild.consentPhoto),
-        "session.consentReport": Boolean(nextChild.consentReport),
         updatedAt: new Date().toISOString()
       }
     }

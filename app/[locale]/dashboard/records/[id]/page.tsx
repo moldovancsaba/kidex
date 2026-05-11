@@ -8,6 +8,7 @@ import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { PdfService } from "@/lib/pdf-service";
 import { buildRecommendationSummary } from "@/lib/recommendations";
+import { hasActiveConsent } from "@/lib/consent-policy";
 import { getUsers } from "@/services/user-service";
 import { withDisplayNamesForReport } from "@/lib/report-user-display";
 import { logPdfExportTelemetry, validatePdfExport } from "@/lib/pdf-export-guards";
@@ -29,6 +30,7 @@ import { SectionCard } from "@/components/ui/SectionCard";
 import { ReadinessGauge } from "@/components/analytics/ReadinessGauge";
 import { MaturityRadarChart } from "@/components/analytics/MaturityRadarChart";
 import type { AssessmentRecord } from "@/types/assessment";
+import type { ChildProfile } from "@/repositories/child.repository";
 import type { KidexSettings } from "@/services/settings-service";
 import type { DevelopmentPlan } from "@/lib/development-plans";
 
@@ -53,6 +55,7 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
   const [downloadingPdf, setDownloadingPdf] = useState(false);
   const [settings, setSettings] = useState<KidexSettings | null>(null);
   const [plan, setPlan] = useState<DevelopmentPlan | null>(null);
+  const [child, setChild] = useState<ChildProfile | null>(null);
 
   const sections = record ? sectionsForMode(record.mode) : [];
   const recordedAt = record ? new Date(record.createdAt) : new Date();
@@ -84,6 +87,7 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
         ts,
       );
       if (audience === "family") {
+        if (!hasActiveConsent(child?.consentPolicy, "familyReport")) return;
         await PdfService.generateFamilyReport(printableRecord, t, tc, ts, tr, recommendationSummary, plan);
       } else if (reportFormat === "map") {
         await PdfService.generateMapReport(printableRecord, t, tc, ts, tr, history, recommendationSummary);
@@ -93,6 +97,7 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
       await logPdfExportTelemetry({
         status: "success",
         format: reportFormat === "map" ? "map" : "original",
+        audience,
         childId: record.childId,
         recordId: record._id,
         durationMs: Date.now() - startedAt,
@@ -103,6 +108,7 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
       await logPdfExportTelemetry({
         status: "failed",
         format: reportFormat === "map" ? "map" : "original",
+        audience,
         childId: record.childId,
         recordId: record._id,
         durationMs: Date.now() - startedAt,
@@ -130,7 +136,10 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
             .catch(() => null);
           fetch(`/api/children/${data.assessment.childId}/history`)
             .then(r => r.json())
-            .then(hData => setHistory(hData.assessments || []));
+            .then(hData => {
+              setHistory(hData.assessments || []);
+              setChild(hData.child || null);
+            });
         }
       })
       .finally(() => setLoading(false));
@@ -175,6 +184,7 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
     getStandardForAssessment(settings?.standards, record.standardsVersionUsed, record.child.ageGroup),
     ts,
   );
+  const canGenerateFamilyReport = hasActiveConsent(child?.consentPolicy, "familyReport");
   const deltaRadarData = [
     { subject: ts("movement"), A: record.computed.movementAverage || 0, B: baseline?.computed.movementAverage || 0, fullMark: 6 },
     { subject: ts("social"), A: record.computed.socialAverage || 0, B: baseline?.computed.socialAverage || 0, fullMark: 6 },
@@ -223,6 +233,7 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
                 variant="light"
                 onClick={() => void downloadPdf("family")}
                 loading={downloadingPdf}
+                disabled={!canGenerateFamilyReport}
               >
                 {tr("familyReportTitle")}
               </Button>

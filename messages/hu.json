@@ -156,6 +156,16 @@
     "caregiverContactSms": "Kapcsolat SMS-ben",
     "caregiverCountBadge": "{count, plural, one {# gondviselő} other {# gondviselő}}",
     "familyReportsEnabled": "Családi riport engedélyezve",
+    "consentManagement": "Hozzájárulás-kezelés",
+    "consentEffectiveFrom": "Érvényes ettől",
+    "consentExpiresAt": "Lejárat",
+    "consentNotes": "Hozzájárulási megjegyzések",
+    "consentPolicyLabel": {
+      "mediaCapture": "Fotó- és videókészítés",
+      "familyReport": "Családi riport megosztása",
+      "dataSharing": "Szakmai adatmegosztás",
+      "publicity": "Publikus és promóciós felhasználás"
+    },
     "caregiverRelationship": {
       "mother": "Anya",
       "father": "Apa",

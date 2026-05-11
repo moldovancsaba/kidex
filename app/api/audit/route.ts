@@ -30,6 +30,7 @@ export async function POST(request: Request) {
   try {
     const body = await readJson(request) as {
       format?: "map" | "original";
+      audience?: "professional" | "family";
       status?: "success" | "failed";
       childId?: string;
       recordId?: string;
@@ -57,6 +58,7 @@ export async function POST(request: Request) {
       summary: `PDF ${body?.status === "failed" ? "export failed" : "export generated"} (${body?.format || "original"})`,
       metadata: {
         format: body?.format || "original",
+        audience: body?.audience || "professional",
         childId: body?.childId,
         recordId: body?.recordId,
         durationMs: body?.durationMs,

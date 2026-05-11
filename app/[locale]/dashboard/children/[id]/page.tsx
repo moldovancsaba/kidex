@@ -22,6 +22,7 @@ import { SparklineChart } from "@/components/analytics/SparklineChart";
 import { canPerformAction } from "@/lib/permissions";
 import { buildRecommendationSummary } from "@/lib/recommendations";
 import { buildSuggestedDevelopmentPlan, type DevelopmentPlan } from "@/lib/development-plans";
+import { hasActiveConsent } from "@/lib/consent-policy";
 import { getStandardForAssessment } from "@/lib/standards";
 import type { AssessmentRecord } from "@/types/assessment";
 import type { ChildProfile } from "@/repositories/child.repository";
@@ -70,6 +71,7 @@ export default function ChildHistoryPage({ params }: { params: Promise<{ id: str
 
   const canWriteAssessments = canPerformAction(roles, "assessments.write");
   const canWritePlans = canPerformAction(roles, "children.write");
+  const canGenerateFamilyReport = hasActiveConsent(data?.child?.consentPolicy, "familyReport");
 
   async function downloadPdf() {
     if (!data || data.assessments.length === 0) return;
@@ -92,6 +94,7 @@ export default function ChildHistoryPage({ params }: { params: Promise<{ id: str
       await logPdfExportTelemetry({
         status: "success",
         format: "map",
+        audience: "professional",
         childId: latestRecord.childId,
         recordId: latestRecord._id,
         durationMs: Date.now() - startedAt,
@@ -102,6 +105,7 @@ export default function ChildHistoryPage({ params }: { params: Promise<{ id: str
       await logPdfExportTelemetry({
         status: "failed",
         format: "map",
+        audience: "professional",
         childId: latestRecord.childId,
         recordId: latestRecord._id,
         durationMs: Date.now() - startedAt,
@@ -271,6 +275,7 @@ export default function ChildHistoryPage({ params }: { params: Promise<{ id: str
               variant="light"
               onClick={async () => {
                 if (!latest || !recommendationSummary) return;
+                if (!canGenerateFamilyReport) return;
                 setDownloadingPdf(true);
                 try {
                   const users = await getUsers();
@@ -280,7 +285,7 @@ export default function ChildHistoryPage({ params }: { params: Promise<{ id: str
                   setDownloadingPdf(false);
                 }
               }}
-              disabled={data.assessments.length === 0}
+              disabled={data.assessments.length === 0 || !canGenerateFamilyReport}
             >
               {tr("familyReportTitle")}
             </Button>

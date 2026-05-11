@@ -81,6 +81,7 @@ export async function PATCH(request: Request, context: RouteContext) {
         mode: assessment.mode,
         sessionDate: assessment.session.date,
         standardsVersionUsed: assessment.standardsVersionUsed,
+        consentSnapshot: assessment.session.consentSnapshot,
       },
     });
 

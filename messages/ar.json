@@ -138,6 +138,16 @@
     "showDeleted": "عرض المحذوف",
     "showingDeleted": "عرض العناصر المحذوفة",
     "addChild": "إضافة طفل",
+    "consentManagement": "إدارة الموافقات",
+    "consentEffectiveFrom": "ساري من",
+    "consentExpiresAt": "ينتهي في",
+    "consentNotes": "ملاحظات الموافقة",
+    "consentPolicyLabel": {
+      "mediaCapture": "التقاط الصور والفيديو",
+      "familyReport": "مشاركة تقرير الأسرة",
+      "dataSharing": "مشاركة البيانات المهنية",
+      "publicity": "الاستخدام الدعائي والترويجي"
+    },
     "typeDeleteToConfirm": "اكتب `delete` للتأكيد.",
     "restoreChild": "استعادة الطفل",
     "typeRestoreToConfirm": "اكتب `restore` للتأكيد.",

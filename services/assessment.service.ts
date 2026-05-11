@@ -1,4 +1,5 @@
 import { computeAssessment } from "@/lib/scoring";
+import { buildAssessmentConsentSnapshot, deriveLegacyConsents, normalizeConsentPolicy } from "@/lib/consent-policy";
 import { applyActorOwnershipToAssessment, applyActorOwnershipToChild, type AuthenticatedActor } from "@/lib/authorization";
 import { parseAssessmentPayload } from "@/lib/validations";
 import { createAssessment, deleteAssessmentById, getAssessmentById, listAssessmentSummaries, restoreAssessmentById, updateAssessmentById, listDeletedAssessmentSummaries } from "@/repositories/assessment.repository";
@@ -31,7 +32,6 @@ export async function createAssessmentFromPayload(input: unknown, actor?: Authen
   const integrityIssues: string[] = [];
   if (!payload.child.name || !payload.child.birthDate) integrityIssues.push("missing_child_identity");
   if (!payload.childId) integrityIssues.push("missing_child_link");
-  if (!payload.session.consentReport) integrityIssues.push("missing_report_consent");
   const scoredCount = Object.values(payload.scores).filter((entry) => typeof entry.score === "number").length;
   if (scoredCount === 0) integrityIssues.push("no_scores_recorded");
 
@@ -46,8 +46,28 @@ export async function createAssessmentFromPayload(input: unknown, actor?: Authen
   });
   const childObjectId = payload.childId ? parseObjectId(payload.childId) : null;
   const existingChild = childObjectId ? await getChildById(childObjectId) : null;
-  const updatedChild = existingChild && childObjectId ? await updateChildById(childObjectId, childProfile) : null;
-  const child = updatedChild ?? (await upsertChild(childProfile));
+  const nextChildProfile = existingChild
+    ? {
+        ...childProfile,
+        consentPhoto: existingChild.consentPhoto,
+        consentReport: existingChild.consentReport,
+        consentPolicy: existingChild.consentPolicy,
+        consentHistory: existingChild.consentHistory,
+      }
+    : {
+        ...childProfile,
+        consentPolicy: normalizeConsentPolicy(undefined, {
+          consentPhoto: payload.session.consentPhoto,
+          consentReport: payload.session.consentReport,
+        }),
+        consentPhoto: payload.session.consentPhoto,
+        consentReport: payload.session.consentReport,
+      };
+  const updatedChild = existingChild && childObjectId ? await updateChildById(childObjectId, nextChildProfile) : null;
+  const child = updatedChild ?? (await upsertChild(nextChildProfile));
+  const consentSnapshot = buildAssessmentConsentSnapshot(child.consentPolicy, now);
+  const legacyConsent = deriveLegacyConsents(child.consentPolicy, now);
+  if (!consentSnapshot.familyReport) integrityIssues.push("missing_report_consent");
 
   const settings = await getGlobalSettings();
   const standardsVersionUsed = settings?.standards?.activeVersion || "v1";
@@ -55,6 +75,12 @@ export async function createAssessmentFromPayload(input: unknown, actor?: Authen
 
   return createAssessment(applyActorOwnershipToAssessment(actor || null, {
     ...payload,
+    session: {
+      ...payload.session,
+      consentPhoto: legacyConsent.consentPhoto,
+      consentReport: legacyConsent.consentReport,
+      consentSnapshot,
+    },
     childId: child._id,
     standardsVersionUsed,
     computed: computeAssessment(payload, activeFormula),
@@ -73,7 +99,6 @@ export async function updateAssessmentFromPayload(id: ObjectId, input: unknown, 
   const integrityIssues: string[] = [];
   if (!payload.child.name || !payload.child.birthDate) integrityIssues.push("missing_child_identity");
   if (!payload.childId) integrityIssues.push("missing_child_link");
-  if (!payload.session.consentReport) integrityIssues.push("missing_report_consent");
   const scoredCount = Object.values(payload.scores).filter((entry) => typeof entry.score === "number").length;
   if (scoredCount === 0) integrityIssues.push("no_scores_recorded");
 
@@ -88,8 +113,28 @@ export async function updateAssessmentFromPayload(id: ObjectId, input: unknown, 
   });
   const childObjectId = payload.childId ? parseObjectId(payload.childId) : null;
   const existingChild = childObjectId ? await getChildById(childObjectId) : null;
-  const updatedChild = existingChild && childObjectId ? await updateChildById(childObjectId, childProfile) : null;
-  const child = updatedChild ?? (await upsertChild(childProfile));
+  const nextChildProfile = existingChild
+    ? {
+        ...childProfile,
+        consentPhoto: existingChild.consentPhoto,
+        consentReport: existingChild.consentReport,
+        consentPolicy: existingChild.consentPolicy,
+        consentHistory: existingChild.consentHistory,
+      }
+    : {
+        ...childProfile,
+        consentPolicy: normalizeConsentPolicy(undefined, {
+          consentPhoto: payload.session.consentPhoto,
+          consentReport: payload.session.consentReport,
+        }),
+        consentPhoto: payload.session.consentPhoto,
+        consentReport: payload.session.consentReport,
+      };
+  const updatedChild = existingChild && childObjectId ? await updateChildById(childObjectId, nextChildProfile) : null;
+  const child = updatedChild ?? (await upsertChild(nextChildProfile));
+  const consentSnapshot = buildAssessmentConsentSnapshot(child.consentPolicy, new Date().toISOString());
+  const legacyConsent = deriveLegacyConsents(child.consentPolicy);
+  if (!consentSnapshot.familyReport) integrityIssues.push("missing_report_consent");
 
   const existing = await getAssessmentById(id);
   const updateHistory = existing?.updateHistory || [];
@@ -101,6 +146,12 @@ export async function updateAssessmentFromPayload(id: ObjectId, input: unknown, 
 
   return updateAssessmentById(id, applyActorOwnershipToAssessment(actor || null, {
     ...payload,
+    session: {
+      ...payload.session,
+      consentPhoto: legacyConsent.consentPhoto,
+      consentReport: legacyConsent.consentReport,
+      consentSnapshot,
+    },
     childId: child._id,
     standardsVersionUsed,
     computed: computeAssessment(payload, activeFormula),

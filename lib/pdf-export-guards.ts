@@ -18,6 +18,7 @@ export function validatePdfExport(record: AssessmentRecord | null | undefined, h
 export async function logPdfExportTelemetry(event: {
   status: "success" | "failed";
   format: "map" | "original";
+  audience?: "professional" | "family";
   childId?: string;
   recordId?: string;
   locale?: string;

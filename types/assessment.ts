@@ -1,3 +1,5 @@
+import type { AssessmentConsentSnapshot } from "@/lib/consent-policy";
+
 export type AssessmentMode = "rapid" | "full";
 export type AssessmentDomain = "movement" | "social" | "mental";
 
@@ -48,6 +50,7 @@ export interface AssessmentPayload {
     context: "structured" | "spontaneous" | "mixed" | "event";
     consentPhoto: boolean;
     consentReport: boolean;
+    consentSnapshot?: AssessmentConsentSnapshot;
   };
   scores: Record<string, ScoreEntry>;
   notes: {

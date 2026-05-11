@@ -1,4 +1,6 @@
 import { ObjectId } from "mongodb";
+import type { ChildConsentPolicy, ConsentHistoryEvent } from "@/lib/consent-policy";
+import { normalizeConsentPolicy } from "@/lib/consent-policy";
 import { getDatabase } from "@/lib/mongodb";
 import { toJsonId } from "@/lib/utils";
 import type { FamilyAccessEvent, FamilyCaregiver } from "@/lib/family-access";
@@ -15,6 +17,8 @@ export interface ChildProfile {
   ageGroup?: "4-6" | "7-9" | "10-12" | "";
   consentPhoto?: boolean;
   consentReport?: boolean;
+  consentPolicy?: ChildConsentPolicy;
+  consentHistory?: ConsentHistoryEvent[];
   dominantHand?: string;
   dominantEye?: string;
   dominantFoot?: string;
@@ -210,6 +214,11 @@ export async function deleteChildById(id: ObjectId) {
     ageGroup: (typeof jsonChild.ageGroup === "string" ? jsonChild.ageGroup : "") as ChildProfile["ageGroup"],
     consentPhoto: Boolean(jsonChild.consentPhoto),
     consentReport: Boolean(jsonChild.consentReport),
+    consentPolicy: normalizeConsentPolicy(jsonChild.consentPolicy, {
+      consentPhoto: Boolean(jsonChild.consentPhoto),
+      consentReport: Boolean(jsonChild.consentReport),
+    }) as ChildConsentPolicy,
+    consentHistory: Array.isArray(jsonChild.consentHistory) ? (jsonChild.consentHistory as ConsentHistoryEvent[]) : [],
     dominantHand: typeof jsonChild.dominantHand === "string" ? jsonChild.dominantHand : "",
     dominantEye: typeof jsonChild.dominantEye === "string" ? jsonChild.dominantEye : "",
     dominantFoot: typeof jsonChild.dominantFoot === "string" ? jsonChild.dominantFoot : "",

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { buildConsentHistoryEvents, deriveLegacyConsents, mergeConsentHistory } from "@/lib/consent-policy";
 import { listChildren, listChildrenWithMetrics, listDeletedChildren, upsertChild } from "@/repositories/child.repository";
 import { buildFamilyAccessEvents, mergeFamilyAccessHistory } from "@/lib/family-access";
 import { applyActorOwnershipToChild, canReadChild, requirePermission } from "@/lib/authorization";
@@ -47,8 +48,17 @@ export async function POST(request: Request) {
       next: body.caregivers,
       actorEmail: actor?.email,
     });
+    const consentEvents = buildConsentHistoryEvents({
+      previous: undefined,
+      next: body.consentPolicy,
+      actorEmail: actor?.email,
+    });
+    const legacyConsent = deriveLegacyConsents(body.consentPolicy);
     const child = await upsertChild(applyActorOwnershipToChild(actor, {
       ...body,
+      consentPhoto: legacyConsent.consentPhoto,
+      consentReport: legacyConsent.consentReport,
+      consentHistory: mergeConsentHistory([], consentEvents),
       familyAccessHistory: mergeFamilyAccessHistory([], familyAccessEvents),
     }));
     await recordAuditEvent({
@@ -67,8 +77,26 @@ export async function POST(request: Request) {
         consentPhoto: child.consentPhoto,
         consentReport: child.consentReport,
         caregiverCount: child.caregivers?.length || 0,
+        consentEvents,
       },
     });
+    if (consentEvents.length > 0) {
+      await recordAuditEvent({
+        action: "consent.update",
+        status: "success",
+        actor,
+        request,
+        institutionId: child.institutionId,
+        targetType: "child",
+        targetId: child._id,
+        targetLabel: child.name,
+        summary: "Consent policy created",
+        metadata: {
+          consentEvents,
+          consentPolicy: child.consentPolicy,
+        },
+      });
+    }
     if (familyAccessEvents.length > 0) {
       await recordAuditEvent({
         action: "family.upsert",

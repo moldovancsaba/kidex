@@ -156,6 +156,16 @@
     "caregiverContactSms": "Contact by SMS",
     "caregiverCountBadge": "{count, plural, one {# caregiver} other {# caregivers}}",
     "familyReportsEnabled": "Family reports enabled",
+    "consentManagement": "Consent management",
+    "consentEffectiveFrom": "Effective from",
+    "consentExpiresAt": "Expires at",
+    "consentNotes": "Consent notes",
+    "consentPolicyLabel": {
+      "mediaCapture": "Photo and video capture",
+      "familyReport": "Family report sharing",
+      "dataSharing": "Professional data sharing",
+      "publicity": "Publicity and promotional use"
+    },
     "caregiverRelationship": {
       "mother": "Mother",
       "father": "Father",

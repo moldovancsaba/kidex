@@ -3,6 +3,7 @@ import { env } from "@/config/env";
 import { jsonError } from "@/lib/api";
 import { canReadAssessment, canReadChild, requirePermission } from "@/lib/authorization";
 import { recordAuditEvent } from "@/lib/audit";
+import { hasActiveConsent } from "@/lib/consent-policy";
 import { getAssessment } from "@/services/assessment.service";
 import { getChildById } from "@/repositories/child.repository";
 import { ObjectId } from "mongodb";
@@ -36,7 +37,8 @@ export async function POST(request: Request) {
   }
 
   const assessment = recordId && ObjectId.isValid(recordId) ? await getAssessment(new ObjectId(recordId)) : null;
-  const child = !assessment && childId && ObjectId.isValid(childId) ? await getChildById(new ObjectId(childId)) : null;
+  const childFromAssessment = assessment?.childId && ObjectId.isValid(assessment.childId) ? await getChildById(new ObjectId(assessment.childId)) : null;
+  const child = childFromAssessment || (!assessment && childId && ObjectId.isValid(childId) ? await getChildById(new ObjectId(childId)) : null);
   if (assessment && !canReadAssessment(actor, assessment)) {
     return jsonError("Insufficient permissions", 403, "FORBIDDEN");
   }
@@ -45,9 +47,11 @@ export async function POST(request: Request) {
   }
 
   const effectiveConsentPhoto = assessment
-    ? Boolean(assessment.session?.consentPhoto)
+    ? child
+      ? hasActiveConsent(child.consentPolicy, "mediaCapture")
+      : Boolean(assessment.session?.consentSnapshot?.mediaCapture ?? assessment.session?.consentPhoto)
     : child
-      ? Boolean(child.consentPhoto)
+      ? hasActiveConsent(child.consentPolicy, "mediaCapture")
       : assertedConsentPhoto;
   if (!effectiveConsentPhoto) {
     await recordAuditEvent({

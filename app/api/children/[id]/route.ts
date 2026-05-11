@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { applyActorOwnershipToChild, canReadChild, canWriteChild, requirePermission } from "@/lib/authorization";
 import { recordAuditEvent } from "@/lib/audit";
 import { jsonError, readJson } from "@/lib/api";
+import { buildConsentHistoryEvents, deriveLegacyConsents, mergeConsentHistory } from "@/lib/consent-policy";
 import { buildFamilyAccessEvents, mergeFamilyAccessHistory } from "@/lib/family-access";
 import { parseChildPayload } from "@/lib/validations";
 import { deleteAssessmentsForChild, updateAssessmentsForChildProfile } from "@/repositories/assessment.repository";
@@ -56,9 +57,18 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       next: parsedPayload.caregivers,
       actorEmail: actor?.email,
     });
+    const consentEvents = buildConsentHistoryEvents({
+      previous: existingChild.consentPolicy,
+      next: parsedPayload.consentPolicy,
+      actorEmail: actor?.email,
+    });
+    const legacyConsent = deriveLegacyConsents(parsedPayload.consentPolicy);
     const payload = applyActorOwnershipToChild(actor, {
       ...existingChild,
       ...parsedPayload,
+      consentPhoto: legacyConsent.consentPhoto,
+      consentReport: legacyConsent.consentReport,
+      consentHistory: mergeConsentHistory(existingChild.consentHistory, consentEvents),
       familyAccessHistory: mergeFamilyAccessHistory(existingChild.familyAccessHistory, familyAccessEvents),
     });
     if (!payload.name || !payload.birthDate) {
@@ -76,8 +86,6 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       dominantHand: payload.dominantHand,
       dominantEye: payload.dominantEye,
       dominantFoot: payload.dominantFoot,
-      consentPhoto: payload.consentPhoto,
-      consentReport: payload.consentReport
     });
 
     await recordAuditEvent({
@@ -96,8 +104,26 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         consentReport: payload.consentReport,
         caregiverCount: payload.caregivers?.length || 0,
         familyAccessEvents,
+        consentEvents,
       },
     });
+    if (consentEvents.length > 0) {
+      await recordAuditEvent({
+        action: "consent.update",
+        status: "success",
+        actor,
+        request,
+        institutionId: child?.institutionId || existingChild.institutionId,
+        targetType: "child",
+        targetId: id,
+        targetLabel: payload.name,
+        summary: "Consent policy updated",
+        metadata: {
+          consentEvents,
+          consentPolicy: payload.consentPolicy,
+        },
+      });
+    }
     if (familyAccessEvents.length > 0) {
       await recordAuditEvent({
         action: "family.upsert",

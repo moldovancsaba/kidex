@@ -45,6 +45,7 @@ export async function POST(request: Request) {
         standardsVersionUsed: assessment.standardsVersionUsed,
         consentPhoto: assessment.session.consentPhoto,
         consentReport: assessment.session.consentReport,
+        consentSnapshot: assessment.session.consentSnapshot,
       },
     });
     return NextResponse.json({ assessment }, { status: 201 });

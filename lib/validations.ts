@@ -1,4 +1,5 @@
 import type { AssessmentPayload, EvidenceAttachment, ScoreEntry } from "@/types/assessment";
+import { normalizeConsentPolicy, type ChildConsentPolicy } from "@/lib/consent-policy";
 import { normalizeFamilyCaregivers, type FamilyCaregiver } from "@/lib/family-access";
 import { ensureInstitutionIds, normalizeInstitutionDirectory, type InstitutionDefinition } from "@/lib/institutions";
 import { sanitizeStoredRoles, type SupportedRuntimeRole } from "@/lib/roles";
@@ -194,6 +195,7 @@ export interface ChildPayload {
   ageGroup: "4-6" | "7-9" | "10-12" | "";
   consentPhoto: boolean;
   consentReport: boolean;
+  consentPolicy: ChildConsentPolicy;
   dominantHand: string;
   dominantEye: string;
   dominantFoot: string;
@@ -211,6 +213,10 @@ export function parseChildPayload(input: unknown): ChildPayload {
     ageGroup: (["4-6", "7-9", "10-12"].includes(stringValue(data.ageGroup, 10).trim()) ? stringValue(data.ageGroup, 10).trim() : "") as ChildPayload["ageGroup"],
     consentPhoto: booleanValue(data.consentPhoto),
     consentReport: booleanValue(data.consentReport),
+    consentPolicy: normalizeConsentPolicy(data.consentPolicy, {
+      consentPhoto: booleanValue(data.consentPhoto),
+      consentReport: booleanValue(data.consentReport),
+    }),
     dominantHand: stringValue(data.dominantHand, 80),
     dominantEye: stringValue(data.dominantEye, 80),
     dominantFoot: stringValue(data.dominantFoot, 80),

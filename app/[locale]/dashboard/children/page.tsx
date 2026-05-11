@@ -5,6 +5,7 @@ import { Alert, Badge, Box, Button, Checkbox, Divider, Group, Loader, Modal, Mul
 import { useParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
+import { defaultConsentPolicy, deriveLegacyConsents, type ChildConsentPolicy, type ConsentPolicyKey } from "@/lib/consent-policy";
 import { canPerformAction } from "@/lib/permissions";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { SectionCard } from "@/components/ui/SectionCard";
@@ -38,8 +39,7 @@ export default function ChildrenListPage() {
   const [draftKnownTraits, setDraftKnownTraits] = useState("");
   const [draftParentSignals, setDraftParentSignals] = useState("");
   const [draftAgeGroup, setDraftAgeGroup] = useState<"" | "4-6" | "7-9" | "10-12">("");
-  const [draftConsentPhoto, setDraftConsentPhoto] = useState(false);
-  const [draftConsentReport, setDraftConsentReport] = useState(false);
+  const [draftConsentPolicy, setDraftConsentPolicy] = useState<ChildConsentPolicy>(defaultConsentPolicy());
   const [draftCaregivers, setDraftCaregivers] = useState<FamilyCaregiver[]>([]);
   const [saving, setSaving] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
@@ -120,6 +120,7 @@ export default function ChildrenListPage() {
       await logPdfExportTelemetry({
         status: "success",
         format: "map",
+        audience: "professional",
         childId,
         recordId: assessment._id,
         durationMs: new Date().getTime() - startedAt,
@@ -130,6 +131,7 @@ export default function ChildrenListPage() {
       await logPdfExportTelemetry({
         status: "failed",
         format: "map",
+        audience: "professional",
         childId,
         recordId: latestRecordId,
         durationMs: new Date().getTime() - startedAt,
@@ -202,8 +204,10 @@ export default function ChildrenListPage() {
     setDraftKnownTraits(child.knownTraits || "");
     setDraftParentSignals(child.parentSignals || "");
     setDraftAgeGroup((child.ageGroup || calculateAgeGroup(child.birthDate) || "") as "" | "4-6" | "7-9" | "10-12");
-    setDraftConsentPhoto(Boolean(child.consentPhoto));
-    setDraftConsentReport(Boolean(child.consentReport));
+    setDraftConsentPolicy(child.consentPolicy || defaultConsentPolicy({
+      consentPhoto: child.consentPhoto,
+      consentReport: child.consentReport,
+    }));
     setDraftCaregivers(child.caregivers || []);
   }
 
@@ -214,8 +218,7 @@ export default function ChildrenListPage() {
     setDraftKnownTraits("");
     setDraftParentSignals("");
     setDraftAgeGroup("");
-    setDraftConsentPhoto(false);
-    setDraftConsentReport(false);
+    setDraftConsentPolicy(defaultConsentPolicy());
     setDraftCaregivers([]);
   }
 
@@ -225,6 +228,7 @@ export default function ChildrenListPage() {
     }
 
     setSaving(true);
+    const legacyConsent = deriveLegacyConsents(draftConsentPolicy);
     const response = await fetch(`/api/children/${editing._id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -232,8 +236,9 @@ export default function ChildrenListPage() {
         name: draftName,
         birthDate: draftBirthDate,
         ageGroup: draftAgeGroup || calculateAgeGroup(draftBirthDate) || "",
-        consentPhoto: draftConsentPhoto,
-        consentReport: draftConsentReport,
+        consentPhoto: legacyConsent.consentPhoto,
+        consentReport: legacyConsent.consentReport,
+        consentPolicy: draftConsentPolicy,
         dominantHand: editing.dominantHand || "",
         dominantEye: editing.dominantEye || "",
         dominantFoot: editing.dominantFoot || "",
@@ -260,6 +265,7 @@ export default function ChildrenListPage() {
   async function createChild() {
     if (!draftName.trim() || !draftBirthDate.trim()) return;
     setSaving(true);
+    const legacyConsent = deriveLegacyConsents(draftConsentPolicy);
     const response = await fetch("/api/children", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -267,8 +273,9 @@ export default function ChildrenListPage() {
         name: draftName,
         birthDate: draftBirthDate,
         ageGroup: draftAgeGroup || calculateAgeGroup(draftBirthDate) || "",
-        consentPhoto: draftConsentPhoto,
-        consentReport: draftConsentReport,
+        consentPhoto: legacyConsent.consentPhoto,
+        consentReport: legacyConsent.consentReport,
+        consentPolicy: draftConsentPolicy,
         dominantHand: "",
         dominantEye: "",
         dominantFoot: "",
@@ -323,9 +330,20 @@ export default function ChildrenListPage() {
     setDraftCaregivers((current) => current.filter((_, caregiverIndex) => caregiverIndex !== index));
   }
 
+  function updateConsentEntry(key: ConsentPolicyKey, field: keyof ChildConsentPolicy[ConsentPolicyKey], value: string | boolean) {
+    setDraftConsentPolicy((current) => ({
+      ...current,
+      [key]: {
+        ...current[key],
+        [field]: value,
+      },
+    }));
+  }
+
   const caregiverRelationshipOptions = FAMILY_RELATIONSHIPS.map((relationship) => ({ value: relationship, label: t(`caregiverRelationship.${relationship}`) }));
   const caregiverAccessLevelOptions = FAMILY_ACCESS_LEVELS.map((accessLevel) => ({ value: accessLevel, label: t(`caregiverAccessLevelLabel.${accessLevel}`) }));
   const caregiverStatusOptions = FAMILY_CAREGIVER_STATUSES.map((status) => ({ value: status, label: t(`caregiverStatusLabel.${status}`) }));
+  const consentKeys: ConsentPolicyKey[] = ["mediaCapture", "familyReport", "dataSharing", "publicity"];
 
   async function deleteChild(child: ChildProfile) {
     if (!child._id) return;
@@ -544,10 +562,40 @@ export default function ChildrenListPage() {
             <Select label={ta("ageGroup")} value={draftAgeGroup} onChange={(v) => setDraftAgeGroup(parseAgeGroup(v))} data={[{ value: "", label: ta("ageGroupPending") }, { value: "4-6", label: "4-6" }, { value: "7-9", label: "7-9" }, { value: "10-12", label: "10-12" }]} />
             <Textarea label={ta("knownTraits")} value={draftKnownTraits} onChange={(event) => setDraftKnownTraits(event.target.value)} minRows={2} />
             <Textarea label={ta("parentSignals")} value={draftParentSignals} onChange={(event) => setDraftParentSignals(event.target.value)} minRows={2} />
-            <Group>
-              <Checkbox label={ta("consentPhoto")} checked={draftConsentPhoto} onChange={(event) => setDraftConsentPhoto(event.currentTarget.checked)} />
-              <Checkbox label={ta("consentReport")} checked={draftConsentReport} onChange={(event) => setDraftConsentReport(event.currentTarget.checked)} />
-            </Group>
+            <Divider label={t("consentManagement")} labelPosition="left" />
+            <Stack gap="sm">
+              {consentKeys.map((key) => (
+                <Paper key={key} withBorder p="sm" radius="md">
+                  <Stack gap="sm">
+                    <Checkbox
+                      label={t(`consentPolicyLabel.${key}`)}
+                      checked={draftConsentPolicy[key].granted}
+                      onChange={(event) => updateConsentEntry(key, "granted", event.currentTarget.checked)}
+                    />
+                    <Group grow align="start">
+                      <TextInput
+                        label={t("consentEffectiveFrom")}
+                        type="date"
+                        value={draftConsentPolicy[key].effectiveFrom || ""}
+                        onChange={(event) => updateConsentEntry(key, "effectiveFrom", event.currentTarget.value)}
+                      />
+                      <TextInput
+                        label={t("consentExpiresAt")}
+                        type="date"
+                        value={draftConsentPolicy[key].expiresAt || ""}
+                        onChange={(event) => updateConsentEntry(key, "expiresAt", event.currentTarget.value)}
+                      />
+                    </Group>
+                    <Textarea
+                      label={t("consentNotes")}
+                      value={draftConsentPolicy[key].notes}
+                      onChange={(event) => updateConsentEntry(key, "notes", event.currentTarget.value)}
+                      minRows={2}
+                    />
+                  </Stack>
+                </Paper>
+              ))}
+            </Stack>
             <Divider label={t("caregivers")} labelPosition="left" />
             <Stack gap="sm">
               {draftCaregivers.length === 0 ? <Text size="sm" c="dimmed">{t("noCaregivers")}</Text> : null}
@@ -606,10 +654,40 @@ export default function ChildrenListPage() {
           <Select label={ta("ageGroup")} value={draftAgeGroup} onChange={(v) => setDraftAgeGroup(parseAgeGroup(v))} data={[{ value: "", label: ta("ageGroupPending") }, { value: "4-6", label: "4-6" }, { value: "7-9", label: "7-9" }, { value: "10-12", label: "10-12" }]} />
           <Textarea label={ta("knownTraits")} value={draftKnownTraits} onChange={(event) => setDraftKnownTraits(event.target.value)} minRows={2} />
           <Textarea label={ta("parentSignals")} value={draftParentSignals} onChange={(event) => setDraftParentSignals(event.target.value)} minRows={2} />
-          <Group>
-            <Checkbox label={ta("consentPhoto")} checked={draftConsentPhoto} onChange={(event) => setDraftConsentPhoto(event.currentTarget.checked)} />
-            <Checkbox label={ta("consentReport")} checked={draftConsentReport} onChange={(event) => setDraftConsentReport(event.currentTarget.checked)} />
-          </Group>
+          <Divider label={t("consentManagement")} labelPosition="left" />
+          <Stack gap="sm">
+            {consentKeys.map((key) => (
+              <Paper key={key} withBorder p="sm" radius="md">
+                <Stack gap="sm">
+                  <Checkbox
+                    label={t(`consentPolicyLabel.${key}`)}
+                    checked={draftConsentPolicy[key].granted}
+                    onChange={(event) => updateConsentEntry(key, "granted", event.currentTarget.checked)}
+                  />
+                  <Group grow align="start">
+                    <TextInput
+                      label={t("consentEffectiveFrom")}
+                      type="date"
+                      value={draftConsentPolicy[key].effectiveFrom || ""}
+                      onChange={(event) => updateConsentEntry(key, "effectiveFrom", event.currentTarget.value)}
+                    />
+                    <TextInput
+                      label={t("consentExpiresAt")}
+                      type="date"
+                      value={draftConsentPolicy[key].expiresAt || ""}
+                      onChange={(event) => updateConsentEntry(key, "expiresAt", event.currentTarget.value)}
+                    />
+                  </Group>
+                  <Textarea
+                    label={t("consentNotes")}
+                    value={draftConsentPolicy[key].notes}
+                    onChange={(event) => updateConsentEntry(key, "notes", event.currentTarget.value)}
+                    minRows={2}
+                  />
+                </Stack>
+              </Paper>
+            ))}
+          </Stack>
           <Divider label={t("caregivers")} labelPosition="left" />
           <Stack gap="sm">
             {draftCaregivers.length === 0 ? <Text size="sm" c="dimmed">{t("noCaregivers")}</Text> : null}
