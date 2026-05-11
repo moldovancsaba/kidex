@@ -14,6 +14,7 @@ export type AuditAction =
   | "export.pdf"
   | "invite.send"
   | "media.upload"
+  | "plan.upsert"
   | "settings.update"
   | "user.delete"
   | "user.upsert";

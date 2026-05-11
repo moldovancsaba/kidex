@@ -21,6 +21,7 @@ import { BenchmarkChart } from "@/components/analytics/BenchmarkChart";
 import { SparklineChart } from "@/components/analytics/SparklineChart";
 import { canPerformAction } from "@/lib/permissions";
 import { buildRecommendationSummary } from "@/lib/recommendations";
+import { buildSuggestedDevelopmentPlan, type DevelopmentPlan } from "@/lib/development-plans";
 import { getStandardForAssessment } from "@/lib/standards";
 import type { AssessmentRecord } from "@/types/assessment";
 import type { ChildProfile } from "@/repositories/child.repository";
@@ -48,22 +49,27 @@ export default function ChildHistoryPage({ params }: { params: Promise<{ id: str
   const [deletingSurvey, setDeletingSurvey] = useState(false);
   const [roles, setRoles] = useState<SupportedRuntimeRole[]>([]);
   const [settings, setSettings] = useState<KidexSettings | null>(null);
+  const [plan, setPlan] = useState<DevelopmentPlan | null>(null);
+  const [savingPlan, setSavingPlan] = useState(false);
 
   useEffect(() => {
     Promise.all([
       fetch(`/api/children/${id}/history`).then((res) => res.json()),
       fetch("/api/auth/me").then((res) => res.json()).catch(() => null),
       fetch("/api/settings").then((res) => res.json()).catch(() => null),
+      fetch(`/api/children/${id}/plan`).then((res) => res.json()).catch(() => ({ plan: null })),
     ])
-      .then(([historyData, meData, settingsData]) => {
+      .then(([historyData, meData, settingsData, planData]) => {
         setData(historyData);
         setRoles(meData?.user?.roles || []);
         setSettings(settingsData);
+        setPlan(planData?.plan || null);
       })
       .finally(() => setLoading(false));
   }, [id]);
 
   const canWriteAssessments = canPerformAction(roles, "assessments.write");
+  const canWritePlans = canPerformAction(roles, "children.write");
 
   async function downloadPdf() {
     if (!data || data.assessments.length === 0) return;
@@ -164,6 +170,76 @@ export default function ChildHistoryPage({ params }: { params: Promise<{ id: str
         ts,
       )
     : null;
+
+  function ensureDraftPlan() {
+    if (!data?.child || !latest || !recommendationSummary) return;
+    setPlan((current) => current || buildSuggestedDevelopmentPlan({
+      childId: id,
+      assessmentId: latest._id,
+      institutionId: data.child.institutionId,
+      createdByUserEmail: undefined,
+      recommendationSummary,
+    }));
+  }
+
+  async function savePlan() {
+    if (!plan) return;
+    setSavingPlan(true);
+    const response = await fetch(`/api/children/${id}/plan`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(plan),
+    }).catch(() => null);
+    setSavingPlan(false);
+    if (!response?.ok) return;
+    const payload = await response.json();
+    setPlan(payload.plan || plan);
+  }
+
+  function updateAssignmentField(index: number, field: "title" | "notes" | "status" | "dueDate" | "audience", value: string) {
+    setPlan((current) => current ? {
+      ...current,
+      updatedAt: new Date().toISOString(),
+      assignments: current.assignments.map((assignment, assignmentIndex) => (
+        assignmentIndex === index
+          ? {
+              ...assignment,
+              [field]: value,
+            }
+          : assignment
+      )),
+    } : current);
+  }
+
+  function updateCheckpointField(index: number, field: "title" | "notes" | "dueDate", value: string) {
+    setPlan((current) => current ? {
+      ...current,
+      updatedAt: new Date().toISOString(),
+      checkpoints: current.checkpoints.map((checkpoint, checkpointIndex) => (
+        checkpointIndex === index
+          ? {
+              ...checkpoint,
+              [field]: value,
+            }
+          : checkpoint
+      )),
+    } : current);
+  }
+
+  function toggleCheckpoint(index: number) {
+    setPlan((current) => current ? {
+      ...current,
+      updatedAt: new Date().toISOString(),
+      checkpoints: current.checkpoints.map((checkpoint, checkpointIndex) => (
+        checkpointIndex === index
+          ? {
+              ...checkpoint,
+              completed: !checkpoint.completed,
+            }
+          : checkpoint
+      )),
+    } : current);
+  }
 
   return (
     <Stack gap="lg">
@@ -319,6 +395,134 @@ export default function ChildHistoryPage({ params }: { params: Promise<{ id: str
           </Stack>
         </SectionCard>
       ) : null}
+
+      <SectionCard
+        title="Development Plan"
+        subheader="Translate the latest support recommendations into practical assignments, checkpoints, and family-safe follow-up."
+        action={canWritePlans ? (
+          <Group gap="xs">
+            {!plan ? (
+              <Button variant="default" onClick={ensureDraftPlan} disabled={!recommendationSummary}>
+                Generate draft plan
+              </Button>
+            ) : null}
+            <Button color="kidex" onClick={() => void savePlan()} loading={savingPlan} disabled={!plan}>
+              Save plan
+            </Button>
+          </Group>
+        ) : null}
+      >
+        {!plan ? (
+          <Text c="dimmed">No development plan yet. Generate one from the current recommendation set to start structured follow-up.</Text>
+        ) : (
+          <Stack gap="md">
+            <Paper withBorder p="md">
+              <Stack gap="sm">
+                <Text fw={700}>Plan summary</Text>
+                <TextInput
+                  value={plan.summary}
+                  onChange={(event) => setPlan((current) => current ? { ...current, summary: event.currentTarget.value, updatedAt: new Date().toISOString() } : current)}
+                  disabled={!canWritePlans}
+                />
+                <TextInput
+                  label="Progress notes"
+                  value={plan.progressNotes}
+                  onChange={(event) => setPlan((current) => current ? { ...current, progressNotes: event.currentTarget.value, updatedAt: new Date().toISOString() } : current)}
+                  disabled={!canWritePlans}
+                />
+              </Stack>
+            </Paper>
+
+            <Paper withBorder p="md">
+              <Stack gap="sm">
+                <Group justify="space-between">
+                  <Text fw={700}>Assignments</Text>
+                  <Badge variant="light">{plan.status}</Badge>
+                </Group>
+                {plan.assignments.map((assignment, index) => (
+                  <Paper key={assignment.id} withBorder p="sm">
+                    <Stack gap="xs">
+                      <TextInput
+                        label={`Assignment ${index + 1}`}
+                        value={assignment.title}
+                        onChange={(event) => updateAssignmentField(index, "title", event.currentTarget.value)}
+                        disabled={!canWritePlans}
+                      />
+                      <TextInput
+                        label="Notes"
+                        value={assignment.notes}
+                        onChange={(event) => updateAssignmentField(index, "notes", event.currentTarget.value)}
+                        disabled={!canWritePlans}
+                      />
+                      <Group grow>
+                        <TextInput
+                          label="Audience"
+                          value={assignment.audience}
+                          onChange={(event) => updateAssignmentField(index, "audience", event.currentTarget.value)}
+                          disabled={!canWritePlans}
+                        />
+                        <TextInput
+                          label="Status"
+                          value={assignment.status}
+                          onChange={(event) => updateAssignmentField(index, "status", event.currentTarget.value)}
+                          disabled={!canWritePlans}
+                        />
+                        <TextInput
+                          label="Due date"
+                          type="date"
+                          value={assignment.dueDate || ""}
+                          onChange={(event) => updateAssignmentField(index, "dueDate", event.currentTarget.value)}
+                          disabled={!canWritePlans}
+                        />
+                      </Group>
+                      {assignment.focusAreaIds.length > 0 ? (
+                        <Text size="sm" c="dimmed">Focus items: {assignment.focusAreaIds.join(", ")}</Text>
+                      ) : null}
+                    </Stack>
+                  </Paper>
+                ))}
+              </Stack>
+            </Paper>
+
+            <Paper withBorder p="md">
+              <Stack gap="sm">
+                <Text fw={700}>Review checkpoints</Text>
+                {plan.checkpoints.map((checkpoint, index) => (
+                  <Paper key={checkpoint.id} withBorder p="sm">
+                    <Stack gap="xs">
+                      <Group justify="space-between">
+                        <Text fw={600}>{checkpoint.title}</Text>
+                        <Button variant="light" size="compact-sm" onClick={() => toggleCheckpoint(index)} disabled={!canWritePlans}>
+                          {checkpoint.completed ? "Completed" : "Mark complete"}
+                        </Button>
+                      </Group>
+                      <TextInput
+                        label="Checkpoint title"
+                        value={checkpoint.title}
+                        onChange={(event) => updateCheckpointField(index, "title", event.currentTarget.value)}
+                        disabled={!canWritePlans}
+                      />
+                      <TextInput
+                        label="Due date"
+                        type="date"
+                        value={checkpoint.dueDate || ""}
+                        onChange={(event) => updateCheckpointField(index, "dueDate", event.currentTarget.value)}
+                        disabled={!canWritePlans}
+                      />
+                      <TextInput
+                        label="Notes"
+                        value={checkpoint.notes}
+                        onChange={(event) => updateCheckpointField(index, "notes", event.currentTarget.value)}
+                        disabled={!canWritePlans}
+                      />
+                    </Stack>
+                  </Paper>
+                ))}
+              </Stack>
+            </Paper>
+          </Stack>
+        )}
+      </SectionCard>
 
       <SectionCard title={t("assessmentHistory")}>
         <Paper withBorder p={0}>
