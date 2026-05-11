@@ -5,7 +5,7 @@ import { Alert, Badge, Box, Button, Checkbox, Divider, Group, Loader, Modal, Mul
 import { useParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
-import { defaultConsentPolicy, deriveLegacyConsents, type ChildConsentPolicy, type ConsentPolicyKey } from "@/lib/consent-policy";
+import { defaultConsentPolicy, deriveLegacyConsents, getConsentAlerts, type ChildConsentPolicy, type ConsentPolicyKey } from "@/lib/consent-policy";
 import { canPerformAction } from "@/lib/permissions";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { SectionCard } from "@/components/ui/SectionCard";
@@ -343,6 +343,12 @@ export default function ChildrenListPage() {
   const caregiverRelationshipOptions = FAMILY_RELATIONSHIPS.map((relationship) => ({ value: relationship, label: t(`caregiverRelationship.${relationship}`) }));
   const caregiverAccessLevelOptions = FAMILY_ACCESS_LEVELS.map((accessLevel) => ({ value: accessLevel, label: t(`caregiverAccessLevelLabel.${accessLevel}`) }));
   const caregiverStatusOptions = FAMILY_CAREGIVER_STATUSES.map((status) => ({ value: status, label: t(`caregiverStatusLabel.${status}`) }));
+  const consentApproverOptions = [
+    { value: "", label: t("consentApproverStaff") },
+    ...draftCaregivers
+      .filter((caregiver) => caregiver.name.trim())
+      .map((caregiver) => ({ value: caregiver.id, label: caregiver.name })),
+  ];
   const consentKeys: ConsentPolicyKey[] = ["mediaCapture", "familyReport", "dataSharing", "publicity"];
 
   async function deleteChild(child: ChildProfile) {
@@ -456,6 +462,9 @@ export default function ChildrenListPage() {
             <Stack gap="md">
               {filtered.map((child) => {
                 const ageGroup = calculateAgeGroup(child.birthDate) || "-";
+                const consentAlerts = getConsentAlerts(child.consentPolicy);
+                const expiredAlerts = consentAlerts.filter((alert) => alert.reason === "expired");
+                const expiringAlerts = consentAlerts.filter((alert) => alert.reason === "expiring_soon");
                 return (
                   <Paper 
                     key={child._id} 
@@ -489,6 +498,20 @@ export default function ChildrenListPage() {
                             {child.caregivers?.some((caregiver) => caregiver.canReceiveReports && caregiver.status === "active") ? (
                               <Badge color="teal" variant="light" size="sm">
                                 {t("familyReportsEnabled")}
+                              </Badge>
+                            ) : null}
+                          </Group>
+                        ) : null}
+                        {consentAlerts.length > 0 ? (
+                          <Group gap="xs" mt={8}>
+                            {expiredAlerts.length > 0 ? (
+                              <Badge color="red" variant="light" size="sm">
+                                {t("consentExpiredBadge", { count: expiredAlerts.length })}
+                              </Badge>
+                            ) : null}
+                            {expiredAlerts.length === 0 && expiringAlerts.length > 0 ? (
+                              <Badge color="yellow" variant="light" size="sm">
+                                {t("consentExpiringBadge", { count: expiringAlerts.length })}
                               </Badge>
                             ) : null}
                           </Group>
@@ -586,6 +609,16 @@ export default function ChildrenListPage() {
                         onChange={(event) => updateConsentEntry(key, "expiresAt", event.currentTarget.value)}
                       />
                     </Group>
+                    <Select
+                      label={t("consentApprovedBy")}
+                      value={draftConsentPolicy[key].approvedByCaregiverId || ""}
+                      onChange={(value) => {
+                        const selected = draftCaregivers.find((caregiver) => caregiver.id === (value || ""));
+                        updateConsentEntry(key, "approvedByCaregiverId", value || "");
+                        updateConsentEntry(key, "approvedByLabel", selected?.name || "");
+                      }}
+                      data={consentApproverOptions}
+                    />
                     <Textarea
                       label={t("consentNotes")}
                       value={draftConsentPolicy[key].notes}
@@ -678,6 +711,16 @@ export default function ChildrenListPage() {
                       onChange={(event) => updateConsentEntry(key, "expiresAt", event.currentTarget.value)}
                     />
                   </Group>
+                  <Select
+                    label={t("consentApprovedBy")}
+                    value={draftConsentPolicy[key].approvedByCaregiverId || ""}
+                    onChange={(value) => {
+                      const selected = draftCaregivers.find((caregiver) => caregiver.id === (value || ""));
+                      updateConsentEntry(key, "approvedByCaregiverId", value || "");
+                      updateConsentEntry(key, "approvedByLabel", selected?.name || "");
+                    }}
+                    data={consentApproverOptions}
+                  />
                   <Textarea
                     label={t("consentNotes")}
                     value={draftConsentPolicy[key].notes}

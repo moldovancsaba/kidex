@@ -14,6 +14,8 @@ export interface ConsentPolicyEntry {
   notes: string;
   updatedAt?: string;
   updatedBy?: string;
+  approvedByCaregiverId?: string;
+  approvedByLabel?: string;
 }
 
 export interface ChildConsentPolicy {
@@ -43,6 +45,12 @@ export interface AssessmentConsentSnapshot {
   publicity: boolean;
 }
 
+export interface ConsentAlert {
+  key: ConsentPolicyKey;
+  severity: "warning" | "error";
+  reason: "missing" | "future" | "expired" | "expiring_soon";
+}
+
 function stringValue(value: unknown, max = 5000): string {
   return typeof value === "string" ? value.slice(0, max).trim() : "";
 }
@@ -60,6 +68,8 @@ function normalizeConsentEntry(value: unknown, granted: boolean): ConsentPolicyE
     notes: stringValue(input.notes),
     updatedAt: stringValue(input.updatedAt, 80) || undefined,
     updatedBy: stringValue(input.updatedBy, 240) || undefined,
+    approvedByCaregiverId: stringValue(input.approvedByCaregiverId, 120) || undefined,
+    approvedByLabel: stringValue(input.approvedByLabel, 240) || undefined,
   };
 }
 
@@ -139,12 +149,48 @@ export function buildAssessmentConsentSnapshot(
   };
 }
 
+function addDays(input: string, days: number) {
+  const date = new Date(input);
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString();
+}
+
+export function getConsentAlerts(
+  policy: ChildConsentPolicy | undefined,
+  at = new Date().toISOString(),
+): ConsentAlert[] {
+  const effectivePolicy = policy || defaultConsentPolicy();
+  const alerts: ConsentAlert[] = [];
+
+  for (const key of CONSENT_POLICY_KEYS) {
+    const entry = effectivePolicy[key];
+    if (!entry.granted) {
+      alerts.push({ key, severity: "warning", reason: "missing" });
+      continue;
+    }
+    if (entry.effectiveFrom && entry.effectiveFrom > at) {
+      alerts.push({ key, severity: "warning", reason: "future" });
+    }
+    if (entry.expiresAt && entry.expiresAt < at) {
+      alerts.push({ key, severity: "error", reason: "expired" });
+      continue;
+    }
+    if (entry.expiresAt && entry.expiresAt <= addDays(at, 30)) {
+      alerts.push({ key, severity: "warning", reason: "expiring_soon" });
+    }
+  }
+
+  return alerts;
+}
+
 function stableEntry(entry: ConsentPolicyEntry) {
   return JSON.stringify({
     granted: entry.granted,
     effectiveFrom: entry.effectiveFrom || "",
     expiresAt: entry.expiresAt || "",
     notes: entry.notes,
+    approvedByCaregiverId: entry.approvedByCaregiverId || "",
+    approvedByLabel: entry.approvedByLabel || "",
   });
 }
 

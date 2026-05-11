@@ -1,14 +1,14 @@
 "use client";
 
 import { useEffect, useState, use } from "react";
-import { Badge, Box, Button, Group, Loader, Paper, SimpleGrid, Stack, Table, Text, Title, useMantineTheme } from "@mantine/core";
+import { Alert, Badge, Box, Button, Group, Loader, Paper, SimpleGrid, Stack, Table, Text, Title, useMantineTheme } from "@mantine/core";
 import { useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { PdfService } from "@/lib/pdf-service";
 import { buildRecommendationSummary } from "@/lib/recommendations";
-import { hasActiveConsent } from "@/lib/consent-policy";
+import { getConsentAlerts, hasActiveConsent } from "@/lib/consent-policy";
 import { getUsers } from "@/services/user-service";
 import { withDisplayNamesForReport } from "@/lib/report-user-display";
 import { logPdfExportTelemetry, validatePdfExport } from "@/lib/pdf-export-guards";
@@ -185,6 +185,7 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
     ts,
   );
   const canGenerateFamilyReport = hasActiveConsent(child?.consentPolicy, "familyReport");
+  const canExportProfessional = hasActiveConsent(child?.consentPolicy, "dataSharing");
   const deltaRadarData = [
     { subject: ts("movement"), A: record.computed.movementAverage || 0, B: baseline?.computed.movementAverage || 0, fullMark: 6 },
     { subject: ts("social"), A: record.computed.socialAverage || 0, B: baseline?.computed.socialAverage || 0, fullMark: 6 },
@@ -225,6 +226,7 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
                 variant="outline" 
                 onClick={() => void downloadPdf()} 
                 loading={downloadingPdf}
+                disabled={!canExportProfessional}
               >
                 {td("downloadPdf")}
               </Button>
@@ -243,6 +245,7 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
       </Stack>
       <SectionCard title={t("reportPreview")}>
         <Stack gap="xl">
+          <ConsentAlertPanel alerts={getConsentAlerts(child?.consentPolicy)} title={t("consentAlertTitle")} t={t} />
           <Group gap="md" align="center" justify="space-between" wrap="wrap">
             <Group gap="md">
               <Image src="/logo.jpeg" alt="KIDEX" width={64} height={64} style={{ borderRadius: "var(--mantine-radius-md)" }} />
@@ -517,6 +520,36 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
         </Stack>
       </SectionCard>
     </Box>
+  );
+}
+
+function ConsentAlertPanel({
+  alerts,
+  title,
+  t,
+}: {
+  alerts: ReturnType<typeof getConsentAlerts>;
+  title: string;
+  t: (key: string, values?: Record<string, string | number>) => string;
+}) {
+  if (alerts.length === 0) return null;
+  const expired = alerts.filter((alert) => alert.reason === "expired");
+  const expiring = alerts.filter((alert) => alert.reason === "expiring_soon");
+  const future = alerts.filter((alert) => alert.reason === "future");
+  const missing = alerts.filter((alert) => alert.reason === "missing");
+  const lines = [
+    expired.length > 0 ? t("consentAlertExpired", { count: expired.length }) : "",
+    expiring.length > 0 ? t("consentAlertExpiring", { count: expiring.length }) : "",
+    future.length > 0 ? t("consentAlertFuture", { count: future.length }) : "",
+    missing.length > 0 ? t("consentAlertMissing", { count: missing.length }) : "",
+  ].filter(Boolean);
+
+  return (
+    <Alert color={expired.length > 0 ? "red" : "yellow"} title={title}>
+      <Stack gap={4}>
+        {lines.map((line) => <Text key={line} size="sm">{line}</Text>)}
+      </Stack>
+    </Alert>
   );
 }
 

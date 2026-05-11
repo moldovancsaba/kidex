@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, use } from "react";
-import { Box, Button, Group, Loader, Modal, Paper, Stack, Table, Text, TextInput, useMantineTheme } from "@mantine/core";
+import { Alert, Box, Button, Group, Loader, Modal, Paper, Stack, Table, Text, TextInput, useMantineTheme } from "@mantine/core";
 import Image from "next/image";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
@@ -22,7 +22,7 @@ import { SparklineChart } from "@/components/analytics/SparklineChart";
 import { canPerformAction } from "@/lib/permissions";
 import { buildRecommendationSummary } from "@/lib/recommendations";
 import { buildSuggestedDevelopmentPlan, type DevelopmentPlan } from "@/lib/development-plans";
-import { hasActiveConsent } from "@/lib/consent-policy";
+import { getConsentAlerts, hasActiveConsent } from "@/lib/consent-policy";
 import { getStandardForAssessment } from "@/lib/standards";
 import type { AssessmentRecord } from "@/types/assessment";
 import type { ChildProfile } from "@/repositories/child.repository";
@@ -72,6 +72,7 @@ export default function ChildHistoryPage({ params }: { params: Promise<{ id: str
   const canWriteAssessments = canPerformAction(roles, "assessments.write");
   const canWritePlans = canPerformAction(roles, "children.write");
   const canGenerateFamilyReport = hasActiveConsent(data?.child?.consentPolicy, "familyReport");
+  const canExportProfessional = hasActiveConsent(data?.child?.consentPolicy, "dataSharing");
 
   async function downloadPdf() {
     if (!data || data.assessments.length === 0) return;
@@ -266,7 +267,7 @@ export default function ChildHistoryPage({ params }: { params: Promise<{ id: str
               color="kidex" 
               onClick={() => void downloadPdf()} 
               loading={downloadingPdf}
-              disabled={data.assessments.length === 0}
+              disabled={data.assessments.length === 0 || !canExportProfessional}
             >
               {td("downloadPdf")}
             </Button>
@@ -295,6 +296,8 @@ export default function ChildHistoryPage({ params }: { params: Promise<{ id: str
           </Group>
         }
       />
+
+      <ConsentAlertPanel alerts={getConsentAlerts(data.child.consentPolicy)} title={t("consentAlertTitle")} t={t} />
 
       <SectionCard title={td("skiProgression")}>
         <LongitudinalChart 
@@ -698,6 +701,36 @@ export default function ChildHistoryPage({ params }: { params: Promise<{ id: str
         deleting={deletingSurvey}
       />
     </Stack>
+  );
+}
+
+function ConsentAlertPanel({
+  alerts,
+  title,
+  t,
+}: {
+  alerts: ReturnType<typeof getConsentAlerts>;
+  title: string;
+  t: (key: string, values?: Record<string, string | number>) => string;
+}) {
+  if (alerts.length === 0) return null;
+  const expired = alerts.filter((alert) => alert.reason === "expired");
+  const expiring = alerts.filter((alert) => alert.reason === "expiring_soon");
+  const future = alerts.filter((alert) => alert.reason === "future");
+  const missing = alerts.filter((alert) => alert.reason === "missing");
+  const lines = [
+    expired.length > 0 ? t("consentAlertExpired", { count: expired.length }) : "",
+    expiring.length > 0 ? t("consentAlertExpiring", { count: expiring.length }) : "",
+    future.length > 0 ? t("consentAlertFuture", { count: future.length }) : "",
+    missing.length > 0 ? t("consentAlertMissing", { count: missing.length }) : "",
+  ].filter(Boolean);
+
+  return (
+    <Alert color={expired.length > 0 ? "red" : "yellow"} title={title}>
+      <Stack gap={4}>
+        {lines.map((line) => <Text key={line} size="sm">{line}</Text>)}
+      </Stack>
+    </Alert>
   );
 }
 
