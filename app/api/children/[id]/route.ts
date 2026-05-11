@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { applyActorOwnershipToChild, canReadChild, canWriteChild, requirePermission } from "@/lib/authorization";
 import { recordAuditEvent } from "@/lib/audit";
 import { jsonError, readJson } from "@/lib/api";
+import { buildFamilyAccessEvents, mergeFamilyAccessHistory } from "@/lib/family-access";
 import { parseChildPayload } from "@/lib/validations";
 import { deleteAssessmentsForChild, updateAssessmentsForChildProfile } from "@/repositories/assessment.repository";
 import { deleteChildById, getChildById, updateChildById } from "@/repositories/child.repository";
@@ -49,9 +50,16 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       return jsonError("Insufficient permissions", 403, "FORBIDDEN");
     }
 
+    const parsedPayload = parseChildPayload(await readJson(request));
+    const familyAccessEvents = buildFamilyAccessEvents({
+      previous: existingChild.caregivers || [],
+      next: parsedPayload.caregivers,
+      actorEmail: actor?.email,
+    });
     const payload = applyActorOwnershipToChild(actor, {
       ...existingChild,
-      ...parseChildPayload(await readJson(request))
+      ...parsedPayload,
+      familyAccessHistory: mergeFamilyAccessHistory(existingChild.familyAccessHistory, familyAccessEvents),
     });
     if (!payload.name || !payload.birthDate) {
       return jsonError("Child name and birthDate are required", 400, "VALIDATION_ERROR");
@@ -86,8 +94,27 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
         ageGroup: payload.ageGroup,
         consentPhoto: payload.consentPhoto,
         consentReport: payload.consentReport,
+        caregiverCount: payload.caregivers?.length || 0,
+        familyAccessEvents,
       },
     });
+    if (familyAccessEvents.length > 0) {
+      await recordAuditEvent({
+        action: "family.upsert",
+        status: "success",
+        actor,
+        request,
+        institutionId: child?.institutionId || existingChild.institutionId,
+        targetType: "child",
+        targetId: id,
+        targetLabel: payload.name,
+        summary: "Family-linked caregiver access updated",
+        metadata: {
+          caregiverCount: payload.caregivers?.length || 0,
+          events: familyAccessEvents,
+        },
+      });
+    }
 
     return NextResponse.json(child);
   } catch (error) {

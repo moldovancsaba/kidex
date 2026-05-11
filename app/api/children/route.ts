@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { listChildren, listChildrenWithMetrics, listDeletedChildren, upsertChild } from "@/repositories/child.repository";
+import { buildFamilyAccessEvents, mergeFamilyAccessHistory } from "@/lib/family-access";
 import { applyActorOwnershipToChild, canReadChild, requirePermission } from "@/lib/authorization";
 import { recordAuditEvent } from "@/lib/audit";
 import { syncChildrenFromAssessments } from "@/lib/sync-children";
@@ -41,7 +42,15 @@ export async function POST(request: Request) {
     if (!body.name || !body.birthDate) {
       return jsonError("Child name and birthDate are required", 400, "VALIDATION_ERROR");
     }
-    const child = await upsertChild(applyActorOwnershipToChild(actor, body));
+    const familyAccessEvents = buildFamilyAccessEvents({
+      previous: [],
+      next: body.caregivers,
+      actorEmail: actor?.email,
+    });
+    const child = await upsertChild(applyActorOwnershipToChild(actor, {
+      ...body,
+      familyAccessHistory: mergeFamilyAccessHistory([], familyAccessEvents),
+    }));
     await recordAuditEvent({
       action: "child.create",
       status: "success",
@@ -57,8 +66,26 @@ export async function POST(request: Request) {
         ageGroup: child.ageGroup,
         consentPhoto: child.consentPhoto,
         consentReport: child.consentReport,
+        caregiverCount: child.caregivers?.length || 0,
       },
     });
+    if (familyAccessEvents.length > 0) {
+      await recordAuditEvent({
+        action: "family.upsert",
+        status: "success",
+        actor,
+        request,
+        institutionId: child.institutionId,
+        targetType: "child",
+        targetId: child._id,
+        targetLabel: child.name,
+        summary: "Family-linked caregiver profiles created",
+        metadata: {
+          caregiverCount: child.caregivers?.length || 0,
+          events: familyAccessEvents,
+        },
+      });
+    }
     return NextResponse.json(child);
   } catch (error) {
     return jsonError((error as Error).message);

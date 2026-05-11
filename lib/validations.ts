@@ -1,4 +1,5 @@
 import type { AssessmentPayload, EvidenceAttachment, ScoreEntry } from "@/types/assessment";
+import { normalizeFamilyCaregivers, type FamilyCaregiver } from "@/lib/family-access";
 import { ensureInstitutionIds, normalizeInstitutionDirectory, type InstitutionDefinition } from "@/lib/institutions";
 import { sanitizeStoredRoles, type SupportedRuntimeRole } from "@/lib/roles";
 
@@ -198,6 +199,7 @@ export interface ChildPayload {
   dominantFoot: string;
   knownTraits: string;
   parentSignals: string;
+  caregivers: FamilyCaregiver[];
 }
 
 export function parseChildPayload(input: unknown): ChildPayload {
@@ -213,6 +215,7 @@ export function parseChildPayload(input: unknown): ChildPayload {
     dominantEye: stringValue(data.dominantEye, 80),
     dominantFoot: stringValue(data.dominantFoot, 80),
     knownTraits: stringValue(data.knownTraits),
-    parentSignals: stringValue(data.parentSignals)
+    parentSignals: stringValue(data.parentSignals),
+    caregivers: normalizeFamilyCaregivers(data.caregivers),
   };
 }

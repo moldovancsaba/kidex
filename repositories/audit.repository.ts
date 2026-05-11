@@ -12,6 +12,7 @@ export type AuditAction =
   | "child.delete"
   | "child.restore"
   | "export.pdf"
+  | "family.upsert"
   | "invite.send"
   | "media.upload"
   | "plan.upsert"

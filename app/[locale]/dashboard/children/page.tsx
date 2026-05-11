@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Alert, Badge, Box, Button, Checkbox, Group, Loader, Modal, MultiSelect, Paper, RangeSlider, Select, Stack, Text, TextInput, Textarea } from "@mantine/core";
+import { Alert, Badge, Box, Button, Checkbox, Divider, Group, Loader, Modal, MultiSelect, Paper, RangeSlider, Select, Stack, Text, TextInput, Textarea } from "@mantine/core";
 import { useParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { canPerformAction } from "@/lib/permissions";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { SectionCard } from "@/components/ui/SectionCard";
+import { createEmptyFamilyCaregiver, FAMILY_ACCESS_LEVELS, FAMILY_CAREGIVER_STATUSES, FAMILY_RELATIONSHIPS, type FamilyCaregiver } from "@/lib/family-access";
 import { calculateAgeGroup } from "@/lib/utils/age";
 import { formatScore } from "@/lib/utils";
 import type { SupportedRuntimeRole } from "@/lib/roles";
@@ -39,6 +40,7 @@ export default function ChildrenListPage() {
   const [draftAgeGroup, setDraftAgeGroup] = useState<"" | "4-6" | "7-9" | "10-12">("");
   const [draftConsentPhoto, setDraftConsentPhoto] = useState(false);
   const [draftConsentReport, setDraftConsentReport] = useState(false);
+  const [draftCaregivers, setDraftCaregivers] = useState<FamilyCaregiver[]>([]);
   const [saving, setSaving] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
@@ -202,6 +204,7 @@ export default function ChildrenListPage() {
     setDraftAgeGroup((child.ageGroup || calculateAgeGroup(child.birthDate) || "") as "" | "4-6" | "7-9" | "10-12");
     setDraftConsentPhoto(Boolean(child.consentPhoto));
     setDraftConsentReport(Boolean(child.consentReport));
+    setDraftCaregivers(child.caregivers || []);
   }
 
   function startCreate() {
@@ -213,6 +216,7 @@ export default function ChildrenListPage() {
     setDraftAgeGroup("");
     setDraftConsentPhoto(false);
     setDraftConsentReport(false);
+    setDraftCaregivers([]);
   }
 
   async function saveEdit() {
@@ -234,7 +238,8 @@ export default function ChildrenListPage() {
         dominantEye: editing.dominantEye || "",
         dominantFoot: editing.dominantFoot || "",
         knownTraits: draftKnownTraits,
-        parentSignals: draftParentSignals
+        parentSignals: draftParentSignals,
+        caregivers: draftCaregivers,
       })
     }).catch(() => null);
     setSaving(false);
@@ -268,7 +273,8 @@ export default function ChildrenListPage() {
         dominantEye: "",
         dominantFoot: "",
         knownTraits: draftKnownTraits,
-        parentSignals: draftParentSignals
+        parentSignals: draftParentSignals,
+        caregivers: draftCaregivers,
       })
     }).catch(() => null);
     setSaving(false);
@@ -283,6 +289,43 @@ export default function ChildrenListPage() {
     setError(false);
     setMessage(tc("success"));
   }
+
+  function addCaregiver() {
+    setDraftCaregivers((current) => [...current, createEmptyFamilyCaregiver()]);
+  }
+
+  function updateCaregiverField<K extends keyof FamilyCaregiver>(index: number, field: K, value: FamilyCaregiver[K]) {
+    setDraftCaregivers((current) => current.map((caregiver, caregiverIndex) => (
+      caregiverIndex === index
+        ? {
+            ...caregiver,
+            [field]: value,
+          }
+        : caregiver
+    )));
+  }
+
+  function updateCaregiverContactPreference(index: number, field: keyof FamilyCaregiver["contactPreferences"], value: boolean) {
+    setDraftCaregivers((current) => current.map((caregiver, caregiverIndex) => (
+      caregiverIndex === index
+        ? {
+            ...caregiver,
+            contactPreferences: {
+              ...caregiver.contactPreferences,
+              [field]: value,
+            },
+          }
+        : caregiver
+    )));
+  }
+
+  function removeCaregiver(index: number) {
+    setDraftCaregivers((current) => current.filter((_, caregiverIndex) => caregiverIndex !== index));
+  }
+
+  const caregiverRelationshipOptions = FAMILY_RELATIONSHIPS.map((relationship) => ({ value: relationship, label: t(`caregiverRelationship.${relationship}`) }));
+  const caregiverAccessLevelOptions = FAMILY_ACCESS_LEVELS.map((accessLevel) => ({ value: accessLevel, label: t(`caregiverAccessLevelLabel.${accessLevel}`) }));
+  const caregiverStatusOptions = FAMILY_CAREGIVER_STATUSES.map((status) => ({ value: status, label: t(`caregiverStatusLabel.${status}`) }));
 
   async function deleteChild(child: ChildProfile) {
     if (!child._id) return;
@@ -420,6 +463,18 @@ export default function ChildrenListPage() {
                         <Text size="sm" c="dimmed">
                           {ta("birthDate")}: {child.birthDate} · {ta("ageGroup")}: {ageGroup}
                         </Text>
+                        {(child.caregivers?.length || 0) > 0 ? (
+                          <Group gap="xs" mt={8}>
+                            <Badge color="grape" variant="light" size="sm">
+                              {t("caregiverCountBadge", { count: child.caregivers?.length || 0 })}
+                            </Badge>
+                            {child.caregivers?.some((caregiver) => caregiver.canReceiveReports && caregiver.status === "active") ? (
+                              <Badge color="teal" variant="light" size="sm">
+                                {t("familyReportsEnabled")}
+                              </Badge>
+                            ) : null}
+                          </Group>
+                        ) : null}
                         {child.latestSki !== undefined && (
                           <Group gap="xs" mt={8}>
                             <Badge color="kidex" variant="filled" size="sm">
@@ -493,6 +548,47 @@ export default function ChildrenListPage() {
               <Checkbox label={ta("consentPhoto")} checked={draftConsentPhoto} onChange={(event) => setDraftConsentPhoto(event.currentTarget.checked)} />
               <Checkbox label={ta("consentReport")} checked={draftConsentReport} onChange={(event) => setDraftConsentReport(event.currentTarget.checked)} />
             </Group>
+            <Divider label={t("caregivers")} labelPosition="left" />
+            <Stack gap="sm">
+              {draftCaregivers.length === 0 ? <Text size="sm" c="dimmed">{t("noCaregivers")}</Text> : null}
+              {draftCaregivers.map((caregiver, index) => (
+                <Paper key={caregiver.id} withBorder p="sm" radius="md">
+                  <Stack gap="sm">
+                    <Group justify="space-between" align="center">
+                      <Text fw={600}>{t("caregiverLabel", { index: index + 1 })}</Text>
+                      <Button variant="subtle" color="red" size="sm" onClick={() => removeCaregiver(index)}>
+                        {tc("remove")}
+                      </Button>
+                    </Group>
+                    <Group grow align="start">
+                      <TextInput label={t("caregiverName")} value={caregiver.name} onChange={(event) => updateCaregiverField(index, "name", event.currentTarget.value)} />
+                      <Select label={t("caregiverRelationshipTitle")} value={caregiver.relationship} onChange={(value) => updateCaregiverField(index, "relationship", (value || "guardian") as FamilyCaregiver["relationship"])} data={caregiverRelationshipOptions} />
+                    </Group>
+                    <Group grow align="start">
+                      <TextInput label={t("email")} value={caregiver.email} onChange={(event) => updateCaregiverField(index, "email", event.currentTarget.value)} />
+                      <TextInput label={t("caregiverPhone")} value={caregiver.phone} onChange={(event) => updateCaregiverField(index, "phone", event.currentTarget.value)} />
+                    </Group>
+                    <Group grow align="start">
+                      <Select label={t("caregiverAccessLevel")} value={caregiver.accessLevel} onChange={(value) => updateCaregiverField(index, "accessLevel", (value || "routine") as FamilyCaregiver["accessLevel"])} data={caregiverAccessLevelOptions} />
+                      <Select label={t("caregiverStatus")} value={caregiver.status} onChange={(value) => updateCaregiverField(index, "status", (value || "active") as FamilyCaregiver["status"])} data={caregiverStatusOptions} />
+                    </Group>
+                    <Group>
+                      <Checkbox label={t("caregiverReceivesReports")} checked={caregiver.canReceiveReports} onChange={(event) => updateCaregiverField(index, "canReceiveReports", event.currentTarget.checked)} />
+                      <Checkbox label={t("caregiverReceivesScheduling")} checked={caregiver.canReceiveScheduling} onChange={(event) => updateCaregiverField(index, "canReceiveScheduling", event.currentTarget.checked)} />
+                    </Group>
+                    <Group>
+                      <Checkbox label={t("caregiverContactEmail")} checked={caregiver.contactPreferences.email} onChange={(event) => updateCaregiverContactPreference(index, "email", event.currentTarget.checked)} />
+                      <Checkbox label={t("caregiverContactPhone")} checked={caregiver.contactPreferences.phone} onChange={(event) => updateCaregiverContactPreference(index, "phone", event.currentTarget.checked)} />
+                      <Checkbox label={t("caregiverContactSms")} checked={caregiver.contactPreferences.sms} onChange={(event) => updateCaregiverContactPreference(index, "sms", event.currentTarget.checked)} />
+                    </Group>
+                    <Textarea label={t("caregiverNotes")} value={caregiver.notes} onChange={(event) => updateCaregiverField(index, "notes", event.currentTarget.value)} minRows={2} />
+                  </Stack>
+                </Paper>
+              ))}
+              <Group justify="flex-start">
+                <Button variant="light" color="kidex" onClick={addCaregiver}>{t("addCaregiver")}</Button>
+              </Group>
+            </Stack>
           </Stack>
           <Group justify="flex-end" mt="md">
           <Button variant="subtle" onClick={() => setEditing(null)} disabled={saving}>
@@ -514,6 +610,47 @@ export default function ChildrenListPage() {
             <Checkbox label={ta("consentPhoto")} checked={draftConsentPhoto} onChange={(event) => setDraftConsentPhoto(event.currentTarget.checked)} />
             <Checkbox label={ta("consentReport")} checked={draftConsentReport} onChange={(event) => setDraftConsentReport(event.currentTarget.checked)} />
           </Group>
+          <Divider label={t("caregivers")} labelPosition="left" />
+          <Stack gap="sm">
+            {draftCaregivers.length === 0 ? <Text size="sm" c="dimmed">{t("noCaregivers")}</Text> : null}
+            {draftCaregivers.map((caregiver, index) => (
+              <Paper key={caregiver.id} withBorder p="sm" radius="md">
+                <Stack gap="sm">
+                  <Group justify="space-between" align="center">
+                    <Text fw={600}>{t("caregiverLabel", { index: index + 1 })}</Text>
+                    <Button variant="subtle" color="red" size="sm" onClick={() => removeCaregiver(index)}>
+                      {tc("remove")}
+                    </Button>
+                  </Group>
+                  <Group grow align="start">
+                    <TextInput label={t("caregiverName")} value={caregiver.name} onChange={(event) => updateCaregiverField(index, "name", event.currentTarget.value)} />
+                    <Select label={t("caregiverRelationshipTitle")} value={caregiver.relationship} onChange={(value) => updateCaregiverField(index, "relationship", (value || "guardian") as FamilyCaregiver["relationship"])} data={caregiverRelationshipOptions} />
+                  </Group>
+                  <Group grow align="start">
+                    <TextInput label={t("email")} value={caregiver.email} onChange={(event) => updateCaregiverField(index, "email", event.currentTarget.value)} />
+                    <TextInput label={t("caregiverPhone")} value={caregiver.phone} onChange={(event) => updateCaregiverField(index, "phone", event.currentTarget.value)} />
+                  </Group>
+                  <Group grow align="start">
+                    <Select label={t("caregiverAccessLevel")} value={caregiver.accessLevel} onChange={(value) => updateCaregiverField(index, "accessLevel", (value || "routine") as FamilyCaregiver["accessLevel"])} data={caregiverAccessLevelOptions} />
+                    <Select label={t("caregiverStatus")} value={caregiver.status} onChange={(value) => updateCaregiverField(index, "status", (value || "active") as FamilyCaregiver["status"])} data={caregiverStatusOptions} />
+                  </Group>
+                  <Group>
+                    <Checkbox label={t("caregiverReceivesReports")} checked={caregiver.canReceiveReports} onChange={(event) => updateCaregiverField(index, "canReceiveReports", event.currentTarget.checked)} />
+                    <Checkbox label={t("caregiverReceivesScheduling")} checked={caregiver.canReceiveScheduling} onChange={(event) => updateCaregiverField(index, "canReceiveScheduling", event.currentTarget.checked)} />
+                  </Group>
+                  <Group>
+                    <Checkbox label={t("caregiverContactEmail")} checked={caregiver.contactPreferences.email} onChange={(event) => updateCaregiverContactPreference(index, "email", event.currentTarget.checked)} />
+                    <Checkbox label={t("caregiverContactPhone")} checked={caregiver.contactPreferences.phone} onChange={(event) => updateCaregiverContactPreference(index, "phone", event.currentTarget.checked)} />
+                    <Checkbox label={t("caregiverContactSms")} checked={caregiver.contactPreferences.sms} onChange={(event) => updateCaregiverContactPreference(index, "sms", event.currentTarget.checked)} />
+                  </Group>
+                  <Textarea label={t("caregiverNotes")} value={caregiver.notes} onChange={(event) => updateCaregiverField(index, "notes", event.currentTarget.value)} minRows={2} />
+                </Stack>
+              </Paper>
+            ))}
+            <Group justify="flex-start">
+              <Button variant="light" color="kidex" onClick={addCaregiver}>{t("addCaregiver")}</Button>
+            </Group>
+          </Stack>
           <Group justify="flex-end" mt="sm">
             <Button variant="subtle" onClick={() => setCreateOpen(false)} disabled={saving}>{tc("cancel")}</Button>
             <Button color="kidex" onClick={() => void createChild()} disabled={saving || !draftName.trim() || !draftBirthDate.trim()}>{saving ? tc("saving") : tc("save")}</Button>

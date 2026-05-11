@@ -1,6 +1,7 @@
 import { ObjectId } from "mongodb";
 import { getDatabase } from "@/lib/mongodb";
 import { toJsonId } from "@/lib/utils";
+import type { FamilyAccessEvent, FamilyCaregiver } from "@/lib/family-access";
 
 export interface ChildProfile {
   _id?: string;
@@ -19,6 +20,8 @@ export interface ChildProfile {
   dominantFoot?: string;
   knownTraits?: string;
   parentSignals?: string;
+  caregivers?: FamilyCaregiver[];
+  familyAccessHistory?: FamilyAccessEvent[];
   locale?: string;
   createdAt: string;
   updatedAt: string;
@@ -212,6 +215,8 @@ export async function deleteChildById(id: ObjectId) {
     dominantFoot: typeof jsonChild.dominantFoot === "string" ? jsonChild.dominantFoot : "",
     knownTraits: typeof jsonChild.knownTraits === "string" ? jsonChild.knownTraits : "",
     parentSignals: typeof jsonChild.parentSignals === "string" ? jsonChild.parentSignals : "",
+    caregivers: Array.isArray(jsonChild.caregivers) ? (jsonChild.caregivers as FamilyCaregiver[]) : [],
+    familyAccessHistory: Array.isArray(jsonChild.familyAccessHistory) ? (jsonChild.familyAccessHistory as FamilyAccessEvent[]) : [],
     createdAt: typeof jsonChild.createdAt === "string" ? jsonChild.createdAt : "",
     updatedAt: typeof jsonChild.updatedAt === "string" ? jsonChild.updatedAt : ""
   } satisfies ChildProfile;

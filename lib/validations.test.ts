@@ -42,6 +42,7 @@ describe("parseChildPayload", () => {
       name: "  Test Kid ",
       birthDate: "2020-01-01",
       dominantHand: "right",
+      caregivers: [{ name: " Parent One ", email: "PARENT@EXAMPLE.COM" }],
       extra: "ignored"
     });
 
@@ -49,5 +50,7 @@ describe("parseChildPayload", () => {
     expect(parsed.birthDate).toBe("2020-01-01");
     expect(parsed.dominantHand).toBe("right");
     expect(parsed.knownTraits).toBe("");
+    expect(parsed.caregivers).toHaveLength(1);
+    expect(parsed.caregivers[0].email).toBe("parent@example.com");
   });
 });
