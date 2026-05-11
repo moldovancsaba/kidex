@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Alert, Badge, Box, Button, Checkbox, Divider, Group, Loader, MultiSelect, NumberInput, Paper, Select, Stack, Table, Tabs, Text, Textarea, TextInput } from "@mantine/core";
 import { useTranslations } from "next-intl";
 import { useParams } from "next/navigation";
@@ -33,6 +33,15 @@ interface AssessmentSummary {
   standardsVersionUsed?: string;
   standardsVariantUsed?: string;
   computed: { ski: number | null };
+}
+
+interface ChildGovernanceSummary {
+  _id?: string;
+  institutionId?: string;
+  consentPolicy?: {
+    familyReport?: { granted?: boolean };
+    dataSharing?: { granted?: boolean };
+  };
 }
 
 const DEFAULT_INSTITUTION = "default";
@@ -73,8 +82,10 @@ export default function SettingsPage() {
   const [selectedStandardsVariant, setSelectedStandardsVariant] = useState(getActiveVariantName(DEFAULT_KIDEX_SETTINGS.standards.versions[DEFAULT_KIDEX_SETTINGS.standards.activeVersion]));
   const [impactPreview, setImpactPreview] = useState<{ readyToDeveloping: number; developingToReady: number; total: number } | null>(null);
   const [allAssessments, setAllAssessments] = useState<AssessmentSummary[]>([]);
+  const [allChildren, setAllChildren] = useState<ChildGovernanceSummary[]>([]);
   const [governanceMetrics, setGovernanceMetrics] = useState<{ deletedChildren: number; deletedAssessments: number; missingConsentReport: number; missingChildLink: number }>({ deletedChildren: 0, deletedAssessments: 0, missingConsentReport: 0, missingChildLink: 0 });
   const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>([]);
+  const [exportingScope, setExportingScope] = useState<string | null>(null);
 
   useEffect(() => {
     void (async () => {
@@ -91,18 +102,21 @@ export default function SettingsPage() {
         setUsers(uData);
         if (meRes?.user) setMe(meRes.user);
         if (meRes?.user?.roles?.includes("admin")) {
-          const auditRes = await fetch("/api/audit?limit=25").then((res) => res.json()).catch(() => ({ logs: [] }));
+          const auditRes = await fetch("/api/audit?limit=100").then((res) => res.json()).catch(() => ({ logs: [] }));
           setAuditLogs(Array.isArray(auditRes?.logs) ? auditRes.logs : []);
         }
 
-        const [dcRes, daRes, activeAssessmentsRes] = await Promise.all([
+        const [dcRes, daRes, activeAssessmentsRes, activeChildrenRes] = await Promise.all([
           fetch("/api/children?deleted=true").then((r) => r.json()).catch(() => []),
           fetch("/api/assessments?deleted=true").then((r) => r.json()).catch(() => ({ assessments: [] })),
           fetch("/api/assessments").then((r) => r.json()).catch(() => ({ assessments: [] })),
+          fetch("/api/children").then((r) => r.json()).catch(() => []),
         ]);
 
         const activeAssessments = Array.isArray(activeAssessmentsRes?.assessments) ? activeAssessmentsRes.assessments : [];
+        const activeChildren = Array.isArray(activeChildrenRes) ? activeChildrenRes : [];
         setAllAssessments(activeAssessments);
+        setAllChildren(activeChildren);
         setDeletedChildren(Array.isArray(dcRes) ? dcRes : []);
         setDeletedAssessments(Array.isArray(daRes?.assessments) ? daRes.assessments : []);
         setGovernanceMetrics({
@@ -137,6 +151,49 @@ export default function SettingsPage() {
   const blockingVersionIssues = selectedVersionIssues.filter((issue) => issue.severity === "error");
   const selectedVersionSummary = selectedVersion ? summarizeVersionThresholds(selectedVersion, selectedVariantName) : null;
   const selectedFormulaPercentages = formulaWeightPercentages(selectedVersion?.formula);
+  const institutionGovernanceRows = useMemo(() => {
+    const byInstitution = new Map(settings.institutions.map((institution) => [institution.id, {
+      institutionId: institution.id,
+      institutionName: institution.name,
+      users: 0,
+      children: 0,
+      assessments: 0,
+      consentRisk: 0,
+    }]));
+
+    for (const user of users) {
+      for (const institutionId of user.institutionIds || [DEFAULT_INSTITUTION]) {
+        const row = byInstitution.get(institutionId);
+        if (row) row.users += 1;
+      }
+    }
+
+    for (const child of allChildren) {
+      const institutionId = child.institutionId || DEFAULT_INSTITUTION;
+      const row = byInstitution.get(institutionId);
+      if (!row) continue;
+      row.children += 1;
+      if (!child.consentPolicy?.familyReport?.granted || !child.consentPolicy?.dataSharing?.granted) {
+        row.consentRisk += 1;
+      }
+    }
+
+    for (const assessment of allAssessments) {
+      const institutionId = allChildren.find((child) => child._id === assessment.childId)?.institutionId || DEFAULT_INSTITUTION;
+      const row = byInstitution.get(institutionId);
+      if (row) row.assessments += 1;
+    }
+
+    return Array.from(byInstitution.values());
+  }, [allAssessments, allChildren, settings.institutions, users]);
+  const exportAuditLogs = auditLogs.filter((log) => log.action === "export.pdf" || log.action === "export.data");
+  const failedAuditCount = auditLogs.filter((log) => log.status === "failed").length;
+  const retentionEvents = auditLogs.filter((log) => (
+    log.action === "child.delete"
+    || log.action === "child.restore"
+    || log.action === "assessment.delete"
+    || log.action === "assessment.restore"
+  )).slice(0, 8);
 
   async function handleSaveSettings() {
     if (!canWriteSettings) return;
@@ -614,6 +671,34 @@ export default function SettingsPage() {
         },
       },
     }));
+  }
+
+  async function downloadGovernanceExport(scope: "governance" | "children" | "assessments" | "audit") {
+    if (!isAdmin) return;
+    setExportingScope(scope);
+    try {
+      const response = await fetch(`/api/governance/export?scope=${scope}`);
+      if (!response.ok) {
+        setMessage(tc("error"));
+        return;
+      }
+      const blob = await response.blob();
+      const disposition = response.headers.get("content-disposition") || "";
+      const filename = disposition.match(/filename="([^"]+)"/)?.[1] || `kidex_${scope}.json`;
+      const downloadUrl = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = downloadUrl;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(downloadUrl);
+      setMessage(tc("success"));
+    } catch {
+      setMessage(tc("error"));
+    } finally {
+      setExportingScope(null);
+    }
   }
 
   if (loading) {
@@ -1344,12 +1429,104 @@ export default function SettingsPage() {
         </Stack>
       </SectionCard>
 
-      <SectionCard title="Governance Metrics">
-        <Stack gap="xs">
-          <Text size="sm">Deleted children: {governanceMetrics.deletedChildren}</Text>
-          <Text size="sm">Deleted assessments: {governanceMetrics.deletedAssessments}</Text>
-          <Text size="sm">Assessments missing report consent: {governanceMetrics.missingConsentReport}</Text>
-          <Text size="sm">Assessments missing child link: {governanceMetrics.missingChildLink}</Text>
+      <SectionCard title="Governance Center">
+        <Stack gap="lg">
+          <Stack gap="xs">
+            <Text fw={700}>Compliance snapshot</Text>
+            <Text size="sm">Deleted children: {governanceMetrics.deletedChildren}</Text>
+            <Text size="sm">Deleted assessments: {governanceMetrics.deletedAssessments}</Text>
+            <Text size="sm">Assessments missing report consent: {governanceMetrics.missingConsentReport}</Text>
+            <Text size="sm">Assessments missing child link: {governanceMetrics.missingChildLink}</Text>
+            <Text size="sm">Recent failed sensitive actions: {failedAuditCount}</Text>
+            <Text size="sm">Recent export events: {exportAuditLogs.length}</Text>
+          </Stack>
+
+          {isAdmin ? (
+            <Stack gap="sm">
+              <Text fw={700}>Export center</Text>
+              <Text size="sm" c="dimmed">
+                Generate auditable JSON bundles for governance review, institution handover, or compliance inspection.
+              </Text>
+              <Group wrap="wrap">
+                <Button variant="default" onClick={() => void downloadGovernanceExport("governance")} loading={exportingScope === "governance"}>
+                  Full governance bundle
+                </Button>
+                <Button variant="default" onClick={() => void downloadGovernanceExport("children")} loading={exportingScope === "children"}>
+                  Child registry export
+                </Button>
+                <Button variant="default" onClick={() => void downloadGovernanceExport("assessments")} loading={exportingScope === "assessments"}>
+                  Assessment ledger export
+                </Button>
+                <Button variant="default" onClick={() => void downloadGovernanceExport("audit")} loading={exportingScope === "audit"}>
+                  Audit trail export
+                </Button>
+              </Group>
+            </Stack>
+          ) : null}
+
+          <Stack gap="sm">
+            <Text fw={700}>Institution governance</Text>
+            <Paper withBorder p={0}>
+              <Table striped highlightOnHover>
+                <Table.Thead>
+                  <Table.Tr>
+                    <Table.Th>Institution</Table.Th>
+                    <Table.Th>Users</Table.Th>
+                    <Table.Th>Children</Table.Th>
+                    <Table.Th>Assessments</Table.Th>
+                    <Table.Th>Consent risk</Table.Th>
+                  </Table.Tr>
+                </Table.Thead>
+                <Table.Tbody>
+                  {institutionGovernanceRows.map((row) => (
+                    <Table.Tr key={row.institutionId}>
+                      <Table.Td>{row.institutionName}</Table.Td>
+                      <Table.Td>{row.users}</Table.Td>
+                      <Table.Td>{row.children}</Table.Td>
+                      <Table.Td>{row.assessments}</Table.Td>
+                      <Table.Td>
+                        <Badge color={row.consentRisk > 0 ? "yellow" : "teal"} variant="light">
+                          {row.consentRisk}
+                        </Badge>
+                      </Table.Td>
+                    </Table.Tr>
+                  ))}
+                </Table.Tbody>
+              </Table>
+            </Paper>
+          </Stack>
+
+          <Stack gap="sm">
+            <Text fw={700}>Retention workflow visibility</Text>
+            {retentionEvents.length === 0 ? (
+              <Text c="dimmed">No recent deletion or restore actions recorded.</Text>
+            ) : (
+              <Paper withBorder p={0}>
+                <Table striped highlightOnHover>
+                  <Table.Thead>
+                    <Table.Tr>
+                      <Table.Th>Time</Table.Th>
+                      <Table.Th>Action</Table.Th>
+                      <Table.Th>Target</Table.Th>
+                      <Table.Th>Actor</Table.Th>
+                      <Table.Th>Summary</Table.Th>
+                    </Table.Tr>
+                  </Table.Thead>
+                  <Table.Tbody>
+                    {retentionEvents.map((log) => (
+                      <Table.Tr key={log._id || `${log.createdAt}-${log.action}-${log.targetId || "none"}`}>
+                        <Table.Td>{new Date(log.createdAt).toLocaleString()}</Table.Td>
+                        <Table.Td>{log.action}</Table.Td>
+                        <Table.Td>{log.targetLabel || log.targetId || "-"}</Table.Td>
+                        <Table.Td>{log.actorEmail || "-"}</Table.Td>
+                        <Table.Td>{log.summary}</Table.Td>
+                      </Table.Tr>
+                    ))}
+                  </Table.Tbody>
+                </Table>
+              </Paper>
+            )}
+          </Stack>
         </Stack>
       </SectionCard>
 
