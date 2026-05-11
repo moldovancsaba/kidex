@@ -2,16 +2,18 @@ import { NextResponse } from "next/server";
 import { getChildById } from "@/repositories/child.repository";
 import { listAssessmentsByChildId } from "@/repositories/assessment.repository";
 import { ObjectId } from "mongodb";
-import { jsonError, requireRole } from "@/lib/api";
+import { canReadAssessment, canReadChild, requirePermission } from "@/lib/authorization";
+import { jsonError } from "@/lib/api";
+import type { AssessmentRecord } from "@/types/assessment";
 
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const authError = requireRole(request, ["admin", "conductor", "observer"]);
-    if (authError) {
-      return authError;
+    const { actor, error } = await requirePermission(request, "children.read");
+    if (error) {
+      return error;
     }
 
     const { id } = await params;
@@ -23,9 +25,12 @@ export async function GET(
     if (!child) {
       return jsonError("Child not found", 404, "NOT_FOUND");
     }
+    if (!canReadChild(actor, child)) {
+      return jsonError("Insufficient permissions", 403, "FORBIDDEN");
+    }
     
     const assessments = await listAssessmentsByChildId(id);
-    return NextResponse.json({ child, assessments });
+    return NextResponse.json({ child, assessments: assessments.filter((assessment) => canReadAssessment(actor, assessment as AssessmentRecord)) });
   } catch (error) {
     return jsonError((error as Error).message);
   }

@@ -15,7 +15,7 @@ export function validatePdfExport(record: AssessmentRecord | null | undefined, h
   return { ok: warnings.length < 4, warnings };
 }
 
-export function logPdfExportTelemetry(event: {
+export async function logPdfExportTelemetry(event: {
   status: "success" | "failed";
   format: "map" | "original";
   childId?: string;
@@ -26,6 +26,14 @@ export function logPdfExportTelemetry(event: {
   error?: string;
 }) {
   const payload = { type: "pdf_export", at: new Date().toISOString(), ...event };
-  if (event.status === "failed") console.error(payload);
-  else console.info(payload);
+  try {
+    await fetch("/api/audit", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(event),
+    });
+  } catch (error) {
+    if (event.status === "failed") console.error(payload, error);
+    else console.info(payload, error);
+  }
 }

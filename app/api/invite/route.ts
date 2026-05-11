@@ -1,8 +1,12 @@
 import { NextResponse } from "next/server";
+import { requirePermission } from "@/lib/authorization";
+import { recordAuditEvent } from "@/lib/audit";
 import { sendInviteEmail } from "@/services/email-service";
 
 export async function POST(request: Request) {
   try {
+    const { actor, error } = await requirePermission(request, "invites.send");
+    if (error) return error;
     const { email, locale } = await request.json();
 
     if (!email) {
@@ -56,6 +60,17 @@ export async function POST(request: Request) {
     });
 
     if (!ok && accessToken) {
+      await recordAuditEvent({
+        action: "invite.send",
+        status: "failed",
+        actor,
+        request,
+        targetType: "invite",
+        targetId: email,
+        targetLabel: email,
+        summary: "Invitation send failed through Gmail",
+        metadata: { locale: localeKey },
+      });
       return NextResponse.json({ 
         error: "Gmail API failed. Check your Google Cloud Console for errors or try reconnecting.",
         debug: "Token was present but Gmail API rejected the request."
@@ -63,12 +78,34 @@ export async function POST(request: Request) {
     }
 
     if (!ok) {
+      await recordAuditEvent({
+        action: "invite.send",
+        status: "success",
+        actor,
+        request,
+        targetType: "invite",
+        targetId: email,
+        targetLabel: email,
+        summary: "Invitation generated in mock mode",
+        metadata: { locale: localeKey, deliveryMode: "mock" },
+      });
       return NextResponse.json({ 
         success: true, 
         message: "Invite logged to console (Mock mode). Link your Gmail in Settings to send real emails." 
       });
     }
 
+    await recordAuditEvent({
+      action: "invite.send",
+      status: "success",
+      actor,
+      request,
+      targetType: "invite",
+      targetId: email,
+      targetLabel: email,
+      summary: "Invitation email sent",
+      metadata: { locale: localeKey, deliveryMode: accessToken ? "gmail" : "service" },
+    });
     return NextResponse.json({ success: true });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);

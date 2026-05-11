@@ -1,7 +1,22 @@
 import { sectionsForMode } from "@/lib/kidex-schema";
+import type { StandardsFormulaDefinition } from "@/lib/standards-config";
 import type { AssessmentPayload, AssessmentRecord } from "@/types/assessment";
 
-export function computeAssessment(payload: AssessmentPayload): AssessmentRecord["computed"] {
+const DEFAULT_FORMULA: StandardsFormulaDefinition = {
+  domainWeights: {
+    movement: 0.5,
+    social: 0.3,
+    mental: 0.2,
+  },
+  readinessMetric: "ski",
+  readinessThreshold: "min",
+  aspirationThreshold: "target",
+};
+
+export function computeAssessment(
+  payload: AssessmentPayload,
+  formula: StandardsFormulaDefinition = DEFAULT_FORMULA,
+): AssessmentRecord["computed"] {
   const sections = sectionsForMode(payload.mode);
   
   // Calculate averages by domain
@@ -32,19 +47,13 @@ export function computeAssessment(payload: AssessmentPayload): AssessmentRecord[
     return typeof score === "number" && score >= 1 && score <= 6;
   }).length;
 
-  // SKI is a weighted average of the section averages
-  const skiAverages = Object.fromEntries(
-    sections.map(section => {
-      const values = section.items
-        .map(item => payload.scores[item.key]?.score)
-        .filter((v): v is number => typeof v === "number");
-      return [section.key, values.length ? values.reduce((a, b) => a + b, 0) / values.length : null];
-    })
-  );
-
-  const ski = sections.some(s => skiAverages[s.key] === null)
+  const ski = averages.movement === null || averages.social === null || averages.mental === null
     ? null
-    : sections.reduce((sum, s) => sum + (skiAverages[s.key] as number) * s.weight, 0);
+    : Number((
+      averages.movement * formula.domainWeights.movement
+      + averages.social * formula.domainWeights.social
+      + averages.mental * formula.domainWeights.mental
+    ).toFixed(4));
 
   return {
     movementAverage: averages.movement,

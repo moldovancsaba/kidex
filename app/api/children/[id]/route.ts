@@ -1,13 +1,15 @@
 import { ObjectId } from "mongodb";
 import { NextResponse } from "next/server";
-import { jsonError, readJson, requireRole } from "@/lib/api";
+import { applyActorOwnershipToChild, canReadChild, canWriteChild, requirePermission } from "@/lib/authorization";
+import { recordAuditEvent } from "@/lib/audit";
+import { jsonError, readJson } from "@/lib/api";
 import { parseChildPayload } from "@/lib/validations";
 import { deleteAssessmentsForChild, updateAssessmentsForChildProfile } from "@/repositories/assessment.repository";
 import { deleteChildById, getChildById, updateChildById } from "@/repositories/child.repository";
 
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const authError = requireRole(_request, ["admin", "conductor", "observer"]);
-  if (authError) return authError;
+  const { actor, error } = await requirePermission(_request, "children.read");
+  if (error) return error;
 
   try {
     const { id } = await params;
@@ -19,6 +21,9 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
     if (!child) {
       return jsonError("Child not found", 404, "NOT_FOUND");
     }
+    if (!canReadChild(actor, child)) {
+      return jsonError("Insufficient permissions", 403, "FORBIDDEN");
+    }
 
     return NextResponse.json(child);
   } catch (error) {
@@ -27,8 +32,8 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
 }
 
 export async function PATCH(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const authError = requireRole(request, ["admin", "conductor"]);
-  if (authError) return authError;
+  const { actor, error } = await requirePermission(request, "children.write");
+  if (error) return error;
 
   try {
     const { id } = await params;
@@ -36,15 +41,23 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       return jsonError("Invalid ID", 400, "VALIDATION_ERROR");
     }
 
-    const payload = parseChildPayload(await readJson(request));
+    const existingChild = await getChildById(new ObjectId(id));
+    if (!existingChild) {
+      return jsonError("Child not found", 404, "NOT_FOUND");
+    }
+    if (!canWriteChild(actor, existingChild)) {
+      return jsonError("Insufficient permissions", 403, "FORBIDDEN");
+    }
+
+    const payload = applyActorOwnershipToChild(actor, {
+      ...existingChild,
+      ...parseChildPayload(await readJson(request))
+    });
     if (!payload.name || !payload.birthDate) {
       return jsonError("Child name and birthDate are required", 400, "VALIDATION_ERROR");
     }
 
     const child = await updateChildById(new ObjectId(id), payload);
-    if (!child) {
-      return jsonError("Child not found", 404, "NOT_FOUND");
-    }
 
     await updateAssessmentsForChildProfile(id, {
       name: payload.name,
@@ -59,6 +72,23 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
       consentReport: payload.consentReport
     });
 
+    await recordAuditEvent({
+      action: "child.update",
+      status: "success",
+      actor,
+      request,
+      institutionId: child?.institutionId || existingChild.institutionId,
+      targetType: "child",
+      targetId: id,
+      targetLabel: payload.name,
+      summary: "Child profile updated",
+      metadata: {
+        ageGroup: payload.ageGroup,
+        consentPhoto: payload.consentPhoto,
+        consentReport: payload.consentReport,
+      },
+    });
+
     return NextResponse.json(child);
   } catch (error) {
     return jsonError((error as Error).message);
@@ -66,13 +96,21 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 }
 
 export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const authError = requireRole(request, ["admin", "conductor"]);
-  if (authError) return authError;
+  const { actor, error } = await requirePermission(request, "children.delete");
+  if (error) return error;
 
   try {
     const { id } = await params;
     if (!ObjectId.isValid(id)) {
       return jsonError("Invalid ID", 400, "VALIDATION_ERROR");
+    }
+
+    const existingChild = await getChildById(new ObjectId(id));
+    if (!existingChild) {
+      return jsonError("Child not found", 404, "NOT_FOUND");
+    }
+    if (!canWriteChild(actor, existingChild)) {
+      return jsonError("Insufficient permissions", 403, "FORBIDDEN");
     }
 
     const child = await deleteChildById(new ObjectId(id));
@@ -83,6 +121,21 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
     await deleteAssessmentsForChild(id, {
       name: child.name,
       birthDate: child.birthDate
+    });
+
+    await recordAuditEvent({
+      action: "child.delete",
+      status: "success",
+      actor,
+      request,
+      institutionId: child.institutionId,
+      targetType: "child",
+      targetId: id,
+      targetLabel: child.name,
+      summary: "Child profile deleted with linked assessment cleanup",
+      metadata: {
+        birthDate: child.birthDate,
+      },
     });
 
     return NextResponse.json({ success: true });

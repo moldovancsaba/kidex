@@ -1,8 +1,12 @@
+import type { SupportedRuntimeRole } from "@/lib/roles";
+
 export interface User {
   id?: string;
   name?: string;
   email: string;
-  roles: ("admin" | "conductor" | "observer")[];
+  roles: SupportedRuntimeRole[];
+  institutionIds?: string[];
+  primaryInstitutionId?: string;
   googleToken?: {
     access_token: string;
     refresh_token?: string;
@@ -35,12 +39,12 @@ export async function saveUser(user: User): Promise<boolean> {
 
 export async function getConductors(): Promise<User[]> {
   const users = await getUsers();
-  return users.filter(u => u.roles.includes("conductor"));
+  return users.filter((u) => u.roles.includes("conductor"));
 }
 
 export async function getObservers(): Promise<User[]> {
   const users = await getUsers();
-  return users.filter(u => u.roles.includes("observer"));
+  return users.filter((u) => u.roles.includes("observer"));
 }
 
 export async function deleteUser(email: string): Promise<boolean> {

@@ -1,4 +1,5 @@
 import { computeAssessment } from "@/lib/scoring";
+import { applyActorOwnershipToAssessment, applyActorOwnershipToChild, type AuthenticatedActor } from "@/lib/authorization";
 import { parseAssessmentPayload } from "@/lib/validations";
 import { createAssessment, deleteAssessmentById, getAssessmentById, listAssessmentSummaries, restoreAssessmentById, updateAssessmentById, listDeletedAssessmentSummaries } from "@/repositories/assessment.repository";
 import { getChildById, updateChildById, upsertChild } from "@/repositories/child.repository";
@@ -24,7 +25,7 @@ export async function listDeletedAssessments() {
   return { assessments: await listDeletedAssessmentSummaries(), configured: true };
 }
 
-export async function createAssessmentFromPayload(input: unknown) {
+export async function createAssessmentFromPayload(input: unknown, actor?: AuthenticatedActor | null) {
   const payload = parseAssessmentPayload(input);
   const now = new Date().toISOString();
   const integrityIssues: string[] = [];
@@ -34,7 +35,7 @@ export async function createAssessmentFromPayload(input: unknown) {
   const scoredCount = Object.values(payload.scores).filter((entry) => typeof entry.score === "number").length;
   if (scoredCount === 0) integrityIssues.push("no_scores_recorded");
 
-  const childProfile = {
+  const childProfile = applyActorOwnershipToChild(actor || null, {
     name: payload.child.name,
     birthDate: payload.child.birthDate,
     knownTraits: payload.child.knownTraits,
@@ -42,7 +43,7 @@ export async function createAssessmentFromPayload(input: unknown) {
     dominantHand: payload.child.dominantHand,
     dominantEye: payload.child.dominantEye,
     dominantFoot: payload.child.dominantFoot
-  };
+  });
   const childObjectId = payload.childId ? parseObjectId(payload.childId) : null;
   const existingChild = childObjectId ? await getChildById(childObjectId) : null;
   const updatedChild = existingChild && childObjectId ? await updateChildById(childObjectId, childProfile) : null;
@@ -50,23 +51,24 @@ export async function createAssessmentFromPayload(input: unknown) {
 
   const settings = await getGlobalSettings();
   const standardsVersionUsed = settings?.standards?.activeVersion || "v1";
+  const activeFormula = settings?.standards?.versions?.[standardsVersionUsed]?.formula;
 
-  return createAssessment({
+  return createAssessment(applyActorOwnershipToAssessment(actor || null, {
     ...payload,
     childId: child._id,
     standardsVersionUsed,
-    computed: computeAssessment(payload),
+    computed: computeAssessment(payload, activeFormula),
     createdAt: now,
     updatedAt: now,
     updateHistory: integrityIssues.length > 0 ? [`integrity:${integrityIssues.join(",")}:${now}`] : []
-  });
+  }));
 }
 
 export async function getAssessment(id: ObjectId) {
   return getAssessmentById(id);
 }
 
-export async function updateAssessmentFromPayload(id: ObjectId, input: unknown) {
+export async function updateAssessmentFromPayload(id: ObjectId, input: unknown, actor?: AuthenticatedActor | null) {
   const payload = parseAssessmentPayload(input);
   const integrityIssues: string[] = [];
   if (!payload.child.name || !payload.child.birthDate) integrityIssues.push("missing_child_identity");
@@ -75,7 +77,7 @@ export async function updateAssessmentFromPayload(id: ObjectId, input: unknown) 
   const scoredCount = Object.values(payload.scores).filter((entry) => typeof entry.score === "number").length;
   if (scoredCount === 0) integrityIssues.push("no_scores_recorded");
 
-  const childProfile = {
+  const childProfile = applyActorOwnershipToChild(actor || null, {
     name: payload.child.name,
     birthDate: payload.child.birthDate,
     knownTraits: payload.child.knownTraits,
@@ -83,7 +85,7 @@ export async function updateAssessmentFromPayload(id: ObjectId, input: unknown) 
     dominantHand: payload.child.dominantHand,
     dominantEye: payload.child.dominantEye,
     dominantFoot: payload.child.dominantFoot
-  };
+  });
   const childObjectId = payload.childId ? parseObjectId(payload.childId) : null;
   const existingChild = childObjectId ? await getChildById(childObjectId) : null;
   const updatedChild = existingChild && childObjectId ? await updateChildById(childObjectId, childProfile) : null;
@@ -95,15 +97,16 @@ export async function updateAssessmentFromPayload(id: ObjectId, input: unknown) 
   
   const settings = await getGlobalSettings();
   const standardsVersionUsed = settings?.standards?.activeVersion || existing?.standardsVersionUsed || "v1";
+  const activeFormula = settings?.standards?.versions?.[standardsVersionUsed]?.formula;
 
-  return updateAssessmentById(id, {
+  return updateAssessmentById(id, applyActorOwnershipToAssessment(actor || null, {
     ...payload,
     childId: child._id,
     standardsVersionUsed,
-    computed: computeAssessment(payload),
+    computed: computeAssessment(payload, activeFormula),
     updatedAt: now,
     updateHistory: [...updateHistory, ...(integrityIssues.length > 0 ? [`integrity:${integrityIssues.join(",")}:${now}`] : []), now]
-  });
+  }));
 }
 
 export async function removeAssessment(id: ObjectId) {

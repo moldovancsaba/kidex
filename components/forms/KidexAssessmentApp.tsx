@@ -304,6 +304,9 @@ export function KidexAssessmentApp() {
     setMessage("");
     const form = new FormData();
     form.set("image", file, file instanceof File ? file.name : "camera-capture.jpg");
+    if (assessment.childId) form.set("childId", assessment.childId);
+    if (recordId) form.set("recordId", recordId);
+    form.set("consentPhoto", assessment.session.consentPhoto ? "true" : "false");
     const response = await fetch("/api/uploads/imgbb", { method: "POST", body: form }).catch((error: Error) => {
       setMessage(error.message);
       return null;

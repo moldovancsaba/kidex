@@ -7,6 +7,7 @@ import Image from "next/image";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { PdfService } from "@/lib/pdf-service";
+import { buildRecommendationSummary } from "@/lib/recommendations";
 import { getUsers } from "@/services/user-service";
 import { withDisplayNamesForReport } from "@/lib/report-user-display";
 import { logPdfExportTelemetry, validatePdfExport } from "@/lib/pdf-export-guards";
@@ -22,11 +23,13 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { rapidSections } from "@/lib/kidex-schema";
 import { getDomainMainColor, type AssessmentDomain } from "@/lib/domain-colors";
 import { sectionsForMode } from "@/lib/kidex-schema";
+import { getStandardForAssessment } from "@/lib/standards";
 import { formatScore } from "@/lib/utils";
 import { SectionCard } from "@/components/ui/SectionCard";
 import { ReadinessGauge } from "@/components/analytics/ReadinessGauge";
 import { MaturityRadarChart } from "@/components/analytics/MaturityRadarChart";
 import type { AssessmentRecord } from "@/types/assessment";
+import type { KidexSettings } from "@/services/settings-service";
 
 const RADAR_CHART_HEIGHT = 200;
 const RADAR_TICK_FONT_SIZE = 10;
@@ -47,6 +50,7 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
   const [history, setHistory] = useState<AssessmentRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [downloadingPdf, setDownloadingPdf] = useState(false);
+  const [settings, setSettings] = useState<KidexSettings | null>(null);
 
   const sections = record ? sectionsForMode(record.mode) : [];
   const recordedAt = record ? new Date(record.createdAt) : new Date();
@@ -71,12 +75,18 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
     try {
       const users = await getUsers();
       const printableRecord = withDisplayNamesForReport(record, users);
+      const recommendationSummary = buildRecommendationSummary(
+        printableRecord,
+        history,
+        getStandardForAssessment(settings?.standards, printableRecord.standardsVersionUsed, printableRecord.child.ageGroup),
+        ts,
+      );
       if (reportFormat === "map") {
-        await PdfService.generateMapReport(printableRecord, t, tc, ts, tr, history);
+        await PdfService.generateMapReport(printableRecord, t, tc, ts, tr, history, recommendationSummary);
       } else {
         await PdfService.generateOriginalReport(printableRecord, t, tc, ts);
       }
-      logPdfExportTelemetry({
+      await logPdfExportTelemetry({
         status: "success",
         format: reportFormat === "map" ? "map" : "original",
         childId: record.childId,
@@ -86,7 +96,7 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
       });
     } catch (error) {
       console.error("PDF generation failed:", error);
-      logPdfExportTelemetry({
+      await logPdfExportTelemetry({
         status: "failed",
         format: reportFormat === "map" ? "map" : "original",
         childId: record.childId,
@@ -105,6 +115,10 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
       .then((res) => res.json())
       .then((data) => {
         setRecord(data.assessment);
+        fetch("/api/settings")
+          .then((res) => res.json())
+          .then(setSettings)
+          .catch(() => null);
         if (data.assessment?.childId) {
           fetch(`/api/children/${data.assessment.childId}/history`)
             .then(r => r.json())
@@ -147,6 +161,12 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
   };
 
   const baseline = history.length > 0 ? history[history.length - 1] : null;
+  const recommendationSummary = buildRecommendationSummary(
+    record,
+    history,
+    getStandardForAssessment(settings?.standards, record.standardsVersionUsed, record.child.ageGroup),
+    ts,
+  );
   const deltaRadarData = [
     { subject: ts("movement"), A: record.computed.movementAverage || 0, B: baseline?.computed.movementAverage || 0, fullMark: 6 },
     { subject: ts("social"), A: record.computed.socialAverage || 0, B: baseline?.computed.socialAverage || 0, fullMark: 6 },
@@ -251,6 +271,32 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
               mental: formatScore(record.computed.mentalAverage || 0)
             })}
           </Text>
+
+          <SectionCard title={tr("recommendationsTitle")}>
+            <Stack gap="sm">
+              <Text size="sm" c="dimmed">
+                Standards version: {recommendationSummary.standardsVersionUsed || settings?.standards.activeVersion || "v1"}
+              </Text>
+              {recommendationSummary.recommendations.map((recommendation) => (
+                <Paper key={recommendation.id} withBorder p="sm">
+                  <Stack gap={4}>
+                    <Group justify="space-between">
+                      <Text fw={700}>{recommendation.title}</Text>
+                      <Badge variant="light" color={recommendation.severity === "high" ? "red" : recommendation.severity === "medium" ? "orange" : "teal"}>
+                        {recommendation.severity}
+                      </Badge>
+                    </Group>
+                    <Text size="sm">{recommendation.rationale}</Text>
+                    {recommendation.focusItems.length > 0 ? (
+                      <Text size="sm" c="dimmed">
+                        Focus items: {recommendation.focusItems.map((item) => `${item.label} (${item.score})`).join(", ")}
+                      </Text>
+                    ) : null}
+                  </Stack>
+                </Paper>
+              ))}
+            </Stack>
+          </SectionCard>
 
           <SimpleGrid cols={{ base: 1, md: 3 }} spacing="md" mt="md">
             <RecordRadarChart title={t("rapidMovementTitle")} data={radarData.movement} domain="movement" />

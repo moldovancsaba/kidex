@@ -4,6 +4,8 @@ import { createSession } from "@/lib/session";
 import { cookies } from "next/headers";
 import { findUserByEmail, listAllUsers, upsertUser } from "@/repositories/user.repository";
 import { getDatabase } from "@/lib/mongodb";
+import { DEFAULT_INSTITUTION_ID } from "@/lib/institutions";
+import { DEFAULT_BOOTSTRAP_ROLES, sanitizeStoredRoles } from "@/lib/roles";
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -33,7 +35,9 @@ export async function GET(request: NextRequest) {
         await upsertUser({
           email: ssoUser.email,
           name: ssoUser.name,
-          roles: doc.roles || ["user"]
+          roles: sanitizeStoredRoles(doc.roles),
+          institutionIds: [DEFAULT_INSTITUTION_ID],
+          primaryInstitutionId: DEFAULT_INSTITUTION_ID
         });
         localUser = await findUserByEmail(ssoUser.email);
       }
@@ -46,7 +50,9 @@ export async function GET(request: NextRequest) {
       await upsertUser({
         email: ssoUser.email,
         name: ssoUser.name,
-        roles: ["admin", "conductor"]
+        roles: [...DEFAULT_BOOTSTRAP_ROLES],
+        institutionIds: [DEFAULT_INSTITUTION_ID],
+        primaryInstitutionId: DEFAULT_INSTITUTION_ID
       });
       localUser = await findUserByEmail(ssoUser.email);
     }
@@ -65,6 +71,7 @@ export async function GET(request: NextRequest) {
       email: ssoUser.email,
       name: ssoUser.name,
       role: localUser.roles.join(",") || "user",
+      roles: localUser.roles,
       accessToken: tokens.access_token
     });
 

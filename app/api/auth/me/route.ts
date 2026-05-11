@@ -1,18 +1,19 @@
 import { NextResponse } from "next/server";
-import { getSession } from "@/lib/session";
+import { getAuthenticatedActor } from "@/lib/authorization";
 
 export async function GET() {
-  const session = await getSession();
-  if (!session?.email) {
+  const actor = await getAuthenticatedActor();
+  if (!actor?.email) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
   }
 
   const { findUserByEmail } = await import("@/repositories/user.repository");
-  const user = await findUserByEmail(session.email);
+  const user = await findUserByEmail(actor.email);
 
   return NextResponse.json({ 
     user: {
-      ...session,
+      ...actor,
+      role: actor.roles.join(","),
       isGoogleLinked: !!user?.googleToken
     }
   });

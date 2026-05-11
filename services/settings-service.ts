@@ -1,7 +1,11 @@
+import type { StandardsConfiguration } from "@/lib/standards-config";
+import type { InstitutionDefinition } from "@/lib/institutions";
+
 export interface KidexSettings {
   conductors: string[];
   observers: string[];
   locations: string[];
+  institutions: InstitutionDefinition[];
   company: {
     name: string;
     ico: string;
@@ -17,20 +21,7 @@ export interface KidexSettings {
     hu: { subject: string; body: string };
     ar: { subject: string; body: string };
   };
-  standards: {
-    activeVersion: string;
-    versions: Record<string, {
-      meta?: {
-        createdBy?: string;
-        createdAt?: string;
-        notes?: string;
-        status?: "draft" | "published";
-      };
-      "4-6": { movement: { target: number; min: number }; social: { target: number; min: number }; mental: { target: number; min: number }; ski: { target: number; min: number } };
-      "7-9": { movement: { target: number; min: number }; social: { target: number; min: number }; mental: { target: number; min: number }; ski: { target: number; min: number } };
-      "10-12": { movement: { target: number; min: number }; social: { target: number; min: number }; mental: { target: number; min: number }; ski: { target: number; min: number } };
-    }>;
-  };
+  standards: StandardsConfiguration;
 }
 
 const STORAGE_KEY = "kidex-settings-local";
@@ -38,6 +29,14 @@ export const DEFAULT_KIDEX_SETTINGS: KidexSettings = {
   conductors: [],
   observers: [],
   locations: [],
+  institutions: [
+    {
+      id: "default",
+      name: "Default Institution",
+      status: "active",
+      notes: "Bootstrap fallback institution."
+    }
+  ],
   company: {
     name: "KIDEX s.r.o.",
     ico: "57474869",
@@ -67,6 +66,16 @@ export const DEFAULT_KIDEX_SETTINGS: KidexSettings = {
     versions: {
       v1: {
         meta: { createdAt: new Date().toISOString(), status: "published", notes: "Initial baseline standards." },
+        formula: {
+          domainWeights: {
+            movement: 0.5,
+            social: 0.3,
+            mental: 0.2,
+          },
+          readinessMetric: "ski",
+          readinessThreshold: "min",
+          aspirationThreshold: "target",
+        },
         "4-6": {
           movement: { target: 4.5, min: 3.0 },
           social: { target: 4.0, min: 2.5 },
@@ -97,6 +106,7 @@ function normalizeSettings(raw: Partial<KidexSettings> | null | undefined): Kide
     conductors: next.conductors ?? DEFAULT_KIDEX_SETTINGS.conductors,
     observers: next.observers ?? DEFAULT_KIDEX_SETTINGS.observers,
     locations: next.locations ?? DEFAULT_KIDEX_SETTINGS.locations,
+    institutions: next.institutions ?? DEFAULT_KIDEX_SETTINGS.institutions,
     company: {
       ...DEFAULT_KIDEX_SETTINGS.company,
       ...(next.company ?? {})

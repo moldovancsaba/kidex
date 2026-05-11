@@ -1,5 +1,6 @@
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
+import type { RecommendationSummary } from "@/lib/recommendations";
 import type { AssessmentRecord } from "@/types/assessment";
 import { formatScore } from "./utils";
 import { rapidSections } from "./kidex-schema";
@@ -136,7 +137,8 @@ export const PdfService = {
     tc: TFunction, 
     ts: TFunction, 
     tr: TFunction,
-    history: AssessmentRecord[] = []
+    history: AssessmentRecord[] = [],
+    recommendationSummary?: RecommendationSummary
   ): Promise<void> {
     const doc = new jsPDF({ unit: "mm", format: "a4" }) as JsPDFWithAutoTable;
     await this.ensureUnicodeFont(doc);
@@ -354,18 +356,19 @@ export const PdfService = {
     doc.setFontSize(12);
     doc.text(tr("recommendationsIntro"), 20, 50);
     
-    // Dynamic recommendations based on data
-    const recs = [];
-    const mvAvg = record.computed.movementAverage;
-    if (mvAvg !== null && mvAvg < 3) recs.push(t("stabilizing"));
-    if (mvAvg !== null && mvAvg >= 4) recs.push(t("sportOrientation"));
+    const recs = recommendationSummary?.recommendations || [];
     
     let y = 65;
     if (recs.length > 0) {
-      recs.forEach((rec, idx) => {
-        doc.text(`• ${rec}`, 30, y + (idx * 8));
+      recs.forEach((rec) => {
+        const focus = rec.focusItems.length > 0
+          ? ` (${rec.focusItems.map((item) => item.label).join(", ")})`
+          : "";
+        const lines = doc.splitTextToSize(`• ${rec.title}: ${rec.rationale}${focus}`, 155);
+        doc.text(lines, 30, y);
+        y += lines.length * 6;
       });
-      y += recs.length * 8 + 8;
+      y += 8;
     } else {
       doc.text("• —", 30, y);
       y += 16;

@@ -5,6 +5,10 @@ import { toJsonId } from "@/lib/utils";
 export interface ChildProfile {
   _id?: string;
   kidexId?: string;
+  institutionId?: string;
+  createdByUserEmail?: string;
+  practitionerEmails?: string[];
+  visibility?: "institution" | "restricted";
   name: string;
   birthDate: string;
   ageGroup?: "4-6" | "7-9" | "10-12" | "";
@@ -32,16 +36,16 @@ export interface ChildProfile {
 
 const collectionName = "children";
 
-export async function listChildren() {
+export async function listChildren(): Promise<ChildProfile[]> {
   const db = await getDatabase();
   const children = await db.collection(collectionName).find({ deletedAt: { $exists: false } }).sort({ name: 1 }).toArray();
-  return children.map(toJsonId);
+  return children.map((child) => toJsonId(child) as unknown as ChildProfile);
 }
 
-export async function listDeletedChildren() {
+export async function listDeletedChildren(): Promise<ChildProfile[]> {
   const db = await getDatabase();
   const children = await db.collection(collectionName).find({ deletedAt: { $exists: true } }).sort({ updatedAt: -1 }).toArray();
-  return children.map(toJsonId);
+  return children.map((child) => toJsonId(child) as unknown as ChildProfile);
 }
 
 export async function listChildrenWithMetrics(): Promise<ChildProfile[]> {
@@ -129,10 +133,10 @@ export async function listChildrenWithMetrics(): Promise<ChildProfile[]> {
   return children.map(toJsonId) as any;
 }
 
-export async function getChildById(id: ObjectId) {
+export async function getChildById(id: ObjectId): Promise<ChildProfile | null> {
   const db = await getDatabase();
   const child = await db.collection(collectionName).findOne({ _id: id, deletedAt: { $exists: false } });
-  return child ? toJsonId(child) : null;
+  return child ? (toJsonId(child) as unknown as ChildProfile) : null;
 }
 
 export async function upsertChild(profile: Omit<ChildProfile, "_id" | "createdAt" | "updatedAt">) {
@@ -152,7 +156,7 @@ export async function upsertChild(profile: Omit<ChildProfile, "_id" | "createdAt
       { _id: existing._id },
       { $set: { ...profile, updatedAt: now } }
     );
-    return toJsonId({ ...existing, ...profile, updatedAt: now });
+    return toJsonId({ ...existing, ...profile, updatedAt: now }) as unknown as ChildProfile;
   }
 
   const newChild = { ...profile, kidexId: profile.kidexId || crypto.randomUUID(), name, createdAt: now, updatedAt: now };
@@ -178,7 +182,7 @@ export async function updateChildById(
     { returnDocument: "after" }
   );
 
-  return result ? toJsonId(result) : null;
+  return result ? (toJsonId(result) as unknown as ChildProfile) : null;
 }
 
 export async function deleteChildById(id: ObjectId) {
@@ -194,6 +198,10 @@ export async function deleteChildById(id: ObjectId) {
   return {
     _id: typeof jsonChild._id === "string" ? jsonChild._id : undefined,
     kidexId: typeof jsonChild.kidexId === "string" ? jsonChild.kidexId : "",
+    institutionId: typeof jsonChild.institutionId === "string" ? jsonChild.institutionId : undefined,
+    createdByUserEmail: typeof jsonChild.createdByUserEmail === "string" ? jsonChild.createdByUserEmail : undefined,
+    practitionerEmails: Array.isArray(jsonChild.practitionerEmails) ? jsonChild.practitionerEmails.filter((value): value is string => typeof value === "string") : [],
+    visibility: jsonChild.visibility === "restricted" ? "restricted" : "institution",
     name: typeof jsonChild.name === "string" ? jsonChild.name : "",
     birthDate: typeof jsonChild.birthDate === "string" ? jsonChild.birthDate : "",
     ageGroup: (typeof jsonChild.ageGroup === "string" ? jsonChild.ageGroup : "") as ChildProfile["ageGroup"],
@@ -216,5 +224,5 @@ export async function restoreChildById(id: ObjectId) {
     { $unset: { deletedAt: "" }, $set: { updatedAt: new Date().toISOString() } },
     { returnDocument: "after" }
   );
-  return result ? toJsonId(result) : null;
+  return result ? (toJsonId(result) as unknown as ChildProfile) : null;
 }

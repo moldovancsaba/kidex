@@ -19,8 +19,13 @@ import { getDomainMainColor, type AssessmentDomain } from "@/lib/domain-colors";
 import { LongitudinalChart } from "@/components/analytics/LongitudinalChart";
 import { BenchmarkChart } from "@/components/analytics/BenchmarkChart";
 import { SparklineChart } from "@/components/analytics/SparklineChart";
+import { canPerformAction } from "@/lib/permissions";
+import { buildRecommendationSummary } from "@/lib/recommendations";
+import { getStandardForAssessment } from "@/lib/standards";
 import type { AssessmentRecord } from "@/types/assessment";
 import type { ChildProfile } from "@/repositories/child.repository";
+import type { SupportedRuntimeRole } from "@/lib/roles";
+import type { KidexSettings } from "@/services/settings-service";
 import { Badge, SimpleGrid } from "@mantine/core";
 
 const RADAR_CHART_HEIGHT = 220;
@@ -41,13 +46,24 @@ export default function ChildHistoryPage({ params }: { params: Promise<{ id: str
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
   const [deletingSurvey, setDeletingSurvey] = useState(false);
+  const [roles, setRoles] = useState<SupportedRuntimeRole[]>([]);
+  const [settings, setSettings] = useState<KidexSettings | null>(null);
 
   useEffect(() => {
-    fetch(`/api/children/${id}/history`)
-      .then((res) => res.json())
-      .then(setData)
+    Promise.all([
+      fetch(`/api/children/${id}/history`).then((res) => res.json()),
+      fetch("/api/auth/me").then((res) => res.json()).catch(() => null),
+      fetch("/api/settings").then((res) => res.json()).catch(() => null),
+    ])
+      .then(([historyData, meData, settingsData]) => {
+        setData(historyData);
+        setRoles(meData?.user?.roles || []);
+        setSettings(settingsData);
+      })
       .finally(() => setLoading(false));
   }, [id]);
+
+  const canWriteAssessments = canPerformAction(roles, "assessments.write");
 
   async function downloadPdf() {
     if (!data || data.assessments.length === 0) return;
@@ -60,8 +76,14 @@ export default function ChildHistoryPage({ params }: { params: Promise<{ id: str
     try {
       const users = await getUsers();
       const printableRecord = withDisplayNamesForReport(latestRecord, users);
-      await PdfService.generateMapReport(printableRecord, t, tc, ts, tr, data.assessments);
-      logPdfExportTelemetry({
+      const recommendationSummary = buildRecommendationSummary(
+        printableRecord,
+        data.assessments,
+        getStandardForAssessment(settings?.standards, printableRecord.standardsVersionUsed, printableRecord.child.ageGroup),
+        ts,
+      );
+      await PdfService.generateMapReport(printableRecord, t, tc, ts, tr, data.assessments, recommendationSummary);
+      await logPdfExportTelemetry({
         status: "success",
         format: "map",
         childId: latestRecord.childId,
@@ -71,7 +93,7 @@ export default function ChildHistoryPage({ params }: { params: Promise<{ id: str
       });
     } catch (error) {
       console.error("PDF generation failed:", error);
-      logPdfExportTelemetry({
+      await logPdfExportTelemetry({
         status: "failed",
         format: "map",
         childId: latestRecord.childId,
@@ -134,6 +156,14 @@ export default function ChildHistoryPage({ params }: { params: Promise<{ id: str
   const trend = calculateTrend(data.assessments);
   const assessmentsWithImages = data.assessments.filter((assessment) => assessment.attachments.length > 0);
   const rapidDomainSummary = buildRapidDomainSummary(data.assessments, ts);
+  const recommendationSummary = latest
+    ? buildRecommendationSummary(
+        latest,
+        data.assessments,
+        getStandardForAssessment(settings?.standards, latest.standardsVersionUsed, latest.child.ageGroup),
+        ts,
+      )
+    : null;
 
   return (
     <Stack gap="lg">
@@ -142,14 +172,16 @@ export default function ChildHistoryPage({ params }: { params: Promise<{ id: str
         subtitle={data.child.birthDate} 
         actions={
           <Group>
-            <Button
-              component={Link}
-              href={data.assessments[0]?._id ? `/dashboard/assessment?id=${data.assessments[0]._id}` : "/dashboard/assessment"}
-              variant="default"
-              disabled={data.assessments.length === 0}
-            >
-              {tc("update")}
-            </Button>
+            {canWriteAssessments ? (
+              <Button
+                component={Link}
+                href={data.assessments[0]?._id ? `/dashboard/assessment?id=${data.assessments[0]._id}` : "/dashboard/assessment"}
+                variant="default"
+                disabled={data.assessments.length === 0}
+              >
+                {tc("update")}
+              </Button>
+            ) : null}
             <Button 
               color="kidex" 
               onClick={() => void downloadPdf()} 
@@ -158,7 +190,7 @@ export default function ChildHistoryPage({ params }: { params: Promise<{ id: str
             >
               {td("downloadPdf")}
             </Button>
-            <Button color="red" onClick={() => setDeleteModalOpen(true)} disabled={data.assessments.length === 0}>
+            <Button color="red" onClick={() => setDeleteModalOpen(true)} disabled={data.assessments.length === 0 || !canWriteAssessments}>
               Delete survey
             </Button>
           </Group>
@@ -259,6 +291,34 @@ export default function ChildHistoryPage({ params }: { params: Promise<{ id: str
           </Box>
         </Stack>
       </SectionCard>
+
+      {recommendationSummary ? (
+        <SectionCard title={tr("recommendationsTitle")}>
+          <Stack gap="md">
+            <Text size="sm" c="dimmed">
+              Standards version: {recommendationSummary.standardsVersionUsed || settings?.standards.activeVersion || "v1"} · SKI target {formatScore(recommendationSummary.ski.target)} · minimum {formatScore(recommendationSummary.ski.min)}
+            </Text>
+            {recommendationSummary.recommendations.map((recommendation) => (
+              <Paper key={recommendation.id} withBorder p="md" radius="md">
+                <Stack gap={6}>
+                  <Group justify="space-between">
+                    <Text fw={700}>{recommendation.title}</Text>
+                    <Badge color={recommendation.severity === "high" ? "red" : recommendation.severity === "medium" ? "orange" : "teal"} variant="light">
+                      {recommendation.severity}
+                    </Badge>
+                  </Group>
+                  <Text size="sm">{recommendation.rationale}</Text>
+                  {recommendation.focusItems.length > 0 ? (
+                    <Text size="sm" c="dimmed">
+                      Focus items: {recommendation.focusItems.map((item) => `${item.label} (${item.score})`).join(", ")}
+                    </Text>
+                  ) : null}
+                </Stack>
+              </Paper>
+            ))}
+          </Stack>
+        </SectionCard>
+      ) : null}
 
       <SectionCard title={t("assessmentHistory")}>
         <Paper withBorder p={0}>
@@ -363,7 +423,7 @@ export default function ChildHistoryPage({ params }: { params: Promise<{ id: str
         )}
       </SectionCard>
       <DeleteSurveyModal
-        opened={deleteModalOpen}
+        opened={canWriteAssessments && deleteModalOpen}
         onClose={() => setDeleteModalOpen(false)}
         confirmValue={deleteConfirmText}
         onConfirmValueChange={setDeleteConfirmText}

@@ -5,10 +5,12 @@ import { Alert, Badge, Box, Button, Checkbox, Group, Loader, Modal, MultiSelect,
 import { useParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
+import { canPerformAction } from "@/lib/permissions";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { SectionCard } from "@/components/ui/SectionCard";
 import { calculateAgeGroup } from "@/lib/utils/age";
 import { formatScore } from "@/lib/utils";
+import type { SupportedRuntimeRole } from "@/lib/roles";
 import type { ChildProfile } from "@/repositories/child.repository";
 import { PdfService } from "@/lib/pdf-service";
 import { getUsers } from "@/services/user-service";
@@ -52,14 +54,16 @@ export default function ChildrenListPage() {
   const [showDeleted, setShowDeleted] = useState(false);
   const [restoreTarget, setRestoreTarget] = useState<ChildProfile | null>(null);
   const [restoreConfirmText, setRestoreConfirmText] = useState("");
+  const [roles, setRoles] = useState<SupportedRuntimeRole[]>([]);
 
   useEffect(() => {
     let active = true;
 
     void (async () => {
-      const [cRes, sRes] = await Promise.all([
+      const [cRes, sRes, meRes] = await Promise.all([
         fetch("/api/children?metrics=true").catch(() => null),
-        fetch("/api/settings").catch(() => null)
+        fetch("/api/settings").catch(() => null),
+        fetch("/api/auth/me").catch(() => null)
       ]);
       const dcRes = await fetch("/api/children?deleted=true").catch(() => null);
       
@@ -77,6 +81,10 @@ export default function ChildrenListPage() {
       if (sRes?.ok) {
         const data = await sRes.json();
         setLocations(data.locations || []);
+      }
+      if (meRes?.ok) {
+        const data = await meRes.json() as { user?: { roles?: SupportedRuntimeRole[] } };
+        setRoles(data.user?.roles || []);
       }
       
       setLoading(false);
@@ -107,7 +115,7 @@ export default function ChildrenListPage() {
       const users = await getUsers();
       const printableRecord = withDisplayNamesForReport(assessment, users);
       await PdfService.generateMapReport(printableRecord, ta, tc, ts, tr, historyData);
-      logPdfExportTelemetry({
+      await logPdfExportTelemetry({
         status: "success",
         format: "map",
         childId,
@@ -117,7 +125,7 @@ export default function ChildrenListPage() {
       });
     } catch (err) {
       console.error(err);
-      logPdfExportTelemetry({
+      await logPdfExportTelemetry({
         status: "failed",
         format: "map",
         childId,
@@ -181,6 +189,9 @@ export default function ChildrenListPage() {
     });
     return Array.from(groups).sort();
   }, [children]);
+
+  const canWriteChildren = canPerformAction(roles, "children.write");
+  const canWriteAssessments = canPerformAction(roles, "assessments.write");
 
   function startEdit(child: ChildProfile) {
     setEditing(child);
@@ -297,7 +308,19 @@ export default function ChildrenListPage() {
 
   return (
     <Stack gap="md">
-      <PageHeader title={t("children")} actions={<Group><Button variant={showDeleted ? "filled" : "default"} color={showDeleted ? "red" : "gray"} onClick={() => setShowDeleted((v) => !v)}>{showDeleted ? t("showingDeleted") : t("showDeleted")}</Button><Button color="kidex" onClick={startCreate}>{t("addChild")}</Button></Group>} />
+      <PageHeader
+        title={t("children")}
+        actions={
+          <Group>
+            {canWriteChildren ? (
+              <Button variant={showDeleted ? "filled" : "default"} color={showDeleted ? "red" : "gray"} onClick={() => setShowDeleted((v) => !v)}>
+                {showDeleted ? t("showingDeleted") : t("showDeleted")}
+              </Button>
+            ) : null}
+            {canWriteChildren ? <Button color="kidex" onClick={startCreate}>{t("addChild")}</Button> : null}
+          </Group>
+        }
+      />
       <SectionCard>
         <Stack gap="md">
           {message ? (
@@ -414,7 +437,7 @@ export default function ChildrenListPage() {
                         )}
                       </Box>
                       <Group gap="sm">
-                        {!showDeleted ? <Button component={Link} href={`/dashboard/assessment?childId=${child._id}`} color="kidex" size="sm" onClick={(e) => e.stopPropagation()}>
+                        {!showDeleted && canWriteAssessments ? <Button component={Link} href={`/dashboard/assessment?childId=${child._id}`} color="kidex" size="sm" onClick={(e) => e.stopPropagation()}>
                           {t("newSurveyForChild")}
                         </Button> : null}
                         {child.latestRecordId && (
@@ -434,12 +457,13 @@ export default function ChildrenListPage() {
                         {!showDeleted ? <Button component={Link} href={`/dashboard/children/${child._id}`} variant="default" size="sm" onClick={(e) => e.stopPropagation()}>
                           {t("viewHistory")}
                         </Button> : null}
-                        {!showDeleted ? <Button variant="subtle" color="gray" size="sm" onClick={(e) => { e.stopPropagation(); startEdit(child); }}>
+                        {!showDeleted && canWriteChildren ? <Button variant="subtle" color="gray" size="sm" onClick={(e) => { e.stopPropagation(); startEdit(child); }}>
                           {t("editChild")}
                         </Button> : null}
-                        {!showDeleted ? <Button color="red" variant="filled" size="sm" onClick={(e) => { e.stopPropagation(); setDeleteTarget(child); setDeleteConfirmText(""); }}>
+                        {!showDeleted && canWriteChildren ? <Button color="red" variant="filled" size="sm" onClick={(e) => { e.stopPropagation(); setDeleteTarget(child); setDeleteConfirmText(""); }}>
                           {t("deleteChild")}
-                        </Button> : <Button color="kidex" variant="light" size="sm" onClick={(e) => { e.stopPropagation(); setRestoreTarget(child); setRestoreConfirmText(""); }}>{t("restoreAction")}</Button>}
+                        </Button> : null}
+                        {showDeleted && canWriteChildren ? <Button color="kidex" variant="light" size="sm" onClick={(e) => { e.stopPropagation(); setRestoreTarget(child); setRestoreConfirmText(""); }}>{t("restoreAction")}</Button> : null}
                       </Group>
                     </Stack>
                   </Paper>
@@ -449,7 +473,7 @@ export default function ChildrenListPage() {
           )}
         </Stack>
       </SectionCard>
-      <Modal opened={Boolean(editing)} onClose={() => (saving ? null : setEditing(null))} title={t("editChild")} centered>
+      <Modal opened={canWriteChildren && Boolean(editing)} onClose={() => (saving ? null : setEditing(null))} title={t("editChild")} centered>
           <Stack gap="md" mt="xs">
             <TextInput
               label={ta("childName")}
@@ -479,7 +503,7 @@ export default function ChildrenListPage() {
           </Button>
         </Group>
       </Modal>
-      <Modal opened={createOpen} onClose={() => (saving ? null : setCreateOpen(false))} title={t("addChild")} centered>
+      <Modal opened={canWriteChildren && createOpen} onClose={() => (saving ? null : setCreateOpen(false))} title={t("addChild")} centered>
         <Stack gap="md" mt="xs">
           <TextInput label={ta("childName")} value={draftName} onChange={(event) => setDraftName(event.target.value)} />
           <TextInput label={ta("birthDate")} type="date" value={draftBirthDate} onChange={(event) => setDraftBirthDate(event.target.value)} />
@@ -496,7 +520,7 @@ export default function ChildrenListPage() {
           </Group>
         </Stack>
       </Modal>
-      <Modal opened={Boolean(deleteTarget)} onClose={() => setDeleteTarget(null)} title={t("deleteChild")} centered>
+      <Modal opened={canWriteChildren && Boolean(deleteTarget)} onClose={() => setDeleteTarget(null)} title={t("deleteChild")} centered>
         <Stack gap="md">
           <Text size="sm">
             {t("deleteChildConfirm", { name: deleteTarget?.name || "" })}
@@ -519,7 +543,7 @@ export default function ChildrenListPage() {
           </Group>
         </Stack>
       </Modal>
-      <Modal opened={Boolean(restoreTarget)} onClose={() => setRestoreTarget(null)} title={t("restoreChild")} centered>
+      <Modal opened={canWriteChildren && Boolean(restoreTarget)} onClose={() => setRestoreTarget(null)} title={t("restoreChild")} centered>
         <Stack gap="md">
           <Text size="sm">{t("typeRestoreToConfirm")}</Text>
           <TextInput value={restoreConfirmText} onChange={(e) => setRestoreConfirmText(e.currentTarget.value)} placeholder="restore" />

@@ -6,9 +6,11 @@ import { useParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { canPerformAction } from "@/lib/permissions";
 import { formatScore } from "@/lib/utils";
 import { SectionCard } from "@/components/ui/SectionCard";
 import type { AssessmentRecord } from "@/types/assessment";
+import type { SupportedRuntimeRole } from "@/lib/roles";
 
 export default function RecordsPage() {
   const t = useTranslations("Dashboard");
@@ -22,11 +24,15 @@ export default function RecordsPage() {
   const [showDeleted, setShowDeleted] = useState(false);
   const [restoreTargetId, setRestoreTargetId] = useState<string | null>(null);
   const [restoreConfirmText, setRestoreConfirmText] = useState("");
+  const [roles, setRoles] = useState<SupportedRuntimeRole[]>([]);
 
   useEffect(() => {
     void (async () => {
-      const response = await fetch("/api/assessments").catch(() => null);
-      const deletedResponse = await fetch("/api/assessments?deleted=true").catch(() => null);
+      const [response, deletedResponse, meResponse] = await Promise.all([
+        fetch("/api/assessments").catch(() => null),
+        fetch("/api/assessments?deleted=true").catch(() => null),
+        fetch("/api/auth/me").catch(() => null),
+      ]);
       if (!response?.ok) {
         setLoading(false);
         return;
@@ -37,9 +43,15 @@ export default function RecordsPage() {
         const deletedData = (await deletedResponse.json()) as { assessments?: AssessmentRecord[] };
         setDeletedRecords(deletedData.assessments || []);
       }
+      if (meResponse?.ok) {
+        const meData = await meResponse.json() as { user?: { roles?: SupportedRuntimeRole[] } };
+        setRoles(meData.user?.roles || []);
+      }
       setLoading(false);
     })();
   }, []);
+
+  const canWriteAssessments = canPerformAction(roles, "assessments.write");
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -75,7 +87,11 @@ export default function RecordsPage() {
     <Stack gap="md">
       <PageHeader
         title={t("records")}
-        actions={<Button variant={showDeleted ? "filled" : "default"} color={showDeleted ? "red" : "gray"} onClick={() => setShowDeleted((v) => !v)}>{showDeleted ? t("showingDeleted") : t("showDeleted")}</Button>}
+        actions={
+          canWriteAssessments ? (
+            <Button variant={showDeleted ? "filled" : "default"} color={showDeleted ? "red" : "gray"} onClick={() => setShowDeleted((v) => !v)}>{showDeleted ? t("showingDeleted") : t("showDeleted")}</Button>
+          ) : null
+        }
       />
       <SectionCard>
         <Stack gap="md">
@@ -130,9 +146,11 @@ export default function RecordsPage() {
                           <Button component={Link} href={`/dashboard/records/${record._id}`} variant="default" size="sm" onClick={(e) => e.stopPropagation()}>
                             {tc("view")}
                           </Button>
-                          <Button component={Link} href={`/dashboard/assessment?id=${record._id}`} color="kidex" variant="light" size="sm" onClick={(e) => e.stopPropagation()}>
-                            {tc("update")}
-                          </Button>
+                          {canWriteAssessments ? (
+                            <Button component={Link} href={`/dashboard/assessment?id=${record._id}`} color="kidex" variant="light" size="sm" onClick={(e) => e.stopPropagation()}>
+                              {tc("update")}
+                            </Button>
+                          ) : null}
                         </>
                       ) : (
                         <Button color="kidex" variant="light" size="sm" onClick={(e) => { e.stopPropagation(); setRestoreTargetId(record._id || null); setRestoreConfirmText(""); }}>
@@ -147,7 +165,7 @@ export default function RecordsPage() {
           )}
         </Stack>
       </SectionCard>
-      <Modal opened={Boolean(restoreTargetId)} onClose={() => setRestoreTargetId(null)} title={t("restoreAssessment")} centered>
+      <Modal opened={canWriteAssessments && Boolean(restoreTargetId)} onClose={() => setRestoreTargetId(null)} title={t("restoreAssessment")} centered>
         <Stack gap="md">
           <Text size="sm">{t("typeRestoreAssessmentToConfirm")}</Text>
           <TextInput value={restoreConfirmText} onChange={(e) => setRestoreConfirmText(e.currentTarget.value)} placeholder="restore" />

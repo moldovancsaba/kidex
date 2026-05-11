@@ -9,10 +9,15 @@ Role checks are controlled by `KIDEX_ENFORCE_AUTH`.
 - When disabled: endpoints work without role headers.
 - When enabled: endpoints that require authorization validate `x-kidex-role`.
 
-Allowed roles currently used:
+Current active runtime roles:
 - `admin`
 - `conductor`
 - `observer`
+
+Reserved future roles such as `institution_admin`, `reviewer`, `guardian_viewer`, and `auditor` are intentionally not accepted by the current runtime until their permission model is implemented.
+
+See [docs/role-taxonomy.md](./role-taxonomy.md) for the canonical role model and extension policy.
+See [docs/access-model.md](./access-model.md) for the current permission matrix, institution boundaries, and standards governance rules.
 
 ## Endpoints
 
@@ -77,8 +82,9 @@ Allowed roles currently used:
   - Roles: `admin`, `conductor`, `observer` (when auth enforced).
 
 - `POST /api/users`
-  - Upserts user with role set (`conductor`, `observer`).
-  - Roles: `admin`.
+  - Upserts user with the currently active runtime role set.
+  - Unknown or reserved future roles are rejected from persisted role data.
+  - Roles: `admin`, `conductor`.
 
 ### Settings
 
@@ -94,17 +100,28 @@ Allowed roles currently used:
   - Saves settings document.
   - Roles: `admin`.
 
+### Audit
+
+- `GET /api/audit?limit=25`
+  - Returns recent audit events for review.
+  - Roles: `admin`.
+
+- `POST /api/audit`
+  - Writes PDF export audit events from the authenticated dashboard client.
+  - Roles: any role with assessment read access.
+
 ### Uploads
 
 - `POST /api/uploads/imgbb`
   - Uploads image to ImgBB server-side.
+  - Enforces photo-consent governance when child or assessment context is provided.
   - Returns attachment metadata used in assessments.
 
 ## Reporting and export behavior
 
 - **Bio-Psycho-Social Map**: Data-driven PDF generation that aggregates a child's full assessment history to provide longitudinal development trends and expert recommendations.
 - **Direct PDF Download**: Export action is client-side (`jsPDF` + `jspdf-autotable`), producing professional, localized documents.
-- **Audit Trail**: Every generated report displays the original recording date and the list of update timestamps from the persistent audit log.
+- **Audit Trail**: PDF exports are written to the persistent audit log with actor, target, format, timing, and warning/error metadata.
 
 ## Validation and error response
 

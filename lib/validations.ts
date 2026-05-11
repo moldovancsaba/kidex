@@ -1,4 +1,6 @@
 import type { AssessmentPayload, EvidenceAttachment, ScoreEntry } from "@/types/assessment";
+import { ensureInstitutionIds, normalizeInstitutionDirectory, type InstitutionDefinition } from "@/lib/institutions";
+import { sanitizeStoredRoles, type SupportedRuntimeRole } from "@/lib/roles";
 
 const modes = new Set(["rapid", "full"]);
 const ageGroups = new Set(["4-6", "7-9", "10-12"]);
@@ -103,6 +105,7 @@ export interface SettingsPayload {
   conductors: string[];
   observers: string[];
   locations: string[];
+  institutions: InstitutionDefinition[];
   company: {
     name: string;
     ico: string;
@@ -131,6 +134,7 @@ export function parseSettingsPayload(input: unknown): SettingsPayload {
     conductors: stringArray(data.conductors, 100, 240),
     observers: stringArray(data.observers, 100, 240),
     locations: stringArray(data.locations, 100, 240),
+    institutions: normalizeInstitutionDirectory(data.institutions),
     company: {
       name: stringValue(company.name, 240).trim(),
       ico: stringValue(company.ico, 120).trim(),
@@ -165,21 +169,20 @@ export function parseSettingsPayload(input: unknown): SettingsPayload {
 export interface UserPayload {
   name?: string;
   email: string;
-  roles: ("admin" | "conductor" | "observer")[];
+  roles: SupportedRuntimeRole[];
+  institutionIds: string[];
+  primaryInstitutionId: string;
 }
 
 export function parseUserPayload(input: unknown): UserPayload {
   const data = input && typeof input === "object" ? (input as Record<string, unknown>) : {};
-  const roleValues = Array.isArray(data.roles) ? data.roles : [];
-  const allowedRoleSet = new Set(["admin", "conductor", "observer"]);
-  const roles = roleValues
-    .map((role) => String(role).toLowerCase())
-    .filter((role): role is "admin" | "conductor" | "observer" => allowedRoleSet.has(role));
-
+  const institutions = ensureInstitutionIds(data.institutionIds, data.primaryInstitutionId);
   return {
     name: data.name ? stringValue(data.name, 240).trim() : undefined,
     email: stringValue(data.email, 240).trim().toLowerCase(),
-    roles: Array.from(new Set(roles))
+    roles: sanitizeStoredRoles(data.roles),
+    institutionIds: institutions.institutionIds,
+    primaryInstitutionId: institutions.primaryInstitutionId
   };
 }
 

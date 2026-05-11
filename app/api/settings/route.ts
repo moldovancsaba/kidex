@@ -1,12 +1,16 @@
 import { NextResponse } from "next/server";
 import { getGlobalSettings, updateGlobalSettings } from "@/repositories/settings.repository";
-import { jsonError, readJson, requireRole } from "@/lib/api";
+import { getAuthenticatedActor, requirePermission } from "@/lib/authorization";
+import { recordAuditEvent } from "@/lib/audit";
+import { jsonError, readJson } from "@/lib/api";
+import { normalizeInstitutionDirectory } from "@/lib/institutions";
+import { normalizeStandardsConfiguration } from "@/lib/standards-config";
 import { parseSettingsPayload } from "@/lib/validations";
 import { DEFAULT_KIDEX_SETTINGS } from "@/services/settings-service";
 
 export async function GET(request: Request) {
-  const authError = requireRole(request, ["admin", "conductor", "observer"]);
-  if (authError) return authError;
+  const { error } = await requirePermission(request, "settings.read");
+  if (error) return error;
 
   try {
     const settings = await getGlobalSettings();
@@ -27,17 +31,39 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
-  const authError = requireRole(request, ["admin"]);
-  if (authError) return authError;
+  const { error } = await requirePermission(request, "settings.write");
+  if (error) return error;
 
   try {
     const body = parseSettingsPayload(await readJson(request));
+    const actor = await getAuthenticatedActor(request);
+    const institutions = normalizeInstitutionDirectory(body.institutions);
+    const standards = normalizeStandardsConfiguration(
+      body.standards,
+      DEFAULT_KIDEX_SETTINGS.standards,
+      actor?.email,
+    );
     const settings = await updateGlobalSettings({
       ...DEFAULT_KIDEX_SETTINGS,
       ...body,
-      standards: body.standards?.activeVersion && body.standards?.versions
-        ? (body.standards as typeof DEFAULT_KIDEX_SETTINGS.standards)
-        : DEFAULT_KIDEX_SETTINGS.standards
+      institutions,
+      standards
+    });
+    await recordAuditEvent({
+      action: "settings.update",
+      status: "success",
+      actor,
+      request,
+      targetType: "settings",
+      targetId: "global_settings",
+      targetLabel: "Global settings",
+      summary: "Global settings updated",
+      metadata: {
+        locations: settings.locations.length,
+        institutions: settings.institutions.length,
+        activeStandardsVersion: settings.standards.activeVersion,
+        standardsVersions: Object.keys(settings.standards.versions).length,
+      },
     });
     return NextResponse.json(settings);
   } catch (error) {

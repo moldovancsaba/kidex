@@ -1,23 +1,29 @@
 "use client";
 
-import { AppShell, Box, Burger, Divider, Drawer, Group, NavLink, Stack } from "@mantine/core";
+import { AppShell, Box, Burger, Divider, Drawer, Group, Loader, NavLink, Stack } from "@mantine/core";
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
-import { Link, usePathname } from "@/i18n/navigation";
+import { Link, usePathname, useRouter } from "@/i18n/navigation";
 import { PageContainer } from "@/components/ui/PageContainer";
 import { AppFooter } from "@/components/layout/AppFooter";
 import { LocaleSwitcher } from "@/components/ui/LocaleSwitcher";
 import { ThemeSwitcher } from "@/components/ui/ThemeSwitcher";
+import { requiredActionForDashboardPath } from "@/lib/dashboard-access";
+import { canPerformAction } from "@/lib/permissions";
+import type { SupportedRuntimeRole } from "@/lib/roles";
 import { KIDEX_COLORS, KIDEX_LAYOUT } from "@/theme/tokens";
 
 export default function DashboardShell({ children }: { children: React.ReactNode }) {
   const t = useTranslations("Dashboard");
+  const tc = useTranslations("Common");
   const pathname = usePathname();
+  const router = useRouter();
   const [mobileOpen, setMobileOpen] = useState(false);
   const sideInset = 12;
 
-  const [user, setUser] = useState<{ name: string; email: string } | null>(null);
+  const [user, setUser] = useState<{ name: string; email: string; roles?: SupportedRuntimeRole[]; primaryInstitutionId?: string } | null>(null);
+  const [userLoaded, setUserLoaded] = useState(false);
 
   useEffect(() => {
     fetch("/api/auth/me")
@@ -27,14 +33,25 @@ export default function DashboardShell({ children }: { children: React.ReactNode
           setUser(data.user);
         }
       })
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => setUserLoaded(true));
   }, []);
+
+  const roles = user?.roles || [];
+  const requiredAction = requiredActionForDashboardPath(pathname);
+  const routeAllowed = userLoaded ? !requiredAction || canPerformAction(roles, requiredAction) : false;
+
+  useEffect(() => {
+    if (!userLoaded || routeAllowed) return;
+    router.replace("/dashboard");
+  }, [routeAllowed, router, userLoaded]);
 
   const nav = [
     { href: "/dashboard", label: t("overview") },
-    { href: "/dashboard/assessment", label: t("survey") },
-    { href: "/dashboard/children", label: t("children") },
-    { href: "/dashboard/settings", label: t("settings") }
+    ...(canPerformAction(roles, "assessments.read") ? [{ href: "/dashboard/records", label: t("records") }] : []),
+    ...(canPerformAction(roles, "assessments.write") ? [{ href: "/dashboard/assessment", label: t("survey") }] : []),
+    ...(canPerformAction(roles, "children.read") ? [{ href: "/dashboard/children", label: t("children") }] : []),
+    ...(canPerformAction(roles, "settings.read") ? [{ href: "/dashboard/settings", label: t("settings") }] : []),
   ];
 
   const navContent = (
@@ -63,6 +80,11 @@ export default function DashboardShell({ children }: { children: React.ReactNode
               <Box style={{ color: KIDEX_COLORS.navTextMuted, fontSize: "0.75rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                 {user.email}
               </Box>
+              {user.primaryInstitutionId ? (
+                <Box style={{ color: KIDEX_COLORS.navTextMuted, fontSize: "0.7rem", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {user.primaryInstitutionId}
+                </Box>
+              ) : null}
             </Stack>
           </Box>
         </Stack>
@@ -194,7 +216,13 @@ export default function DashboardShell({ children }: { children: React.ReactNode
           />
           <Box className="dashboard-main" style={{ minHeight: "100vh", display: "flex", flexDirection: "column", paddingBottom: 16 }}>
             <Box style={{ flex: 1 }}>
-              <PageContainer>{children}</PageContainer>
+              <PageContainer>
+                {!userLoaded || !routeAllowed ? (
+                  <Box style={{ minHeight: "50vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <Loader aria-label={tc("loading")} />
+                  </Box>
+                ) : children}
+              </PageContainer>
             </Box>
             <AppFooter />
           </Box>

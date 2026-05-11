@@ -11,7 +11,9 @@ describe("parseUserPayload", () => {
     expect(parsed).toEqual({
       name: "Alex",
       email: "",
-      roles: ["conductor", "observer"]
+      roles: ["conductor", "observer"],
+      institutionIds: ["default"],
+      primaryInstitutionId: "default"
     });
   });
 });
@@ -27,6 +29,7 @@ describe("parseSettingsPayload", () => {
     expect(parsed.conductors).toEqual(["Anna", "Bela"]);
     expect(parsed.observers).toEqual([]);
     expect(parsed.locations).toEqual(["Budapest", "Debrecen"]);
+    expect(parsed.institutions[0].id).toBe("default");
     expect(parsed.company).toBeTruthy();
     expect(parsed.emailTemplates).toBeTruthy();
     expect(parsed.standards).toBeTruthy();

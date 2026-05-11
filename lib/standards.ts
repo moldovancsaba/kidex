@@ -1,3 +1,5 @@
+import type { StandardsConfiguration, StandardsVersion } from "@/lib/standards-config";
+
 export interface DomainStandard {
   target: number;
   min: number;
@@ -36,14 +38,30 @@ export function getStandardForAgeGroup(ageGroup: string): AgeGroupStandard | nul
     try {
       const raw = localStorage.getItem("kidex-settings-local");
       if (raw) {
-        const parsed = JSON.parse(raw) as { standards?: { activeVersion?: string; versions?: Record<string, Record<string, AgeGroupStandard>> } };
+        const parsed = JSON.parse(raw) as { standards?: { activeVersion?: string; versions?: Record<string, StandardsVersion> } };
         const active = parsed.standards?.activeVersion;
         const version = active ? parsed.standards?.versions?.[active] : undefined;
-        if (version && version[ageGroup]) return version[ageGroup];
+        if (version && (ageGroup === "4-6" || ageGroup === "7-9" || ageGroup === "10-12")) return version[ageGroup];
       }
     } catch {
       // fallback to defaults
     }
   }
   return standards[ageGroup] || null;
+}
+
+export function getStandardForAssessment(
+  configuration: StandardsConfiguration | undefined,
+  versionName: string | undefined,
+  ageGroup: string,
+): AgeGroupStandard | null {
+  if (configuration && (ageGroup === "4-6" || ageGroup === "7-9" || ageGroup === "10-12")) {
+    const requestedVersion = versionName && configuration.versions[versionName]
+      ? configuration.versions[versionName]
+      : configuration.versions[configuration.activeVersion];
+    if (requestedVersion?.[ageGroup]) {
+      return requestedVersion[ageGroup];
+    }
+  }
+  return getStandardForAgeGroup(ageGroup);
 }

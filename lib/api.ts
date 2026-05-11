@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { env } from "@/config/env";
+import { parseRoleHeader, type SupportedRuntimeRole } from "@/lib/roles";
 
 const roleHeader = "x-kidex-role";
 
@@ -14,19 +15,19 @@ export async function readJson(request: Request): Promise<unknown | null> {
   return request.json().catch(() => null);
 }
 
-export function requireRole(request: Request, allowedRoles: string[]) {
+export function requireRole(request: Request, allowedRoles: readonly SupportedRuntimeRole[]) {
   if (!env.kidexEnforceAuth) {
     return null;
   }
 
-  const roleHeaderValue = request.headers.get(roleHeader)?.trim().toLowerCase() || "";
-  const userRoles = roleHeaderValue.split(",").map(r => r.trim());
+  const roleHeaderValue = request.headers.get(roleHeader);
+  const userRoles = parseRoleHeader(roleHeaderValue);
 
-  if (userRoles.length === 0 || roleHeaderValue === "") {
+  if (userRoles.length === 0) {
     return jsonError("Missing role header", 401, "AUTH_REQUIRED");
   }
 
-  const hasPermission = allowedRoles.some(role => userRoles.includes(role));
+  const hasPermission = allowedRoles.some((role) => userRoles.includes(role));
   if (!hasPermission) {
     return jsonError("Insufficient permissions", 403, "FORBIDDEN");
   }

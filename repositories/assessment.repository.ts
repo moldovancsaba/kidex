@@ -5,7 +5,7 @@ import type { AssessmentRecord } from "@/types/assessment";
 
 const collectionName = "assessments";
 
-export async function listAssessmentSummaries() {
+export async function listAssessmentSummaries(): Promise<AssessmentRecord[]> {
   const db = await getDatabase();
   const assessments = await db
     .collection(collectionName)
@@ -25,10 +25,10 @@ export async function listAssessmentSummaries() {
     .limit(100)
     .toArray();
 
-  return assessments.map(toJsonId);
+  return assessments.map((assessment) => toJsonId(assessment) as unknown as AssessmentRecord);
 }
 
-export async function listDeletedAssessmentSummaries() {
+export async function listDeletedAssessmentSummaries(): Promise<AssessmentRecord[]> {
   const db = await getDatabase();
   const assessments = await db
     .collection(collectionName)
@@ -36,7 +36,7 @@ export async function listDeletedAssessmentSummaries() {
     .sort({ updatedAt: -1 })
     .limit(200)
     .toArray();
-  return assessments.map(toJsonId);
+  return assessments.map((assessment) => toJsonId(assessment) as unknown as AssessmentRecord);
 }
 
 export async function createAssessment(record: Omit<AssessmentRecord, "_id">) {
@@ -45,10 +45,10 @@ export async function createAssessment(record: Omit<AssessmentRecord, "_id">) {
   return { ...record, _id: result.insertedId.toString() };
 }
 
-export async function getAssessmentById(id: ObjectId) {
+export async function getAssessmentById(id: ObjectId): Promise<AssessmentRecord | null> {
   const db = await getDatabase();
   const assessment = await db.collection(collectionName).findOne({ _id: id, deletedAt: { $exists: false } });
-  return assessment ? toJsonId(assessment) : null;
+  return assessment ? (toJsonId(assessment) as unknown as AssessmentRecord) : null;
 }
 
 export async function updateAssessmentById(id: ObjectId, update: Partial<AssessmentRecord>) {
@@ -59,7 +59,7 @@ export async function updateAssessmentById(id: ObjectId, update: Partial<Assessm
     { returnDocument: "after" }
   );
 
-  return result ? toJsonId(result) : null;
+  return result ? (toJsonId(result) as unknown as AssessmentRecord) : null;
 }
 
 export async function deleteAssessmentById(id: ObjectId) {
@@ -78,7 +78,7 @@ export async function restoreAssessmentById(id: ObjectId) {
   );
 }
 
-export async function listAssessmentsByChildId(childId: string) {
+export async function listAssessmentsByChildId(childId: string): Promise<AssessmentRecord[]> {
   const db = await getDatabase();
   const objectId = ObjectId.isValid(childId) ? new ObjectId(childId) : null;
   let assessments = await db
@@ -103,7 +103,7 @@ export async function listAssessmentsByChildId(childId: string) {
     }
   }
 
-  return assessments.filter((a: any) => !a.deletedAt).map(toJsonId);
+  return assessments.filter((a: any) => !a.deletedAt).map((assessment) => toJsonId(assessment) as unknown as AssessmentRecord);
 }
 
 export async function updateAssessmentsForChildProfile(

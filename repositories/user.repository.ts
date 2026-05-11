@@ -1,14 +1,19 @@
 import { getDatabase } from "@/lib/mongodb";
+import { ensureInstitutionIds } from "@/lib/institutions";
+import { sanitizeStoredRoles, type SupportedRuntimeRole } from "@/lib/roles";
 import type { User } from "@/services/user-service";
 
 const collectionName = "users";
 
 function mapUser(doc: any): User {
+  const institutionMembership = ensureInstitutionIds(doc.institutionIds, doc.primaryInstitutionId);
   return {
     id: doc._id.toString(),
     name: doc.name,
     email: doc.email,
-    roles: doc.roles || [],
+    roles: sanitizeStoredRoles(doc.roles),
+    institutionIds: institutionMembership.institutionIds,
+    primaryInstitutionId: institutionMembership.primaryInstitutionId,
     googleToken: doc.googleToken
   };
 }
@@ -25,7 +30,7 @@ export async function findUserByEmail(email: string): Promise<User | null> {
   return doc ? mapUser(doc) : null;
 }
 
-export async function listUsersByRole(role: "admin" | "conductor" | "observer"): Promise<User[]> {
+export async function listUsersByRole(role: SupportedRuntimeRole): Promise<User[]> {
   const db = await getDatabase();
   const users = await db.collection(collectionName)
     .find({ roles: role })
@@ -37,9 +42,19 @@ export async function listUsersByRole(role: "admin" | "conductor" | "observer"):
 export async function upsertUser(user: Omit<User, "id">) {
   const db = await getDatabase();
   const normalizedEmail = user.email.toLowerCase().trim();
+  const normalizedRoles = sanitizeStoredRoles(user.roles);
+  const institutionMembership = ensureInstitutionIds(user.institutionIds, user.primaryInstitutionId);
   const result = await db.collection(collectionName).updateOne(
     { email: normalizedEmail },
-    { $set: { ...user, email: normalizedEmail } },
+    {
+      $set: {
+        ...user,
+        email: normalizedEmail,
+        roles: normalizedRoles,
+        institutionIds: institutionMembership.institutionIds,
+        primaryInstitutionId: institutionMembership.primaryInstitutionId
+      }
+    },
     { upsert: true }
   );
   return result;
