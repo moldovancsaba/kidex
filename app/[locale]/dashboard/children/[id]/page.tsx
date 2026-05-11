@@ -379,9 +379,14 @@ export default function ChildHistoryPage({ params }: { params: Promise<{ id: str
                 <Stack gap={6}>
                   <Group justify="space-between">
                     <Text fw={700}>{recommendation.title}</Text>
-                    <Badge color={recommendation.severity === "high" ? "red" : recommendation.severity === "medium" ? "orange" : "teal"} variant="light">
-                      {recommendation.severity}
-                    </Badge>
+                    <Group gap="xs">
+                      <Badge color={recommendation.severity === "high" ? "red" : recommendation.severity === "medium" ? "orange" : "teal"} variant="light">
+                        {recommendation.severity}
+                      </Badge>
+                      <Badge color={recommendation.evidenceStrength === "high" ? "grape" : recommendation.evidenceStrength === "medium" ? "blue" : "gray"} variant="outline">
+                        evidence {recommendation.evidenceStrength}
+                      </Badge>
+                    </Group>
                   </Group>
                   <Text size="sm">{recommendation.rationale}</Text>
                   {recommendation.focusItems.length > 0 ? (
@@ -389,6 +394,13 @@ export default function ChildHistoryPage({ params }: { params: Promise<{ id: str
                       Focus items: {recommendation.focusItems.map((item) => `${item.label} (${item.score})`).join(", ")}
                     </Text>
                   ) : null}
+                  <Stack gap={4}>
+                    {recommendation.sourceEvidence.map((evidence, index) => (
+                      <Text key={`${recommendation.id}-${index}`} size="sm" c="dimmed">
+                        {evidence.label}: {evidence.detail}
+                      </Text>
+                    ))}
+                  </Stack>
                 </Stack>
               </Paper>
             ))}

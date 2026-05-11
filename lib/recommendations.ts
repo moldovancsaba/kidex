@@ -22,6 +22,13 @@ export interface DomainRecommendation {
   gapToTarget: number | null;
 }
 
+export interface RecommendationEvidence {
+  type: "benchmark" | "observation" | "trend";
+  label: string;
+  detail: string;
+  strength: "high" | "medium" | "low";
+}
+
 export interface RecommendationSummary {
   readinessStatus: RecommendationStatus;
   standardsVersionUsed?: string;
@@ -42,7 +49,9 @@ export interface RecommendationSummary {
     rationale: string;
     domain?: AssessmentDomain;
     severity: "high" | "medium" | "low";
+    evidenceStrength: "high" | "medium" | "low";
     focusItems: RecommendationItem[];
+    sourceEvidence: RecommendationEvidence[];
   }>;
 }
 
@@ -69,6 +78,12 @@ function gap(value: number | null, threshold: number): number | null {
 function severityForStatus(status: RecommendationStatus): "high" | "medium" | "low" {
   if (status === "below_min") return "high";
   if (status === "developing") return "medium";
+  return "low";
+}
+
+function evidenceStrength(entry: DomainRecommendation, focusItems: RecommendationItem[]): "high" | "medium" | "low" {
+  if (entry.status === "below_min" && focusItems.length >= 1) return "high";
+  if (entry.status === "developing") return "medium";
   return "low";
 }
 
@@ -127,6 +142,28 @@ export function buildRecommendationSummary(
       const rationale = entry.status === "below_min"
         ? `${entry.label} is below the minimum benchmark for this age band and should be prioritized in the next cycle.`
         : `${entry.label} is above the minimum benchmark but still below target, so this is the best area for guided improvement.`;
+      const sourceEvidence: RecommendationEvidence[] = [
+        {
+          type: "benchmark",
+          label: `${entry.label} benchmark`,
+          detail: `${entry.label} average ${entry.average === null ? "not recorded" : entry.average.toFixed(2)} against minimum ${entry.min.toFixed(2)} and target ${entry.target.toFixed(2)}.`,
+          strength: entry.status === "below_min" ? "high" : "medium",
+        },
+        ...focusItemsForDomain.map((item) => ({
+          type: "observation" as const,
+          label: item.label,
+          detail: `${item.label} scored ${item.score}, which contributes to the ${entry.label.toLowerCase()} recommendation.`,
+          strength: item.score <= 2 ? ("high" as const) : ("medium" as const),
+        })),
+        ...(baseline && entry.average !== null
+          ? [{
+              type: "trend" as const,
+              label: `${entry.label} trend`,
+              detail: `${entry.label} moved from ${domainAverage(baseline, entry.domain)?.toFixed(2) ?? "n/a"} at baseline to ${entry.average.toFixed(2)} in the current record.`,
+              strength: "low" as const,
+            }]
+          : []),
+      ];
 
       return {
         id: `${entry.domain}-${entry.status}`,
@@ -134,7 +171,9 @@ export function buildRecommendationSummary(
         rationale,
         domain: entry.domain,
         severity: severityForStatus(entry.status),
+        evidenceStrength: evidenceStrength(entry, focusItemsForDomain),
         focusItems: focusItemsForDomain,
+        sourceEvidence,
       };
     });
 
@@ -148,7 +187,16 @@ export function buildRecommendationSummary(
       title: "Maintain current progression",
       rationale: "Current domain scores are meeting target expectations for this benchmark version. Keep progression broad and continue observational monitoring.",
       severity: "low",
+      evidenceStrength: "medium",
       focusItems: strengths.slice(0, 2),
+      sourceEvidence: [
+        {
+          type: "benchmark",
+          label: "Current benchmark position",
+          detail: `SKI ${record.computed.ski === null ? "not recorded" : record.computed.ski.toFixed(2)} is meeting current target expectations.`,
+          strength: "medium",
+        },
+      ],
     });
   }
 

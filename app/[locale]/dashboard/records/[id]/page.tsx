@@ -282,9 +282,14 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
                   <Stack gap={4}>
                     <Group justify="space-between">
                       <Text fw={700}>{recommendation.title}</Text>
-                      <Badge variant="light" color={recommendation.severity === "high" ? "red" : recommendation.severity === "medium" ? "orange" : "teal"}>
-                        {recommendation.severity}
-                      </Badge>
+                      <Group gap="xs">
+                        <Badge variant="light" color={recommendation.severity === "high" ? "red" : recommendation.severity === "medium" ? "orange" : "teal"}>
+                          {recommendation.severity}
+                        </Badge>
+                        <Badge variant="outline" color={recommendation.evidenceStrength === "high" ? "grape" : recommendation.evidenceStrength === "medium" ? "blue" : "gray"}>
+                          evidence {recommendation.evidenceStrength}
+                        </Badge>
+                      </Group>
                     </Group>
                     <Text size="sm">{recommendation.rationale}</Text>
                     {recommendation.focusItems.length > 0 ? (
@@ -292,6 +297,13 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
                         Focus items: {recommendation.focusItems.map((item) => `${item.label} (${item.score})`).join(", ")}
                       </Text>
                     ) : null}
+                    <Stack gap={4}>
+                      {recommendation.sourceEvidence.map((evidence, index) => (
+                        <Text key={`${recommendation.id}-${index}`} size="sm" c="dimmed">
+                          {evidence.label}: {evidence.detail}
+                        </Text>
+                      ))}
+                    </Stack>
                   </Stack>
                 </Paper>
               ))}

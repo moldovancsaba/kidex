@@ -367,8 +367,16 @@ export const PdfService = {
         const lines = doc.splitTextToSize(`• ${rec.title}: ${rec.rationale}${focus}`, 155);
         doc.text(lines, 30, y);
         y += lines.length * 6;
+        if (rec.sourceEvidence.length > 0) {
+          rec.sourceEvidence.slice(0, 2).forEach((evidence) => {
+            const evidenceLines = doc.splitTextToSize(`   Source - ${evidence.label}: ${evidence.detail}`, 148);
+            doc.text(evidenceLines, 34, y);
+            y += evidenceLines.length * 5;
+          });
+        }
+        y += 4;
       });
-      y += 8;
+      y += 4;
     } else {
       doc.text("• —", 30, y);
       y += 16;

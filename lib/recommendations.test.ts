@@ -82,5 +82,7 @@ describe("buildRecommendationSummary", () => {
     expect(summary.recommendations.length).toBeGreaterThan(0);
     expect(summary.focusAreas[0]?.score).toBeLessThanOrEqual(summary.focusAreas[1]?.score ?? 6);
     expect(summary.domainBenchmarks.some((entry) => entry.status !== "ready")).toBe(true);
+    expect(summary.recommendations[0]?.sourceEvidence.length).toBeGreaterThan(0);
+    expect(summary.recommendations[0]?.evidenceStrength).toBeTruthy();
   });
 });

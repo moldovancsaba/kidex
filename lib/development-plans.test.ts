@@ -27,7 +27,16 @@ const recommendationSummary: RecommendationSummary = {
       rationale: "Movement should be prioritized.",
       domain: "movement",
       severity: "high",
+      evidenceStrength: "high",
       focusItems: [{ key: "balance", label: "Balance", score: 2, domain: "movement" }],
+      sourceEvidence: [
+        {
+          type: "benchmark",
+          label: "Movement benchmark",
+          detail: "Movement is below the current minimum benchmark.",
+          strength: "high",
+        },
+      ],
     },
   ],
 };
