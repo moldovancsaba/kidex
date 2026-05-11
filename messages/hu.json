@@ -531,6 +531,17 @@
     "expert": "Szakértő",
     "latestAssessment": "Legutóbbi értékelés",
     "professionalRecommendation": "Szakmai ajánlás",
-    "assessmentReport": "Szakmai Jelentés"
+    "assessmentReport": "Szakmai Jelentés",
+    "familyReportTitle": "Családi riport",
+    "familyReportIntro": "Ez a változat támogató, nem diagnosztikus nyelvet használ a családok számára, miközben ugyanarra a bizonyítékalapra épül.",
+    "familyHeadline": "Családbarát összefoglaló",
+    "familyReady": "A jelenlegi megfigyelések stabil fejlődést mutatnak. A fő cél az, hogy a rutinok támogatóak és örömteliek maradjanak.",
+    "familyDeveloping": "A jelenlegi megfigyelések jó alapot mutatnak, néhány jól körülhatárolható területtel, ahol a következetes támogatás segíthet.",
+    "familySupport": "A jelenlegi megfigyelések azt mutatják, hogy a következő fejlődési szakaszhoz több irányított támogatás segítene.",
+    "familyWhatWeSaw": "Amit láttunk",
+    "familyWhatThisMeans": "Jelenlegi szint",
+    "familyRecommendationsTitle": "Hasznos fókuszterületek",
+    "familyNextStepsTitle": "Javasolt következő lépések otthon és a foglalkozásokon",
+    "familyReportFooter": "Ez a riport a családokkal folytatott építő beszélgetéseket támogatja. Nem diagnózis, és a szakmai csapattal együtt érdemes értelmezni."
   }
 }

@@ -266,6 +266,24 @@ export default function ChildHistoryPage({ params }: { params: Promise<{ id: str
             >
               {td("downloadPdf")}
             </Button>
+            <Button
+              color="kidex"
+              variant="light"
+              onClick={async () => {
+                if (!latest || !recommendationSummary) return;
+                setDownloadingPdf(true);
+                try {
+                  const users = await getUsers();
+                  const printableRecord = withDisplayNamesForReport(latest, users);
+                  await PdfService.generateFamilyReport(printableRecord, t, tc, ts, tr, recommendationSummary, plan);
+                } finally {
+                  setDownloadingPdf(false);
+                }
+              }}
+              disabled={data.assessments.length === 0}
+            >
+              {tr("familyReportTitle")}
+            </Button>
             <Button color="red" onClick={() => setDeleteModalOpen(true)} disabled={data.assessments.length === 0 || !canWriteAssessments}>
               Delete survey
             </Button>
@@ -535,6 +553,34 @@ export default function ChildHistoryPage({ params }: { params: Promise<{ id: str
           </Stack>
         )}
       </SectionCard>
+
+      {recommendationSummary ? (
+        <SectionCard title={tr("familyReportTitle")}>
+          <Stack gap="sm">
+            <Text size="sm" c="dimmed">{tr("familyReportIntro")}</Text>
+            <Paper withBorder p="sm">
+              <Text fw={700}>{tr("familyHeadline")}</Text>
+              <Text size="sm" c="dimmed">
+                {recommendationSummary.readinessStatus === "ready"
+                  ? tr("familyReady")
+                  : recommendationSummary.readinessStatus === "developing"
+                    ? tr("familyDeveloping")
+                    : tr("familySupport")}
+              </Text>
+            </Paper>
+            {plan?.assignments?.length ? (
+              <Paper withBorder p="sm">
+                <Text fw={700}>{tr("familyNextStepsTitle")}</Text>
+                <Stack gap={4} mt="xs">
+                  {plan.assignments.slice(0, 3).map((assignment) => (
+                    <Text key={assignment.id} size="sm">• {assignment.title}</Text>
+                  ))}
+                </Stack>
+              </Paper>
+            ) : null}
+          </Stack>
+        </SectionCard>
+      ) : null}
 
       <SectionCard title={t("assessmentHistory")}>
         <Paper withBorder p={0}>

@@ -30,6 +30,7 @@ import { ReadinessGauge } from "@/components/analytics/ReadinessGauge";
 import { MaturityRadarChart } from "@/components/analytics/MaturityRadarChart";
 import type { AssessmentRecord } from "@/types/assessment";
 import type { KidexSettings } from "@/services/settings-service";
+import type { DevelopmentPlan } from "@/lib/development-plans";
 
 const RADAR_CHART_HEIGHT = 200;
 const RADAR_TICK_FONT_SIZE = 10;
@@ -51,6 +52,7 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
   const [loading, setLoading] = useState(true);
   const [downloadingPdf, setDownloadingPdf] = useState(false);
   const [settings, setSettings] = useState<KidexSettings | null>(null);
+  const [plan, setPlan] = useState<DevelopmentPlan | null>(null);
 
   const sections = record ? sectionsForMode(record.mode) : [];
   const recordedAt = record ? new Date(record.createdAt) : new Date();
@@ -64,7 +66,7 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
     minute: "2-digit"
   }).format(recordedAt);
 
-  const downloadPdf = async () => {
+  const downloadPdf = async (audience: "professional" | "family" = "professional") => {
     if (!record) return;
     const startedAt = Date.now();
     const validation = validatePdfExport(record, history);
@@ -81,7 +83,9 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
         getStandardForAssessment(settings?.standards, printableRecord.standardsVersionUsed, printableRecord.child.ageGroup),
         ts,
       );
-      if (reportFormat === "map") {
+      if (audience === "family") {
+        await PdfService.generateFamilyReport(printableRecord, t, tc, ts, tr, recommendationSummary, plan);
+      } else if (reportFormat === "map") {
         await PdfService.generateMapReport(printableRecord, t, tc, ts, tr, history, recommendationSummary);
       } else {
         await PdfService.generateOriginalReport(printableRecord, t, tc, ts);
@@ -120,6 +124,10 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
           .then(setSettings)
           .catch(() => null);
         if (data.assessment?.childId) {
+          fetch(`/api/children/${data.assessment.childId}/plan`)
+            .then((res) => res.json())
+            .then((planData) => setPlan(planData?.plan || null))
+            .catch(() => null);
           fetch(`/api/children/${data.assessment.childId}/history`)
             .then(r => r.json())
             .then(hData => setHistory(hData.assessments || []));
@@ -209,6 +217,14 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
                 loading={downloadingPdf}
               >
                 {td("downloadPdf")}
+              </Button>
+              <Button
+                color="kidex"
+                variant="light"
+                onClick={() => void downloadPdf("family")}
+                loading={downloadingPdf}
+              >
+                {tr("familyReportTitle")}
               </Button>
             </Group>
           }
@@ -307,6 +323,32 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
                   </Stack>
                 </Paper>
               ))}
+            </Stack>
+          </SectionCard>
+
+          <SectionCard title={tr("familyReportTitle")}>
+            <Stack gap="sm">
+              <Text size="sm" c="dimmed">{tr("familyReportIntro")}</Text>
+              <Paper withBorder p="sm">
+                <Text fw={700}>{tr("familyHeadline")}</Text>
+                <Text size="sm" c="dimmed">
+                  {recommendationSummary.readinessStatus === "ready"
+                    ? tr("familyReady")
+                    : recommendationSummary.readinessStatus === "developing"
+                      ? tr("familyDeveloping")
+                      : tr("familySupport")}
+                </Text>
+              </Paper>
+              {plan?.assignments?.length ? (
+                <Paper withBorder p="sm">
+                  <Text fw={700}>{tr("familyNextStepsTitle")}</Text>
+                  <Stack gap={4} mt="xs">
+                    {plan.assignments.slice(0, 3).map((assignment) => (
+                      <Text key={assignment.id} size="sm">• {assignment.title}</Text>
+                    ))}
+                  </Stack>
+                </Paper>
+              ) : null}
             </Stack>
           </SectionCard>
 

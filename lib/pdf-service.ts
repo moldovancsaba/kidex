@@ -1,9 +1,11 @@
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
+import type { DevelopmentPlan } from "@/lib/development-plans";
 import type { RecommendationSummary } from "@/lib/recommendations";
 import type { AssessmentRecord } from "@/types/assessment";
 import { formatScore } from "./utils";
 import { rapidSections } from "./kidex-schema";
+import { buildFamilyFriendlyReportSummary } from "./family-report";
 
 interface JsPDFWithAutoTable extends jsPDF {
   lastAutoTable?: {
@@ -126,6 +128,84 @@ export const PdfService = {
 
     const safeName = (record.child.name || "report").replace(/[^\w-]+/g, "_");
     doc.save(`kidex_report_${safeName}_${reportDate}.pdf`);
+  },
+
+  async generateFamilyReport(
+    record: AssessmentRecord,
+    t: TFunction,
+    tc: TFunction,
+    ts: TFunction,
+    tr: TFunction,
+    recommendationSummary: RecommendationSummary,
+    plan?: DevelopmentPlan | null,
+  ): Promise<void> {
+    const doc = new jsPDF({ unit: "mm", format: "a4" }) as JsPDFWithAutoTable;
+    await this.ensureUnicodeFont(doc);
+    const logoDataUrl = await this.getLogoDataUrl();
+    const reportDate = new Date(record.createdAt).toLocaleDateString();
+    const summary = buildFamilyFriendlyReportSummary({ record, recommendationSummary, plan });
+
+    if (logoDataUrl) {
+      doc.addImage(logoDataUrl, "JPEG", 14, 10, 20, 20);
+    }
+
+    doc.setFontSize(16);
+    doc.text(tr("familyReportTitle"), 38, 16);
+    doc.setFontSize(11);
+    doc.text(record.child.name, 38, 22);
+    doc.setFontSize(10);
+    doc.text(`${tc("date")}: ${reportDate}`, 140, 14);
+
+    doc.setFontSize(18);
+    doc.text(summary.headline, 20, 44);
+    doc.setFontSize(11);
+    doc.text(doc.splitTextToSize(summary.summary, 170), 20, 55);
+
+    autoTable(doc, {
+      startY: 72,
+      head: [[tr("familyWhatWeSaw"), tr("familyWhatThisMeans")]],
+      body: [
+        [ts("movement"), formatScore(record.computed.movementAverage)],
+        [ts("social"), formatScore(record.computed.socialAverage)],
+        [ts("mental"), formatScore(record.computed.mentalAverage)],
+        [ts("ski"), formatScore(record.computed.ski)],
+      ],
+      theme: "grid",
+      styles: { fontSize: 10 },
+    });
+
+    let y = doc.lastAutoTable?.finalY ? doc.lastAutoTable.finalY + 12 : 120;
+    doc.setFontSize(14);
+    doc.text(tr("familyRecommendationsTitle"), 20, y);
+    y += 10;
+    doc.setFontSize(11);
+    summary.recommendations.forEach((recommendation) => {
+      const lines = doc.splitTextToSize(`• ${recommendation.title}: ${recommendation.message}`, 165);
+      doc.text(lines, 24, y);
+      y += lines.length * 5;
+      recommendation.evidence.forEach((entry) => {
+        const evidenceLines = doc.splitTextToSize(`   ${entry}`, 158);
+        doc.text(evidenceLines, 28, y);
+        y += evidenceLines.length * 5;
+      });
+      y += 4;
+    });
+
+    doc.setFontSize(14);
+    doc.text(tr("familyNextStepsTitle"), 20, y);
+    y += 10;
+    doc.setFontSize(11);
+    summary.nextSteps.forEach((step) => {
+      const lines = doc.splitTextToSize(`• ${step}`, 165);
+      doc.text(lines, 24, y);
+      y += lines.length * 5 + 2;
+    });
+
+    doc.setFontSize(10);
+    doc.text(doc.splitTextToSize(tr("familyReportFooter"), 170), 20, 270);
+
+    const safeName = (record.child.name || "family_report").replace(/[^\w-]+/g, "_");
+    doc.save(`kidex_family_report_${safeName}_${reportDate}.pdf`);
   },
 
   /**

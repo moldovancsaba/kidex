@@ -531,6 +531,17 @@
     "expert": "Expert",
     "latestAssessment": "Latest Assessment",
     "professionalRecommendation": "Professional Recommendation",
-    "assessmentReport": "Assessment Report"
+    "assessmentReport": "Assessment Report",
+    "familyReportTitle": "Family Report",
+    "familyReportIntro": "This version is written for families in supportive, non-diagnostic language while staying consistent with the same evidence base.",
+    "familyHeadline": "Family-friendly summary",
+    "familyReady": "Current observations show steady progress. The main goal is to keep routines supportive and enjoyable.",
+    "familyDeveloping": "Current observations show a good base with a few clear areas where steady support can help next.",
+    "familySupport": "Current observations suggest that extra guided support would help the next stage of progress.",
+    "familyWhatWeSaw": "What we saw",
+    "familyWhatThisMeans": "Current level",
+    "familyRecommendationsTitle": "Helpful focus areas",
+    "familyNextStepsTitle": "Suggested next steps at home and in practice",
+    "familyReportFooter": "This report is designed to support constructive conversations with families. It is not a diagnosis and should be reviewed together with the professional team."
   }
 }
