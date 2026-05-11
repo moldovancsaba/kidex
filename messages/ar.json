@@ -161,8 +161,9 @@
     "showDeleted": "عرض المحذوف",
     "showingDeleted": "عرض العناصر المحذوفة",
     "addChild": "إضافة طفل",
-    "consentManagement": "إدارة الموافقات",
-    "consentEffectiveFrom": "ساري من",
+  "consentManagement": "إدارة الموافقات",
+  "preferredLanguage": "اللغة المفضلة",
+  "consentEffectiveFrom": "ساري من",
     "consentExpiresAt": "ينتهي في",
     "consentNotes": "ملاحظات الموافقة",
     "consentApprovedBy": "معتمد من ولي الأمر",
@@ -183,6 +184,11 @@
     "watch": "أقل من الحد الأدنى",
     "developing": "بين الحد الأدنى والهدف",
     "ready": "يحقق الهدف"
+  },
+  "localeLabel": {
+    "en": "الإنجليزية",
+    "hu": "الهنغارية",
+    "ar": "العربية"
   },
   "consentPolicyLabel": {
       "mediaCapture": "التقاط الصور والفيديو",

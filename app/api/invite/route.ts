@@ -20,13 +20,14 @@ export async function POST(request: Request) {
     const { refreshGoogleToken } = await import("@/services/google-auth-service");
     const { getGlobalSettings } = await import("@/repositories/settings.repository");
     
+    const targetUser = await findUserByEmail(email);
     const [session, globalSettings] = await Promise.all([
       getSession(),
       getGlobalSettings()
     ]);
 
     let accessToken: string | undefined = undefined;
-    const localeKey = (locale as "en" | "hu" | "ar") || "en";
+    const localeKey = ((locale as "en" | "hu" | "ar") || targetUser?.preferredLocale || "en");
     const customTemplate = globalSettings?.emailTemplates?.[localeKey];
 
     if (session?.email) {

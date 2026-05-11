@@ -20,6 +20,7 @@ describe("normalizeFamilyCaregivers", () => {
     expect(caregivers[0]).toMatchObject({
       name: "Anna Smith",
       email: "anna@example.com",
+      preferredLocale: "en",
       relationship: "mother",
       accessLevel: "full",
       status: "active",
@@ -40,6 +41,7 @@ describe("buildFamilyAccessEvents", () => {
         id: "a1",
         name: "Alex Smith",
         email: "alex@example.com",
+        preferredLocale: "hu",
         relationship: "guardian",
         accessLevel: "routine",
         canReceiveReports: false,
@@ -52,6 +54,7 @@ describe("buildFamilyAccessEvents", () => {
         id: "a1",
         name: "Alex Smith",
         email: "alex@example.com",
+        preferredLocale: "hu",
         relationship: "guardian",
         accessLevel: "full",
         canReceiveReports: true,
@@ -60,6 +63,7 @@ describe("buildFamilyAccessEvents", () => {
       {
         id: "a2",
         name: "Bea Smith",
+        preferredLocale: "ar",
         relationship: "mother",
         accessLevel: "routine",
       },

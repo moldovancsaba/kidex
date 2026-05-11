@@ -171,8 +171,9 @@
     "caregiverNotes": "Hozzáférési megjegyzések",
     "caregiverRelationshipTitle": "Kapcsolat",
     "caregiverAccessLevel": "Családi hozzáférési szint",
-    "caregiverStatus": "Státusz",
-    "caregiverReceivesReports": "Kaphat családi riportot",
+  "caregiverStatus": "Státusz",
+  "preferredLanguage": "Preferált nyelv",
+  "caregiverReceivesReports": "Kaphat családi riportot",
     "caregiverReceivesScheduling": "Kaphat időzítési értesítést",
     "caregiverContactEmail": "Kapcsolat e-mailben",
     "caregiverContactPhone": "Kapcsolat telefonon",
@@ -224,10 +225,15 @@
       "full": "Teljes családi hozzáférés",
       "restricted": "Korlátozott családi hozzáférés"
     },
-    "caregiverStatusLabel": {
-      "active": "Aktív",
-      "paused": "Szüneteltetett"
-    },
+  "caregiverStatusLabel": {
+    "active": "Aktív",
+    "paused": "Szüneteltetett"
+  },
+  "localeLabel": {
+    "en": "Angol",
+    "hu": "Magyar",
+    "ar": "Arab"
+  },
     "typeDeleteToConfirm": "A megerősítéshez írd be: `delete`.",
     "restoreChild": "Gyermek visszaállítása",
     "typeRestoreToConfirm": "A megerősítéshez írd be: `restore`.",

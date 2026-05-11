@@ -30,6 +30,7 @@ export interface FamilyCaregiver {
   name: string;
   email: string;
   phone: string;
+  preferredLocale: "en" | "hu" | "ar";
   relationship: FamilyRelationship;
   accessLevel: FamilyAccessLevel;
   status: FamilyCaregiverStatus;
@@ -106,6 +107,7 @@ export function normalizeFamilyCaregivers(value: unknown): FamilyCaregiver[] {
         name,
         email,
         phone,
+        preferredLocale: caregiver.preferredLocale === "hu" || caregiver.preferredLocale === "ar" ? caregiver.preferredLocale : "en",
         relationship: isOneOf(FAMILY_RELATIONSHIPS, relationshipValue) ? relationshipValue : "guardian",
         accessLevel: isOneOf(FAMILY_ACCESS_LEVELS, accessLevelValue) ? accessLevelValue : "routine",
         status: isOneOf(FAMILY_CAREGIVER_STATUSES, statusValue) ? statusValue : "active",
@@ -125,6 +127,7 @@ function stableCaregiverSnapshot(caregiver: FamilyCaregiver) {
     name: caregiver.name,
     email: caregiver.email,
     phone: caregiver.phone,
+    preferredLocale: caregiver.preferredLocale,
     relationship: caregiver.relationship,
     accessLevel: caregiver.accessLevel,
     status: caregiver.status,
@@ -228,6 +231,7 @@ export function createEmptyFamilyCaregiver(): FamilyCaregiver {
     name: "",
     email: "",
     phone: "",
+    preferredLocale: "en",
     relationship: "guardian",
     accessLevel: "routine",
     status: "active",

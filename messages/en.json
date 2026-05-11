@@ -171,8 +171,9 @@
     "caregiverNotes": "Access notes",
     "caregiverRelationshipTitle": "Relationship",
     "caregiverAccessLevel": "Family access level",
-    "caregiverStatus": "Status",
-    "caregiverReceivesReports": "Can receive family reports",
+  "caregiverStatus": "Status",
+  "preferredLanguage": "Preferred language",
+  "caregiverReceivesReports": "Can receive family reports",
     "caregiverReceivesScheduling": "Can receive scheduling updates",
     "caregiverContactEmail": "Contact by email",
     "caregiverContactPhone": "Contact by phone",
@@ -224,10 +225,15 @@
       "full": "Full family access",
       "restricted": "Restricted family access"
     },
-    "caregiverStatusLabel": {
-      "active": "Active",
-      "paused": "Paused"
-    },
+  "caregiverStatusLabel": {
+    "active": "Active",
+    "paused": "Paused"
+  },
+  "localeLabel": {
+    "en": "English",
+    "hu": "Hungarian",
+    "ar": "Arabic"
+  },
     "typeDeleteToConfirm": "Type `delete` to confirm.",
     "restoreChild": "Restore child",
     "typeRestoreToConfirm": "Type `restore` to confirm.",

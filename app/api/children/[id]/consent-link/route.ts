@@ -42,7 +42,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
 
   const body = await readJson(request) as { caregiverId?: string; locale?: string } | null;
   const caregiverId = typeof body?.caregiverId === "string" ? body.caregiverId : "";
-  const locale = typeof body?.locale === "string" ? body.locale : "en";
+  const requestedLocale = typeof body?.locale === "string" ? body.locale : "en";
 
   const child = await getChildById(new ObjectId(id));
   if (!child) {
@@ -56,6 +56,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   if (!caregiver) {
     return jsonError("Caregiver not found", 404, "NOT_FOUND");
   }
+
+  const locale = caregiver.preferredLocale || requestedLocale || child.locale || "en";
 
   const token = await createConsentReviewToken({
     childId: id,

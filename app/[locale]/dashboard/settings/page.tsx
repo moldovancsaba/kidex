@@ -11,6 +11,7 @@ import { SectionCard } from "@/components/ui/SectionCard";
 import { SearchableSelect } from "@/components/ui/SearchableSelect";
 import type { AuditLogEntry } from "@/repositories/audit.repository";
 import { normalizeInstitutionId } from "@/lib/institutions";
+import { normalizePreferredLocale } from "@/lib/locales";
 import { canPerformAction } from "@/lib/permissions";
 import type { SupportedRuntimeRole } from "@/lib/roles";
 import { getActiveVariantName, getVariantForVersion, syncVersionFromVariant, type StandardsAgeGroup, type StandardsDomain, type StandardsEvidenceStatus } from "@/lib/standards-config";
@@ -70,6 +71,7 @@ export default function SettingsPage() {
   const [locationDraft, setLocationDraft] = useState("");
   const [userDraft, setUserDraft] = useState("");
   const [userNameDraft, setUserNameDraft] = useState("");
+  const [userLocaleDraft, setUserLocaleDraft] = useState<"en" | "hu" | "ar">("en");
   const [institutionNameDraft, setInstitutionNameDraft] = useState("");
   const [institutionIdDraft, setInstitutionIdDraft] = useState("");
   const [me, setMe] = useState<CurrentUser | null>(null);
@@ -194,6 +196,11 @@ export default function SettingsPage() {
     || log.action === "assessment.delete"
     || log.action === "assessment.restore"
   )).slice(0, 8);
+  const localeOptions = [
+    { value: "en", label: t("localeLabel.en") },
+    { value: "hu", label: t("localeLabel.hu") },
+    { value: "ar", label: t("localeLabel.ar") },
+  ];
 
   async function handleSaveSettings() {
     if (!canWriteSettings) return;
@@ -268,11 +275,13 @@ export default function SettingsPage() {
       roles: [],
       institutionIds: defaultInstitutionIds,
       primaryInstitutionId: defaultPrimaryInstitutionId,
+      preferredLocale: userLocaleDraft,
     };
 
     setUsers((prev) => [...prev, newUser]);
     setUserDraft("");
     setUserNameDraft("");
+    setUserLocaleDraft("en");
 
     void saveUser(newUser).then((ok) => {
       if (!ok) {
@@ -737,6 +746,14 @@ export default function SettingsPage() {
               onChange={(event) => setUserDraft(event.target.value)}
               style={{ minWidth: 280 }}
             />
+            <Select
+              label={t("preferredLanguage")}
+              value={userLocaleDraft}
+              data={localeOptions}
+              onChange={(value) => setUserLocaleDraft(normalizePreferredLocale(value, "en"))}
+              allowDeselect={false}
+              style={{ minWidth: 180 }}
+            />
             <Button variant="default" onClick={addNewUser} disabled={!userDraft.trim() || !canWriteUsers}>
               {canSendInvites ? t("inviteUser") : tc("save")}
             </Button>
@@ -750,6 +767,7 @@ export default function SettingsPage() {
                   <Table.Th>{t("email")}</Table.Th>
                   <Table.Th>Institutions</Table.Th>
                   <Table.Th>Primary</Table.Th>
+                  <Table.Th>{t("preferredLanguage")}</Table.Th>
                   <Table.Th style={{ textAlign: "center" }}>{t("canConduct")}</Table.Th>
                   <Table.Th style={{ textAlign: "center" }}>{t("canObserve")}</Table.Th>
                   <Table.Th style={{ textAlign: "center" }}>Admin</Table.Th>
@@ -800,6 +818,21 @@ export default function SettingsPage() {
                         <Text>{user.primaryInstitutionId || DEFAULT_INSTITUTION}</Text>
                       )}
                     </Table.Td>
+                    <Table.Td>
+                      {canWriteUsers ? (
+                        <Select
+                          data={localeOptions}
+                          value={user.preferredLocale || "en"}
+                          onChange={(value) => {
+                            const preferredLocale = normalizePreferredLocale(value, "en");
+                            setUsers((prev) => prev.map((entry) => (entry.email === user.email ? { ...entry, preferredLocale } : entry)));
+                          }}
+                          allowDeselect={false}
+                        />
+                      ) : (
+                        <Text>{localeOptions.find((option) => option.value === (user.preferredLocale || "en"))?.label || "English"}</Text>
+                      )}
+                    </Table.Td>
                     <Table.Td style={{ textAlign: "center" }}>
                       <Checkbox
                         checked={user.roles.includes("conductor")}
@@ -836,6 +869,7 @@ export default function SettingsPage() {
                             name: (latest.name || "").trim() || undefined,
                             institutionIds: latest.institutionIds?.length ? latest.institutionIds : defaultInstitutionIds,
                             primaryInstitutionId: latest.primaryInstitutionId || latest.institutionIds?.[0] || DEFAULT_INSTITUTION,
+                            preferredLocale: normalizePreferredLocale(latest.preferredLocale, "en"),
                           };
                           const ok = await saveUser(updatedUser);
                           setMessage(ok ? tc("success") : tc("error"));
@@ -869,7 +903,7 @@ export default function SettingsPage() {
                 ))}
                 {users.length === 0 ? (
                   <Table.Tr>
-                    <Table.Td colSpan={8}>
+                    <Table.Td colSpan={9}>
                       <Text c="dimmed">{t("noUsers")}</Text>
                     </Table.Td>
                   </Table.Tr>

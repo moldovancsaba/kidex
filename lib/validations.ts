@@ -2,6 +2,7 @@ import type { AssessmentPayload, EvidenceAttachment, ScoreEntry } from "@/types/
 import { normalizeConsentPolicy, type ChildConsentPolicy } from "@/lib/consent-policy";
 import { normalizeFamilyCaregivers, type FamilyCaregiver } from "@/lib/family-access";
 import { ensureInstitutionIds, normalizeInstitutionDirectory, type InstitutionDefinition } from "@/lib/institutions";
+import { normalizePreferredLocale } from "@/lib/locales";
 import { sanitizeStoredRoles, type SupportedRuntimeRole } from "@/lib/roles";
 
 const modes = new Set(["rapid", "full"]);
@@ -174,6 +175,7 @@ export interface UserPayload {
   roles: SupportedRuntimeRole[];
   institutionIds: string[];
   primaryInstitutionId: string;
+  preferredLocale: "en" | "hu" | "ar";
 }
 
 export function parseUserPayload(input: unknown): UserPayload {
@@ -184,7 +186,8 @@ export function parseUserPayload(input: unknown): UserPayload {
     email: stringValue(data.email, 240).trim().toLowerCase(),
     roles: sanitizeStoredRoles(data.roles),
     institutionIds: institutions.institutionIds,
-    primaryInstitutionId: institutions.primaryInstitutionId
+    primaryInstitutionId: institutions.primaryInstitutionId,
+    preferredLocale: normalizePreferredLocale(data.preferredLocale, "en"),
   };
 }
 

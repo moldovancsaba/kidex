@@ -1,4 +1,5 @@
 import type { SupportedRuntimeRole } from "@/lib/roles";
+import type { SupportedLocale } from "@/lib/locales";
 
 export interface User {
   id?: string;
@@ -7,6 +8,7 @@ export interface User {
   roles: SupportedRuntimeRole[];
   institutionIds?: string[];
   primaryInstitutionId?: string;
+  preferredLocale?: SupportedLocale;
   googleToken?: {
     access_token: string;
     refresh_token?: string;

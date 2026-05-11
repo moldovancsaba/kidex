@@ -13,7 +13,8 @@ describe("parseUserPayload", () => {
       email: "",
       roles: ["conductor", "observer"],
       institutionIds: ["default"],
-      primaryInstitutionId: "default"
+      primaryInstitutionId: "default",
+      preferredLocale: "en",
     });
   });
 });
@@ -42,7 +43,7 @@ describe("parseChildPayload", () => {
       name: "  Test Kid ",
       birthDate: "2020-01-01",
       dominantHand: "right",
-      caregivers: [{ name: " Parent One ", email: "PARENT@EXAMPLE.COM" }],
+      caregivers: [{ name: " Parent One ", email: "PARENT@EXAMPLE.COM", preferredLocale: "ar" }],
       consentPolicy: {
         mediaCapture: { granted: true, effectiveFrom: "2026-05-11" },
       },
@@ -55,6 +56,7 @@ describe("parseChildPayload", () => {
     expect(parsed.knownTraits).toBe("");
     expect(parsed.caregivers).toHaveLength(1);
     expect(parsed.caregivers[0].email).toBe("parent@example.com");
+    expect(parsed.caregivers[0].preferredLocale).toBe("ar");
     expect(parsed.consentPolicy.mediaCapture.granted).toBe(true);
   });
 });

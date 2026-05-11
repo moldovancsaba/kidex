@@ -6,6 +6,7 @@ import { useParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { defaultConsentPolicy, deriveLegacyConsents, getConsentAlerts, type ChildConsentPolicy, type ConsentPolicyKey } from "@/lib/consent-policy";
+import { normalizePreferredLocale } from "@/lib/locales";
 import { canPerformAction } from "@/lib/permissions";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { SectionCard } from "@/components/ui/SectionCard";
@@ -343,6 +344,11 @@ export default function ChildrenListPage() {
   const caregiverRelationshipOptions = FAMILY_RELATIONSHIPS.map((relationship) => ({ value: relationship, label: t(`caregiverRelationship.${relationship}`) }));
   const caregiverAccessLevelOptions = FAMILY_ACCESS_LEVELS.map((accessLevel) => ({ value: accessLevel, label: t(`caregiverAccessLevelLabel.${accessLevel}`) }));
   const caregiverStatusOptions = FAMILY_CAREGIVER_STATUSES.map((status) => ({ value: status, label: t(`caregiverStatusLabel.${status}`) }));
+  const caregiverLocaleOptions = [
+    { value: "en", label: t("localeLabel.en") },
+    { value: "hu", label: t("localeLabel.hu") },
+    { value: "ar", label: t("localeLabel.ar") },
+  ];
   const consentApproverOptions = [
     { value: "", label: t("consentApproverStaff") },
     ...draftCaregivers
@@ -649,6 +655,7 @@ export default function ChildrenListPage() {
                       <TextInput label={t("email")} value={caregiver.email} onChange={(event) => updateCaregiverField(index, "email", event.currentTarget.value)} />
                       <TextInput label={t("caregiverPhone")} value={caregiver.phone} onChange={(event) => updateCaregiverField(index, "phone", event.currentTarget.value)} />
                     </Group>
+                    <Select label={t("preferredLanguage")} value={caregiver.preferredLocale} onChange={(value) => updateCaregiverField(index, "preferredLocale", normalizePreferredLocale(value, "en"))} data={caregiverLocaleOptions} allowDeselect={false} />
                     <Group grow align="start">
                       <Select label={t("caregiverAccessLevel")} value={caregiver.accessLevel} onChange={(value) => updateCaregiverField(index, "accessLevel", (value || "routine") as FamilyCaregiver["accessLevel"])} data={caregiverAccessLevelOptions} />
                       <Select label={t("caregiverStatus")} value={caregiver.status} onChange={(value) => updateCaregiverField(index, "status", (value || "active") as FamilyCaregiver["status"])} data={caregiverStatusOptions} />
@@ -751,6 +758,7 @@ export default function ChildrenListPage() {
                     <TextInput label={t("email")} value={caregiver.email} onChange={(event) => updateCaregiverField(index, "email", event.currentTarget.value)} />
                     <TextInput label={t("caregiverPhone")} value={caregiver.phone} onChange={(event) => updateCaregiverField(index, "phone", event.currentTarget.value)} />
                   </Group>
+                  <Select label={t("preferredLanguage")} value={caregiver.preferredLocale} onChange={(value) => updateCaregiverField(index, "preferredLocale", normalizePreferredLocale(value, "en"))} data={caregiverLocaleOptions} allowDeselect={false} />
                   <Group grow align="start">
                     <Select label={t("caregiverAccessLevel")} value={caregiver.accessLevel} onChange={(value) => updateCaregiverField(index, "accessLevel", (value || "routine") as FamilyCaregiver["accessLevel"])} data={caregiverAccessLevelOptions} />
                     <Select label={t("caregiverStatus")} value={caregiver.status} onChange={(value) => updateCaregiverField(index, "status", (value || "active") as FamilyCaregiver["status"])} data={caregiverStatusOptions} />

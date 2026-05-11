@@ -1,5 +1,6 @@
 import { getDatabase } from "@/lib/mongodb";
 import { ensureInstitutionIds } from "@/lib/institutions";
+import { normalizePreferredLocale } from "@/lib/locales";
 import { sanitizeStoredRoles, type SupportedRuntimeRole } from "@/lib/roles";
 import type { User } from "@/services/user-service";
 
@@ -14,6 +15,7 @@ function mapUser(doc: any): User {
     roles: sanitizeStoredRoles(doc.roles),
     institutionIds: institutionMembership.institutionIds,
     primaryInstitutionId: institutionMembership.primaryInstitutionId,
+    preferredLocale: normalizePreferredLocale(doc.preferredLocale, "en"),
     googleToken: doc.googleToken
   };
 }
@@ -52,7 +54,8 @@ export async function upsertUser(user: Omit<User, "id">) {
         email: normalizedEmail,
         roles: normalizedRoles,
         institutionIds: institutionMembership.institutionIds,
-        primaryInstitutionId: institutionMembership.primaryInstitutionId
+        primaryInstitutionId: institutionMembership.primaryInstitutionId,
+        preferredLocale: normalizePreferredLocale(user.preferredLocale, "en"),
       }
     },
     { upsert: true }
