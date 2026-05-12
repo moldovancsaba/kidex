@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, use } from "react";
-import { Alert, Box, Button, Group, Loader, Modal, Paper, Stack, Table, Text, TextInput, useMantineTheme } from "@mantine/core";
+import { Alert, Box, Button, Group, Loader, Modal, MultiSelect, Paper, Select, Stack, Table, Text, TextInput, Textarea, useMantineTheme } from "@mantine/core";
 import Image from "next/image";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
@@ -24,6 +24,7 @@ import { buildRecommendationSummary } from "@/lib/recommendations";
 import { buildSuggestedDevelopmentPlan, type DevelopmentPlan } from "@/lib/development-plans";
 import { getConsentAlerts, hasActiveConsent } from "@/lib/consent-policy";
 import { getStandardForAssessment } from "@/lib/standards";
+import type { CommunicationLogEntry } from "@/repositories/communication.repository";
 import type { AssessmentRecord } from "@/types/assessment";
 import type { ChildProfile } from "@/repositories/child.repository";
 import type { SupportedRuntimeRole } from "@/lib/roles";
@@ -55,6 +56,12 @@ export default function ChildHistoryPage({ params }: { params: Promise<{ id: str
   const [consentLinkModalOpen, setConsentLinkModalOpen] = useState(false);
   const [generatedConsentLink, setGeneratedConsentLink] = useState("");
   const [consentLinkTarget, setConsentLinkTarget] = useState<{ id: string; name: string } | null>(null);
+  const [communications, setCommunications] = useState<CommunicationLogEntry[]>([]);
+  const [communicationCategory, setCommunicationCategory] = useState<"internal_note" | "caregiver_update" | "family_announcement">("internal_note");
+  const [communicationSubject, setCommunicationSubject] = useState("");
+  const [communicationBody, setCommunicationBody] = useState("");
+  const [communicationCaregiverIds, setCommunicationCaregiverIds] = useState<string[]>([]);
+  const [sendingCommunication, setSendingCommunication] = useState(false);
 
   useEffect(() => {
     Promise.all([
@@ -62,18 +69,21 @@ export default function ChildHistoryPage({ params }: { params: Promise<{ id: str
       fetch("/api/auth/me").then((res) => res.json()).catch(() => null),
       fetch("/api/settings").then((res) => res.json()).catch(() => null),
       fetch(`/api/children/${id}/plan`).then((res) => res.json()).catch(() => ({ plan: null })),
+      fetch(`/api/children/${id}/communications`).then((res) => res.json()).catch(() => ({ communications: [] })),
     ])
-      .then(([historyData, meData, settingsData, planData]) => {
+      .then(([historyData, meData, settingsData, planData, communicationData]) => {
         setData(historyData);
         setRoles(meData?.user?.roles || []);
         setSettings(settingsData);
         setPlan(planData?.plan || null);
+        setCommunications(Array.isArray(communicationData?.communications) ? communicationData.communications : []);
       })
       .finally(() => setLoading(false));
   }, [id]);
 
   const canWriteAssessments = canPerformAction(roles, "assessments.write");
   const canWritePlans = canPerformAction(roles, "children.write");
+  const canWriteCommunications = canPerformAction(roles, "communications.write");
   const canGenerateFamilyReport = hasActiveConsent(data?.child?.consentPolicy, "familyReport");
   const canExportProfessional = hasActiveConsent(data?.child?.consentPolicy, "dataSharing");
 
@@ -178,6 +188,9 @@ export default function ChildHistoryPage({ params }: { params: Promise<{ id: str
         ts,
       )
     : null;
+  const caregiverOptions = (data.child.caregivers || [])
+    .filter((caregiver) => caregiver.status === "active")
+    .map((caregiver) => ({ value: caregiver.id, label: caregiver.name }));
 
   function ensureDraftPlan() {
     if (!data?.child || !latest || !recommendationSummary) return;
@@ -260,6 +273,31 @@ export default function ChildHistoryPage({ params }: { params: Promise<{ id: str
     setGeneratedConsentLink(payload.reviewLink || "");
     setConsentLinkTarget({ id: caregiverId, name: caregiverName });
     setConsentLinkModalOpen(true);
+  }
+
+  async function sendCommunication() {
+    if (!communicationSubject.trim() || !communicationBody.trim()) return;
+    setSendingCommunication(true);
+    const response = await fetch(`/api/children/${id}/communications`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        category: communicationCategory,
+        subject: communicationSubject,
+        body: communicationBody,
+        caregiverIds: communicationCaregiverIds,
+      }),
+    }).catch(() => null);
+    setSendingCommunication(false);
+    if (!response?.ok) return;
+    const payload = await response.json();
+    if (payload?.communication) {
+      setCommunications((current) => [payload.communication, ...current]);
+      setCommunicationCategory("internal_note");
+      setCommunicationSubject("");
+      setCommunicationBody("");
+      setCommunicationCaregiverIds([]);
+    }
   }
 
   return (
@@ -358,6 +396,79 @@ export default function ChildHistoryPage({ params }: { params: Promise<{ id: str
           </Stack>
         </SectionCard>
       ) : null}
+
+      <SectionCard title="Communication Log">
+        <Stack gap="md">
+          <Text size="sm" c="dimmed">
+            This workflow logs caregiver-visible updates and internal notes with policy-aware review history. Direct adult-minor messaging is not supported.
+          </Text>
+          {canWriteCommunications ? (
+            <Paper withBorder p="md" radius="md">
+              <Stack gap="sm">
+                <Select
+                  label="Message type"
+                  value={communicationCategory}
+                  onChange={(value) => setCommunicationCategory((value || "internal_note") as typeof communicationCategory)}
+                  data={[
+                    { value: "internal_note", label: "Internal note" },
+                    { value: "caregiver_update", label: "Caregiver update" },
+                    { value: "family_announcement", label: "Family announcement" },
+                  ]}
+                  allowDeselect={false}
+                />
+                {communicationCategory !== "internal_note" ? (
+                  <MultiSelect
+                    label="Visible caregivers"
+                    value={communicationCaregiverIds}
+                    onChange={setCommunicationCaregiverIds}
+                    data={caregiverOptions}
+                    searchable
+                  />
+                ) : null}
+                <TextInput label="Subject" value={communicationSubject} onChange={(event) => setCommunicationSubject(event.currentTarget.value)} />
+                <Textarea label="Message" value={communicationBody} onChange={(event) => setCommunicationBody(event.currentTarget.value)} minRows={3} />
+                <Group justify="flex-end">
+                  <Button color="kidex" onClick={() => void sendCommunication()} loading={sendingCommunication} disabled={!communicationSubject.trim() || !communicationBody.trim()}>
+                    Log communication
+                  </Button>
+                </Group>
+              </Stack>
+            </Paper>
+          ) : null}
+          {communications.length === 0 ? (
+            <Text size="sm" c="dimmed">No governed communication logged for this child yet.</Text>
+          ) : (
+            <Stack gap="sm">
+              {communications.map((communication) => (
+                <Paper key={communication._id} withBorder p="sm" radius="md">
+                  <Stack gap={6}>
+                    <Group justify="space-between" align="start">
+                      <Box>
+                        <Text fw={700}>{communication.subject}</Text>
+                        <Text size="sm" c="dimmed">
+                          {new Date(communication.createdAt).toLocaleString()} · {communication.createdByUserEmail || "Unknown sender"}
+                        </Text>
+                      </Box>
+                      <Group gap="xs">
+                        <Badge color={communication.visibleToCaregivers ? "teal" : "gray"} variant="light">
+                          {communication.visibleToCaregivers ? "Caregiver-visible" : "Internal"}
+                        </Badge>
+                        <Badge color={communication.deliveryStatus === "scheduled_quiet_hours" ? "yellow" : "blue"} variant="light">
+                          {communication.deliveryStatus === "scheduled_quiet_hours" ? "Quiet-hours hold" : "Logged"}
+                        </Badge>
+                      </Group>
+                    </Group>
+                    {communication.caregiverNames.length > 0 ? (
+                      <Text size="sm">Recipients: {communication.caregiverNames.join(", ")}</Text>
+                    ) : null}
+                    <Text size="sm">{communication.body}</Text>
+                  </Stack>
+                </Paper>
+              ))}
+            </Stack>
+          )}
+        </Stack>
+      </SectionCard>
 
       <SectionCard title={td("skiProgression")}>
         <LongitudinalChart 

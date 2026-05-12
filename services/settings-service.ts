@@ -1,5 +1,7 @@
+import type { CommunicationPolicy } from "@/lib/communication-policy";
 import type { StandardsConfiguration } from "@/lib/standards-config";
 import type { InstitutionDefinition } from "@/lib/institutions";
+import { DEFAULT_COMMUNICATION_POLICY, normalizeCommunicationPolicy } from "@/lib/communication-policy";
 
 export interface KidexSettings {
   conductors: string[];
@@ -21,6 +23,7 @@ export interface KidexSettings {
     hu: { subject: string; body: string };
     ar: { subject: string; body: string };
   };
+  communicationPolicy: CommunicationPolicy;
   standards: StandardsConfiguration;
 }
 
@@ -61,6 +64,7 @@ export const DEFAULT_KIDEX_SETTINGS: KidexSettings = {
       body: "<div dir=\"rtl\"><h1>مرحباً بك في كيديكس</h1><p>لقد تم دعوتك للانضمام إلى نظام كيديكس الرياضي الحيوي-النفسي-الاجتماعي.</p><p>يمكنك الآن تسجيل الدخول باستخدام بريدك الإلكتروني عبر الرابط التالي:</p><a href=\"{{link}}\" style=\"padding: 12px 24px; background: #008080; color: white; text-decoration: none; border-radius: 6px; display: inline-block;\">تسجيل الدخول إلى لوحة التحكم</a><p>إذا لم يعمل الزر، قم بنسخ ولصق هذا الرابط: {{link}}</p></div>"
     }
   },
+  communicationPolicy: DEFAULT_COMMUNICATION_POLICY,
   standards: {
     activeVersion: "v1",
     versions: {
@@ -145,6 +149,7 @@ function normalizeSettings(raw: Partial<KidexSettings> | null | undefined): Kide
       ...DEFAULT_KIDEX_SETTINGS.emailTemplates,
       ...(next.emailTemplates ?? {})
     },
+    communicationPolicy: normalizeCommunicationPolicy(next.communicationPolicy),
     standards: {
       ...DEFAULT_KIDEX_SETTINGS.standards,
       ...(next.standards ?? {})

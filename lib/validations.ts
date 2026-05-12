@@ -1,5 +1,6 @@
 import type { AssessmentPayload, EvidenceAttachment, ScoreEntry } from "@/types/assessment";
 import { normalizeAccessibilityProfile, type ChildAccessibilityProfile } from "@/lib/accessibility-profile";
+import { normalizeCommunicationPolicy, type CommunicationPolicy } from "@/lib/communication-policy";
 import { normalizeConsentPolicy, type ChildConsentPolicy } from "@/lib/consent-policy";
 import { normalizeFamilyCaregivers, type FamilyCaregiver } from "@/lib/family-access";
 import { ensureInstitutionIds, normalizeInstitutionDirectory, type InstitutionDefinition } from "@/lib/institutions";
@@ -125,6 +126,7 @@ export interface SettingsPayload {
     hu: { subject: string; body: string };
     ar: { subject: string; body: string };
   };
+  communicationPolicy: CommunicationPolicy;
   standards: {
     activeVersion: string;
     versions: Record<string, unknown>;
@@ -163,6 +165,7 @@ export function parseSettingsPayload(input: unknown): SettingsPayload {
         body: stringValue((data.emailTemplates as Record<string, Record<string, string>>)?.ar?.body, 10000).trim()
       }
     },
+    communicationPolicy: normalizeCommunicationPolicy(data.communicationPolicy),
     standards: {
       activeVersion: stringValue((data.standards as Record<string, unknown>)?.activeVersion, 120).trim() || "v1",
       versions: ((data.standards as Record<string, unknown>)?.versions as Record<string, unknown>) || {}

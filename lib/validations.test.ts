@@ -33,6 +33,7 @@ describe("parseSettingsPayload", () => {
     expect(parsed.institutions[0].id).toBe("default");
     expect(parsed.company).toBeTruthy();
     expect(parsed.emailTemplates).toBeTruthy();
+    expect(parsed.communicationPolicy.quietHoursStart).toBe("20:00");
     expect(parsed.standards).toBeTruthy();
   });
 });

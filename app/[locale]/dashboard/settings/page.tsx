@@ -404,6 +404,20 @@ export default function SettingsPage() {
     }));
   }
 
+  function updateCommunicationPolicy(
+    field: keyof KidexSettings["communicationPolicy"],
+    value: string | boolean,
+  ) {
+    if (!canWriteSettings) return;
+    setSettings((prev) => ({
+      ...prev,
+      communicationPolicy: {
+        ...prev.communicationPolicy,
+        [field]: value,
+      },
+    }));
+  }
+
   function cloneActiveStandardsVersion() {
     if (!canWriteSettings) return;
     const versionName = newStandardsVersion.trim();
@@ -990,6 +1004,56 @@ export default function SettingsPage() {
           <Text size="sm">Primary institution: {defaultPrimaryInstitutionId}</Text>
           <Text size="sm">Institution memberships: {defaultInstitutionIds.join(", ")}</Text>
           {!isAdmin ? <Text size="sm" c="dimmed">Institution membership changes are currently admin-managed.</Text> : null}
+        </Stack>
+      </SectionCard>
+
+      <SectionCard
+        title="Communication Policy"
+        action={
+          <Button color="kidex" onClick={() => void handleSaveSettings()} disabled={saving || !canWriteSettings}>
+            {saving ? tc("saving") : tc("save")}
+          </Button>
+        }
+      >
+        <Stack gap="md">
+          {!canWriteSettings ? <Text size="sm" c="dimmed">Communication policy is read-only for your role.</Text> : null}
+          <Group grow align="start">
+            <TextInput
+              label="Quiet hours start"
+              type="time"
+              disabled={!canWriteSettings}
+              value={settings.communicationPolicy.quietHoursStart}
+              onChange={(event) => updateCommunicationPolicy("quietHoursStart", event.currentTarget.value)}
+            />
+            <TextInput
+              label="Quiet hours end"
+              type="time"
+              disabled={!canWriteSettings}
+              value={settings.communicationPolicy.quietHoursEnd}
+              onChange={(event) => updateCommunicationPolicy("quietHoursEnd", event.currentTarget.value)}
+            />
+          </Group>
+          <Checkbox
+            label="Automatically hold family-visible messages during quiet hours"
+            disabled={!canWriteSettings}
+            checked={settings.communicationPolicy.autoHoldDuringQuietHours}
+            onChange={(event) => updateCommunicationPolicy("autoHoldDuringQuietHours", event.currentTarget.checked)}
+          />
+          <Checkbox
+            label="Require caregiver visibility for family-facing updates"
+            disabled={!canWriteSettings}
+            checked={settings.communicationPolicy.requireCaregiverVisibilityForFamilyMessages}
+            onChange={(event) => updateCommunicationPolicy("requireCaregiverVisibilityForFamilyMessages", event.currentTarget.checked)}
+          />
+          <Checkbox
+            label="Allow institution-wide family announcements"
+            disabled={!canWriteSettings}
+            checked={settings.communicationPolicy.allowFamilyAnnouncements}
+            onChange={(event) => updateCommunicationPolicy("allowFamilyAnnouncements", event.currentTarget.checked)}
+          />
+          <Text size="sm" c="dimmed">
+            This policy applies to the safeguarded communication log and prevents unreviewed adult-minor direct messaging by limiting the system to caregiver-visible or internal institutional communication.
+          </Text>
         </Stack>
       </SectionCard>
 

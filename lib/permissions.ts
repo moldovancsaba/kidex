@@ -15,6 +15,8 @@ export type PermissionAction =
   | "assessments.write"
   | "assessments.restore"
   | "assessments.delete"
+  | "communications.read"
+  | "communications.write"
   | "uploads.write";
 
 export const PERMISSION_MATRIX: Record<PermissionAction, readonly SupportedRuntimeRole[]> = {
@@ -32,6 +34,8 @@ export const PERMISSION_MATRIX: Record<PermissionAction, readonly SupportedRunti
   "assessments.write": ["admin", "conductor"],
   "assessments.restore": ["admin", "conductor"],
   "assessments.delete": ["admin", "conductor"],
+  "communications.read": ["admin", "conductor", "observer"],
+  "communications.write": ["admin", "conductor"],
   "uploads.write": ["admin", "conductor"],
 };
 

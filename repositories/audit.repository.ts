@@ -11,6 +11,7 @@ export type AuditAction =
   | "child.update"
   | "child.delete"
   | "child.restore"
+  | "communication.create"
   | "consent.request"
   | "consent.update"
   | "export.data"
@@ -32,7 +33,7 @@ export interface AuditLogEntry {
   actorName?: string;
   actorRoles?: string[];
   institutionId?: string;
-  targetType?: "assessment" | "child" | "settings" | "user" | "invite" | "media" | "report";
+  targetType?: "assessment" | "child" | "settings" | "user" | "invite" | "media" | "report" | "communication";
   targetId?: string;
   targetLabel?: string;
   summary: string;
