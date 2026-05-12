@@ -18,6 +18,7 @@ Reserved future roles such as `institution_admin`, `reviewer`, `guardian_viewer`
 
 See [docs/role-taxonomy.md](./role-taxonomy.md) for the canonical role model and extension policy.
 See [docs/access-model.md](./access-model.md) for the current permission matrix, institution boundaries, and standards governance rules.
+See [docs/support-workspace.md](./support-workspace.md) for the current caregiver, coach, micro-learning, referral, and evidence workflow model.
 
 ## Endpoints
 
@@ -75,6 +76,36 @@ See [docs/access-model.md](./access-model.md) for the current permission matrix,
   - Returns child profile plus linked chronological assessment history.
   - Roles: `admin`, `conductor`, `observer` (when auth enforced).
 
+- `GET /api/children/:id/plan`
+  - Returns the latest development plan for the child.
+  - Roles: `admin`, `conductor`, `observer` (when auth enforced).
+
+- `POST /api/children/:id/plan`
+  - Creates or updates the child development plan.
+  - Roles: `admin`, `conductor`.
+
+- `GET /api/children/:id/communications`
+  - Returns governed communication history for the child.
+  - Roles: `admin`, `conductor`, `observer` (when auth enforced and child access is allowed).
+
+- `POST /api/children/:id/communications`
+  - Logs a governed child-scoped communication entry.
+  - Roles: `admin`, `conductor`.
+
+- `GET /api/children/:id/support`
+  - Returns the child support workspace when present.
+  - Roles: `admin`, `conductor`, `observer` (when auth enforced and child access is allowed).
+
+- `POST /api/children/:id/support`
+  - Creates or updates the child support workspace.
+  - Workspace currently includes:
+    - caregiver education / pledge tracking
+    - coach guidance tracking
+    - micro-learning sequences and reflections
+    - referral workflow entries
+    - multimedia evidence journal entries
+  - Roles: `admin`, `conductor`.
+
 ### Users
 
 - `GET /api/users`
@@ -93,7 +124,10 @@ See [docs/access-model.md](./access-model.md) for the current permission matrix,
     - `conductors[]`
     - `observers[]`
     - `locations[]`
+    - `institutions[]`
     - `company` profile fields (name, ID, legal form, address, VAT, etc.)
+    - `communicationPolicy`
+    - `standards`
   - Roles: `admin`, `conductor`, `observer` (when auth enforced).
 
 - `POST /api/settings`
@@ -120,8 +154,28 @@ See [docs/access-model.md](./access-model.md) for the current permission matrix,
 ## Reporting and export behavior
 
 - **Bio-Psycho-Social Map**: Data-driven PDF generation that aggregates a child's full assessment history to provide longitudinal development trends and expert recommendations.
+- **Family-safe report**: A separate family report uses the same evidence base but can also include support follow-up and recent evidence moments when available.
 - **Direct PDF Download**: Export action is client-side (`jsPDF` + `jspdf-autotable`), producing professional, localized documents.
 - **Audit Trail**: PDF exports are written to the persistent audit log with actor, target, format, timing, and warning/error metadata.
+
+## Assessment payload additions
+
+Assessments now persist a `mentalWellbeing` block that supports:
+
+- baseline vs follow-up phase
+- child / observer / caregiver perspective ratings
+- mood, stress, readiness, sleep, fatigue, and soreness check-ins
+- selected guided-support modules
+- structured concern signals
+
+Computed assessment output now also includes:
+
+- `computed.mentalWellbeing.mentalSkillsAverage`
+- `computed.mentalWellbeing.checkInAverage`
+- `computed.mentalWellbeing.recoveryAverage`
+- `computed.mentalWellbeing.disagreementIndex`
+- `computed.mentalWellbeing.riskLevel`
+- `computed.mentalWellbeing.flaggedSignals`
 
 ## Validation and error response
 

@@ -49,12 +49,14 @@ The assessment record stores:
 
 Media upload is blocked in the UI until video/photo consent is checked.
 
-## Post-deploy checks (0.5.0)
+## Post-deploy checks (0.5.x)
 
 1. Open `/dashboard/settings` and verify:
 - Standards Version Manager renders active version and version table.
 - Restore Bin loads deleted children and assessments.
-2. Create and update one assessment, then verify `standardsVersionUsed` is present on the saved record.
+2. Create and update one assessment, then verify:
+- `standardsVersionUsed` is present on the saved record.
+- `mentalWellbeing` is present on the saved record and computed values are returned.
 3. Soft-delete one child and one assessment, verify:
 - They disappear from default lists.
 - They appear in deleted views and can be restored.
@@ -62,3 +64,9 @@ Media upload is blocked in the UI until video/photo consent is checked.
 - `/dashboard`
 - `/dashboard/children/[id]`
 - `/dashboard/records/[id]`
+5. Open `/dashboard/children/[id]` and verify:
+- the support workspace renders caregiver tools, coach tools, micro-learning, referrals, and evidence journal sections
+- support workspace can be saved and reloaded
+6. Export a family report and verify:
+- family-safe report generation succeeds
+- support follow-up and recent evidence moments appear when the workspace has them
