@@ -5,6 +5,7 @@ import { normalizeConsentPolicy, type ChildConsentPolicy } from "@/lib/consent-p
 import { normalizeFamilyCaregivers, type FamilyCaregiver } from "@/lib/family-access";
 import { ensureInstitutionIds, normalizeInstitutionDirectory, type InstitutionDefinition } from "@/lib/institutions";
 import { normalizePreferredLocale } from "@/lib/locales";
+import { defaultMentalWellbeingProfile, normalizeMentalWellbeingProfile } from "@/lib/mental-wellbeing";
 import { sanitizeStoredRoles, type SupportedRuntimeRole } from "@/lib/roles";
 
 const modes = new Set(["rapid", "full"]);
@@ -102,6 +103,7 @@ export function parseAssessmentPayload(input: unknown): AssessmentPayload {
       adaptations: stringValue(notes.adaptations),
       referral: stringValue(notes.referral)
     },
+    mentalWellbeing: normalizeMentalWellbeingProfile(data.mentalWellbeing || defaultMentalWellbeingProfile()),
     attachments: rawAttachments.map(attachment).filter((item): item is EvidenceAttachment => Boolean(item)).slice(0, 20)
   };
 }

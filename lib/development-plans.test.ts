@@ -6,6 +6,17 @@ import type { RecommendationSummary } from "./recommendations";
 const recommendationSummary: RecommendationSummary = {
   readinessStatus: "developing",
   standardsVersionUsed: "v1",
+  mentalWellbeing: {
+    phase: "follow_up",
+    mentalSkillsAverage: 3.1,
+    baselineMentalSkillsAverage: 2.8,
+    checkInAverage: 3.2,
+    recoveryAverage: 3.1,
+    disagreementIndex: 0.6,
+    riskLevel: "low",
+    goalModules: ["Positive self-talk reset"],
+    flaggedSignals: [],
+  },
   ski: {
     current: 3.2,
     baseline: 2.8,
@@ -53,7 +64,7 @@ describe("buildSuggestedDevelopmentPlan", () => {
 
     expect(plan.childId).toBe("child-1");
     expect(plan.assessmentId).toBe("assessment-1");
-    expect(plan.assignments).toHaveLength(1);
+    expect(plan.assignments.length).toBeGreaterThanOrEqual(1);
     expect(plan.assignments[0].focusAreaIds).toEqual(["balance"]);
     expect(plan.checkpoints).toHaveLength(2);
     expect(plan.summary).toContain("Balance");

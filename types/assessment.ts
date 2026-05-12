@@ -1,4 +1,5 @@
 import type { AssessmentConsentSnapshot } from "@/lib/consent-policy";
+import type { MentalWellbeingComputed, MentalWellbeingProfile } from "@/lib/mental-wellbeing";
 
 export type AssessmentMode = "rapid" | "full";
 export type AssessmentDomain = "movement" | "social" | "mental";
@@ -61,6 +62,7 @@ export interface AssessmentPayload {
     adaptations: string;
     referral: string;
   };
+  mentalWellbeing: MentalWellbeingProfile;
   attachments: EvidenceAttachment[];
 }
 
@@ -81,6 +83,7 @@ export interface AssessmentRecord extends AssessmentPayload {
     socialAverage: number | null;
     mentalAverage: number | null;
     ski: number | null;
+    mentalWellbeing: MentalWellbeingComputed;
     completion: {
       done: number;
       total: number;

@@ -1,4 +1,5 @@
 import { sectionsForMode } from "@/lib/kidex-schema";
+import { wellbeingGoalLabel, wellbeingRiskSignalLabel } from "@/lib/mental-wellbeing";
 import type { AgeGroupStandard } from "@/lib/standards";
 import type { AssessmentDomain, AssessmentRecord } from "@/types/assessment";
 
@@ -33,6 +34,17 @@ export interface RecommendationSummary {
   readinessStatus: RecommendationStatus;
   standardsVersionUsed?: string;
   standardsVariantUsed?: string;
+  mentalWellbeing: {
+    phase: "baseline" | "follow_up";
+    mentalSkillsAverage: number | null;
+    baselineMentalSkillsAverage: number | null;
+    checkInAverage: number | null;
+    recoveryAverage: number | null;
+    disagreementIndex: number | null;
+    riskLevel: "low" | "medium" | "high";
+    goalModules: string[];
+    flaggedSignals: string[];
+  };
   ski: {
     current: number | null;
     baseline: number | null;
@@ -95,6 +107,8 @@ export function buildRecommendationSummary(
   translateSchema: (key: string) => string,
 ): RecommendationSummary {
   const baseline = history.length > 0 ? history[history.length - 1] : null;
+  const wellbeing = record.computed.mentalWellbeing;
+  const baselineWellbeing = baseline?.computed.mentalWellbeing ?? null;
   const sections = sectionsForMode(record.mode);
   const scoredItems = sections.flatMap((section) =>
     section.items
@@ -178,6 +192,111 @@ export function buildRecommendationSummary(
       };
     });
 
+  if (typeof wellbeing.mentalSkillsAverage === "number" && wellbeing.mentalSkillsAverage < 3.5) {
+    recommendationEntries.push({
+      id: "mental-growth-baseline",
+      title: wellbeing.phase === "baseline" ? "Mental skills baseline support" : "Mental skills follow-up support",
+      rationale: wellbeing.phase === "baseline"
+        ? "The mental skills baseline shows that self-management support should be built into the next cycle before expectations increase."
+        : "The current follow-up still shows room to strengthen everyday coping tools and confidence under challenge.",
+      domain: "mental",
+      severity: wellbeing.mentalSkillsAverage < 2.75 ? "high" : "medium",
+      evidenceStrength: "high",
+      focusItems: focusAreas.filter((item) => item.domain === "mental").slice(0, 2),
+      sourceEvidence: [
+        {
+          type: "benchmark",
+          label: "Mental skills profile",
+          detail: `Current mental skills average is ${wellbeing.mentalSkillsAverage.toFixed(2)}${typeof baselineWellbeing?.mentalSkillsAverage === "number" ? ` compared with ${baselineWellbeing.mentalSkillsAverage.toFixed(2)} at the earliest recorded baseline.` : ""}`,
+          strength: "high",
+        },
+        ...(typeof wellbeing.disagreementIndex === "number"
+          ? [{
+              type: "observation" as const,
+              label: "Perspective disagreement",
+              detail: `Child, observer, and caregiver ratings differ by ${wellbeing.disagreementIndex.toFixed(2)} on average, so support should stay collaborative and explicit.`,
+              strength: wellbeing.disagreementIndex >= 2 ? "high" as const : "medium" as const,
+            }]
+          : []),
+      ],
+    });
+  }
+
+  if (typeof wellbeing.recoveryAverage === "number" && wellbeing.recoveryAverage < 3.25) {
+    recommendationEntries.push({
+      id: "recovery-support",
+      title: "Recovery and load adjustment support",
+      rationale: "Recent recovery signals suggest the child may need lighter expectations, closer observation, and a simpler recovery routine before pushing progression.",
+      severity: wellbeing.recoveryAverage < 2.5 ? "high" : "medium",
+      evidenceStrength: "high",
+      focusItems: [],
+      sourceEvidence: [
+        {
+          type: "trend",
+          label: "Recovery profile",
+          detail: `Recovery average is ${wellbeing.recoveryAverage.toFixed(2)} based on sleep quality, fatigue, and soreness check-ins.`,
+          strength: "high",
+        },
+        ...(typeof wellbeing.checkInAverage === "number"
+          ? [{
+              type: "observation" as const,
+              label: "Overall check-in",
+              detail: `Overall wellbeing check-in average is ${wellbeing.checkInAverage.toFixed(2)}.`,
+              strength: "medium" as const,
+            }]
+          : []),
+      ],
+    });
+  }
+
+  if (wellbeing.riskLevel !== "low" || wellbeing.flaggedSignals.length > 0) {
+    recommendationEntries.push({
+      id: "wellbeing-escalation",
+      title: wellbeing.riskLevel === "high" ? "Immediate wellbeing follow-up" : "Structured wellbeing follow-up",
+      rationale: wellbeing.riskLevel === "high"
+        ? "The current wellbeing pattern includes concern signals that should trigger timely adult follow-up and documented next steps."
+        : "The current wellbeing pattern should be reviewed in the next support conversation so adults can adjust expectations and check context.",
+      severity: wellbeing.riskLevel === "high" ? "high" : "medium",
+      evidenceStrength: wellbeing.riskLevel === "high" ? "high" : "medium",
+      focusItems: [],
+      sourceEvidence: [
+        ...wellbeing.flaggedSignals.slice(0, 4).map((signal) => ({
+          type: "observation" as const,
+          label: wellbeingRiskSignalLabel(signal),
+          detail: `${wellbeingRiskSignalLabel(signal)} was explicitly flagged in the assessment record.`,
+          strength: signal === "urgentConcern" ? "high" as const : "medium" as const,
+        })),
+        ...(typeof wellbeing.recoveryAverage === "number"
+          ? [{
+              type: "trend" as const,
+              label: "Recovery context",
+              detail: `Recovery average is ${wellbeing.recoveryAverage.toFixed(2)} and risk level is currently ${wellbeing.riskLevel}.`,
+              strength: wellbeing.riskLevel === "high" ? "high" as const : "medium" as const,
+            }]
+          : []),
+      ],
+    });
+  }
+
+  for (const moduleKey of record.mentalWellbeing.goalModules) {
+    recommendationEntries.push({
+      id: `module-${moduleKey}`,
+      title: wellbeingGoalLabel(moduleKey),
+      rationale: "This guided practice module was selected during the assessment and should be carried into the next development-plan cycle.",
+      severity: "low",
+      evidenceStrength: "medium",
+      focusItems: focusAreas.filter((item) => item.domain === "mental").slice(0, 1),
+      sourceEvidence: [
+        {
+          type: "observation",
+          label: "Selected practice module",
+          detail: `${wellbeingGoalLabel(moduleKey)} was selected as a current support focus.`,
+          strength: "medium",
+        },
+      ],
+    });
+  }
+
   const skiMin = benchmark?.ski.min ?? 0;
   const skiTarget = benchmark?.ski.target ?? 0;
   const readinessStatus = statusForScore(record.computed.ski, skiMin, skiTarget);
@@ -205,6 +324,17 @@ export function buildRecommendationSummary(
     readinessStatus,
     standardsVersionUsed: record.standardsVersionUsed,
     standardsVariantUsed: record.standardsVariantUsed,
+    mentalWellbeing: {
+      phase: wellbeing.phase,
+      mentalSkillsAverage: wellbeing.mentalSkillsAverage,
+      baselineMentalSkillsAverage: baselineWellbeing?.mentalSkillsAverage ?? null,
+      checkInAverage: wellbeing.checkInAverage,
+      recoveryAverage: wellbeing.recoveryAverage,
+      disagreementIndex: wellbeing.disagreementIndex,
+      riskLevel: wellbeing.riskLevel,
+      goalModules: record.mentalWellbeing.goalModules.map((key) => wellbeingGoalLabel(key)),
+      flaggedSignals: wellbeing.flaggedSignals.map((signal) => wellbeingRiskSignalLabel(signal)),
+    },
     ski: {
       current: record.computed.ski,
       baseline: baseline?.computed.ski ?? null,

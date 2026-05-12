@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { defaultMentalWellbeingProfile } from "./mental-wellbeing";
 import { buildRecommendationSummary } from "./recommendations";
 import type { AssessmentRecord } from "@/types/assessment";
 import { DEFAULT_KIDEX_SETTINGS } from "@/services/settings-service";
@@ -54,6 +55,18 @@ const record: AssessmentRecord = {
     adaptations: "",
     referral: "",
   },
+  mentalWellbeing: {
+    ...defaultMentalWellbeingProfile(),
+    phase: "follow_up",
+    perspectives: {
+      child: { focus: 2, resilience: 2, selfTalk: 3, confidence: 2, selfRegulation: 2, helpSeeking: 3 },
+      observer: { focus: 2, resilience: 2, selfTalk: 2, confidence: 2, selfRegulation: 2, helpSeeking: 3 },
+      caregiver: { focus: 3, resilience: 3, selfTalk: 3, confidence: 3, selfRegulation: 3, helpSeeking: 4 },
+    },
+    checkIn: { mood: 2, stress: 4, readiness: 2, sleepQuality: 2, fatigue: 4, soreness: 3 },
+    goalModules: ["self_talk", "breathing"],
+    riskSignals: { ...defaultMentalWellbeingProfile().riskSignals, overload: true },
+  },
   attachments: [],
   createdAt: "2026-05-11T09:00:00.000Z",
   updatedAt: "2026-05-11T09:00:00.000Z",
@@ -62,6 +75,15 @@ const record: AssessmentRecord = {
     socialAverage: 3.5,
     mentalAverage: 2.5,
     ski: 3.13,
+    mentalWellbeing: {
+      phase: "follow_up",
+      mentalSkillsAverage: 2.61,
+      checkInAverage: 2.5,
+      recoveryAverage: 2.33,
+      disagreementIndex: 0.83,
+      riskLevel: "medium",
+      flaggedSignals: ["overload"],
+    },
     completion: {
       done: 12,
       total: 12,
@@ -84,5 +106,8 @@ describe("buildRecommendationSummary", () => {
     expect(summary.domainBenchmarks.some((entry) => entry.status !== "ready")).toBe(true);
     expect(summary.recommendations[0]?.sourceEvidence.length).toBeGreaterThan(0);
     expect(summary.recommendations[0]?.evidenceStrength).toBeTruthy();
+    expect(summary.mentalWellbeing.riskLevel).toBe("medium");
+    expect(summary.mentalWellbeing.goalModules).toContain("Positive self-talk reset");
+    expect(summary.recommendations.some((entry) => entry.id === "recovery-support")).toBe(true);
   });
 });

@@ -1,3 +1,4 @@
+import { computeMentalWellbeing } from "@/lib/mental-wellbeing";
 import { sectionsForMode } from "@/lib/kidex-schema";
 import type { StandardsFormulaDefinition } from "@/lib/standards-config";
 import type { AssessmentPayload, AssessmentRecord } from "@/types/assessment";
@@ -54,12 +55,14 @@ export function computeAssessment(
       + averages.social * formula.domainWeights.social
       + averages.mental * formula.domainWeights.mental
     ).toFixed(4));
+  const mentalWellbeing = computeMentalWellbeing(payload.mentalWellbeing);
 
   return {
     movementAverage: averages.movement,
     socialAverage: averages.social,
     mentalAverage: averages.mental,
     ski,
+    mentalWellbeing,
     completion: { done, total: allItems.length }
   };
 }

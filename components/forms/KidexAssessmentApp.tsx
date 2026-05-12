@@ -21,6 +21,7 @@ import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { sectionsForMode } from "@/lib/kidex-schema";
+import { defaultMentalWellbeingProfile, MENTAL_SKILL_KEYS, WELLBEING_CHECKIN_KEYS, WELLBEING_GOAL_MODULES, WELLBEING_PERSPECTIVES, type MentalSkillKey, type WellbeingCheckInKey, type WellbeingGoalModuleKey, type WellbeingPerspectiveKey } from "@/lib/mental-wellbeing";
 import { computeAssessment } from "@/lib/scoring";
 import { calculateAgeGroup } from "@/lib/utils/age";
 import { getStandardForAgeGroup } from "@/lib/standards";
@@ -68,6 +69,7 @@ const emptyAssessment: AssessmentPayload = {
     adaptations: "",
     referral: ""
   },
+  mentalWellbeing: defaultMentalWellbeingProfile(),
   attachments: []
 };
 
@@ -79,6 +81,20 @@ function cloneAssessment(source: AssessmentPayload): AssessmentPayload {
 
 function scoreValue(entry?: ScoreEntry) {
   return typeof entry?.score === "number" ? entry.score : "";
+}
+
+const wellbeingScaleOptions = [
+  { value: "1", label: "1" },
+  { value: "2", label: "2" },
+  { value: "3", label: "3" },
+  { value: "4", label: "4" },
+  { value: "5", label: "5" },
+];
+
+function wellbeingScoreValue(value: string | null) {
+  if (!value) return "";
+  const parsed = Number(value);
+  return parsed >= 1 && parsed <= 5 ? parsed : "";
 }
 
 function loadDraftAssessment(): AssessmentPayload {
@@ -234,6 +250,88 @@ export function KidexAssessmentApp() {
         ...current.scores,
         [key]: { ...(current.scores[key] || { score: "", note: "" }), ...patch }
       }
+    }));
+    setSaveState("idle");
+  }
+
+  function updateMentalSkill(
+    perspective: WellbeingPerspectiveKey,
+    key: MentalSkillKey,
+    value: number | "",
+  ) {
+    setAssessment((current) => ({
+      ...current,
+      mentalWellbeing: {
+        ...current.mentalWellbeing,
+        perspectives: {
+          ...current.mentalWellbeing.perspectives,
+          [perspective]: {
+            ...current.mentalWellbeing.perspectives[perspective],
+            [key]: value,
+          },
+        },
+      },
+    }));
+    setSaveState("idle");
+  }
+
+  function updateWellbeingCheckIn(
+    key: WellbeingCheckInKey,
+    value: number | "",
+  ) {
+    setAssessment((current) => ({
+      ...current,
+      mentalWellbeing: {
+        ...current.mentalWellbeing,
+        checkIn: {
+          ...current.mentalWellbeing.checkIn,
+          [key]: value,
+        },
+      },
+    }));
+    setSaveState("idle");
+  }
+
+  function updateMentalWellbeingField(
+    field: "phase" | "reflection" | "supportNeeds",
+    value: string,
+  ) {
+    setAssessment((current) => ({
+      ...current,
+      mentalWellbeing: {
+        ...current.mentalWellbeing,
+        [field]: field === "phase" ? (value === "follow_up" ? "follow_up" : "baseline") : value,
+      },
+    }));
+    setSaveState("idle");
+  }
+
+  function toggleWellbeingGoalModule(moduleKey: WellbeingGoalModuleKey) {
+    setAssessment((current) => {
+      const hasModule = current.mentalWellbeing.goalModules.includes(moduleKey);
+      return {
+        ...current,
+        mentalWellbeing: {
+          ...current.mentalWellbeing,
+          goalModules: hasModule
+            ? current.mentalWellbeing.goalModules.filter((entry) => entry !== moduleKey)
+            : [...current.mentalWellbeing.goalModules, moduleKey],
+        },
+      };
+    });
+    setSaveState("idle");
+  }
+
+  function toggleRiskSignal(signal: keyof AssessmentPayload["mentalWellbeing"]["riskSignals"], checked: boolean) {
+    setAssessment((current) => ({
+      ...current,
+      mentalWellbeing: {
+        ...current.mentalWellbeing,
+        riskSignals: {
+          ...current.mentalWellbeing.riskSignals,
+          [signal]: checked,
+        },
+      },
     }));
     setSaveState("idle");
   }
@@ -731,6 +829,139 @@ export function KidexAssessmentApp() {
           </Stack>
         </SectionCard>
       ))}
+
+      <SectionCard
+        title="Mental Growth and Wellbeing"
+        action={
+          <Badge
+            variant="light"
+            color={
+              computed.mentalWellbeing.riskLevel === "high"
+                ? "red"
+                : computed.mentalWellbeing.riskLevel === "medium"
+                  ? "yellow"
+                  : "teal"
+            }
+            size="lg"
+          >
+            {assessment.mentalWellbeing.phase === "baseline" ? "Baseline" : "Follow-up"} · {computed.mentalWellbeing.riskLevel} risk
+          </Badge>
+        }
+      >
+        <Stack gap="lg">
+          <SimpleGrid cols={{ base: 1, sm: 2, lg: 4 }} spacing="md">
+            <Select
+              label="Assessment phase"
+              value={assessment.mentalWellbeing.phase}
+              data={[
+                { value: "baseline", label: "Baseline" },
+                { value: "follow_up", label: "Follow-up" },
+              ]}
+              onChange={(value) => updateMentalWellbeingField("phase", value || "baseline")}
+              allowDeselect={false}
+            />
+            <MetricCard label="Mental skills avg" value={formatScore(computed.mentalWellbeing.mentalSkillsAverage)} />
+            <MetricCard label="Check-in avg" value={formatScore(computed.mentalWellbeing.checkInAverage)} />
+            <MetricCard label="Recovery avg" value={formatScore(computed.mentalWellbeing.recoveryAverage)} />
+          </SimpleGrid>
+
+          <Text size="sm" c="dimmed">
+            Capture baseline and repeat follow-ups using child, observer, and caregiver perspectives. Differences between perspectives are kept visible rather than averaged away.
+          </Text>
+
+          {WELLBEING_PERSPECTIVES.map((perspective) => (
+            <Paper key={perspective} withBorder p="md">
+              <Stack gap="sm">
+                <Text fw={700} style={{ textTransform: "capitalize" }}>{perspective} perspective</Text>
+                <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }} spacing="md">
+                  {MENTAL_SKILL_KEYS.map((key) => (
+                    <Select
+                      key={`${perspective}-${key}`}
+                      label={key}
+                      value={typeof assessment.mentalWellbeing.perspectives[perspective][key] === "number" ? String(assessment.mentalWellbeing.perspectives[perspective][key]) : null}
+                      data={wellbeingScaleOptions}
+                      onChange={(value) => updateMentalSkill(perspective, key, wellbeingScoreValue(value))}
+                      clearable
+                    />
+                  ))}
+                </SimpleGrid>
+              </Stack>
+            </Paper>
+          ))}
+
+          <Paper withBorder p="md">
+            <Stack gap="sm">
+              <Text fw={700}>Daily check-in and recovery</Text>
+              <SimpleGrid cols={{ base: 1, sm: 2, lg: 3 }} spacing="md">
+                {WELLBEING_CHECKIN_KEYS.map((key) => (
+                  <Select
+                    key={key}
+                    label={key}
+                    value={typeof assessment.mentalWellbeing.checkIn[key] === "number" ? String(assessment.mentalWellbeing.checkIn[key]) : null}
+                    data={wellbeingScaleOptions}
+                    onChange={(value) => updateWellbeingCheckIn(key, wellbeingScoreValue(value))}
+                    clearable
+                  />
+                ))}
+              </SimpleGrid>
+            </Stack>
+          </Paper>
+
+          <Paper withBorder p="md">
+            <Stack gap="sm">
+              <Text fw={700}>Goal modules and reflection</Text>
+              <Group gap="sm">
+                {WELLBEING_GOAL_MODULES.map((module) => {
+                  const active = assessment.mentalWellbeing.goalModules.includes(module.key);
+                  return (
+                    <Button
+                      key={module.key}
+                      variant={active ? "filled" : "default"}
+                      color={active ? "kidex" : "gray"}
+                      onClick={() => toggleWellbeingGoalModule(module.key)}
+                    >
+                      {module.title}
+                    </Button>
+                  );
+                })}
+              </Group>
+              <Textarea
+                label="Child or caregiver reflection"
+                value={assessment.mentalWellbeing.reflection}
+                onChange={(e) => updateMentalWellbeingField("reflection", e.target.value)}
+                minRows={3}
+              />
+              <Textarea
+                label="Support needs and coaching response"
+                value={assessment.mentalWellbeing.supportNeeds}
+                onChange={(e) => updateMentalWellbeingField("supportNeeds", e.target.value)}
+                minRows={3}
+              />
+            </Stack>
+          </Paper>
+
+          <Paper withBorder p="md">
+            <Stack gap="sm">
+              <Text fw={700}>Safe escalation signals</Text>
+              <SimpleGrid cols={{ base: 1, sm: 2, lg: 4 }} spacing="sm">
+                <Checkbox label="Withdrawal or shutdown" checked={assessment.mentalWellbeing.riskSignals.withdrawal} onChange={(e) => toggleRiskSignal("withdrawal", e.currentTarget.checked)} />
+                <Checkbox label="Overload or overwhelm" checked={assessment.mentalWellbeing.riskSignals.overload} onChange={(e) => toggleRiskSignal("overload", e.currentTarget.checked)} />
+                <Checkbox label="Conflict spillover" checked={assessment.mentalWellbeing.riskSignals.conflict} onChange={(e) => toggleRiskSignal("conflict", e.currentTarget.checked)} />
+                <Checkbox label="Fear or panic response" checked={assessment.mentalWellbeing.riskSignals.fearResponse} onChange={(e) => toggleRiskSignal("fearResponse", e.currentTarget.checked)} />
+                <Checkbox label="Sleep concern" checked={assessment.mentalWellbeing.riskSignals.sleepConcern} onChange={(e) => toggleRiskSignal("sleepConcern", e.currentTarget.checked)} />
+                <Checkbox label="Pain or soreness concern" checked={assessment.mentalWellbeing.riskSignals.painConcern} onChange={(e) => toggleRiskSignal("painConcern", e.currentTarget.checked)} />
+                <Checkbox label="Child asked for help" checked={assessment.mentalWellbeing.riskSignals.askedForHelp} onChange={(e) => toggleRiskSignal("askedForHelp", e.currentTarget.checked)} />
+                <Checkbox label="Urgent follow-up concern" checked={assessment.mentalWellbeing.riskSignals.urgentConcern} onChange={(e) => toggleRiskSignal("urgentConcern", e.currentTarget.checked)} />
+              </SimpleGrid>
+              {computed.mentalWellbeing.disagreementIndex !== null ? (
+                <Text size="sm" c="dimmed">
+                  Perspective disagreement index: {computed.mentalWellbeing.disagreementIndex.toFixed(2)}
+                </Text>
+              ) : null}
+            </Stack>
+          </Paper>
+        </Stack>
+      </SectionCard>
 
       <SimpleGrid cols={{ base: 1, lg: 2 }} spacing="xl" id="report">
         <SectionCard title={t("professionalNotes")}>

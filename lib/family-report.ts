@@ -74,6 +74,9 @@ export function buildFamilyFriendlyReportSummary(input: {
     || recommendationSummary.focusAreas.slice(0, 3).map((item) => simplifiedFamilyView
       ? `Practice ${item.label.toLowerCase()} in one short, calm moment each week.`
       : `Support ${item.label.toLowerCase()} with one short, low-pressure practice each week.`);
+  const wellbeingSummary = typeof recommendationSummary.mentalWellbeing.recoveryAverage === "number"
+    ? ` Current recovery check-in is ${recommendationSummary.mentalWellbeing.recoveryAverage < 3 ? "showing some strain" : "holding reasonably steady"}, and the support plan should stay practical and low-pressure.`
+    : "";
   const accessibilityNotes = [
     ...(accessibilityProfile?.accommodations || []).map(accommodationLabel).filter(Boolean),
     accessibilityProfile?.supportNotes || "",
@@ -88,7 +91,7 @@ export function buildFamilyFriendlyReportSummary(input: {
     headline: readinessHeadline(recommendationSummary),
     summary: `${simplifiedFamilyView
       ? "This report uses simpler family-facing language and focuses on the next helpful step."
-      : "This report summarizes current progress in a child-safe, non-diagnostic way."} It reflects the latest observations and highlights where simple, steady support can help next.${profileSummary ? ` ${profileSummary}` : ""}`,
+      : "This report summarizes current progress in a child-safe, non-diagnostic way."} It reflects the latest observations and highlights where simple, steady support can help next.${wellbeingSummary}${profileSummary ? ` ${profileSummary}` : ""}`,
     recommendations,
     nextSteps,
     accessibilityNotes,

@@ -55,6 +55,12 @@ function assignmentCopy(audience: PlanAssignmentAudience, title: string): string
   return `Reinforce ${title.toLowerCase()} in the next coached session and record brief progress notes.`;
 }
 
+function moduleAssignmentNotes(audience: PlanAssignmentAudience, moduleTitle: string): string {
+  if (audience === "family") return `Use ${moduleTitle.toLowerCase()} as a short home routine and keep the language calm, practical, and non-judgmental.`;
+  if (audience === "child") return `Practice ${moduleTitle.toLowerCase()} in one short, low-pressure moment between sessions.`;
+  return `Model ${moduleTitle.toLowerCase()} in the next session and record what support level was needed.`;
+}
+
 export function buildSuggestedDevelopmentPlan(input: {
   childId: string;
   assessmentId?: string;
@@ -81,24 +87,38 @@ export function buildSuggestedDevelopmentPlan(input: {
     };
   });
 
+  const wellbeingAssignments = (input.recommendationSummary.mentalWellbeing?.goalModules || []).slice(0, 3).map((moduleTitle, index) => {
+    const audience = audienceForIndex(index + assignments.length);
+    return {
+      id: `wellbeing-assignment-${index + 1}`,
+      title: moduleTitle,
+      notes: moduleAssignmentNotes(audience, moduleTitle),
+      audience,
+      status: "pending" as const,
+      dueDate: plusDays(5 + index * 7),
+      focusAreaIds: [`wellbeing-module-${index + 1}`],
+    };
+  });
+
   const checkpoints: DevelopmentPlanCheckpoint[] = [
     {
       id: "checkpoint-1",
       title: "2-week review",
       dueDate: plusDays(14),
-      notes: "Confirm whether assignments were realistic and whether one focus area should be narrowed.",
+      notes: "Confirm whether assignments were realistic, whether recovery context changed, and whether one focus area should be narrowed.",
       completed: false,
     },
     {
       id: "checkpoint-2",
       title: "Next assessment review",
       dueDate: plusDays(30),
-      notes: "Review progress against the current plan before or during the next assessment cycle.",
+      notes: "Review progress against the current plan, including mental-skills growth and wellbeing signals, before or during the next assessment cycle.",
       completed: false,
     },
   ];
 
   const focusSummary = input.recommendationSummary.focusAreas.map((item) => item.label).join(", ");
+  const moduleSummary = input.recommendationSummary.mentalWellbeing?.goalModules?.join(", ") || "";
   return {
     childId: input.childId,
     assessmentId: input.assessmentId,
@@ -106,9 +126,9 @@ export function buildSuggestedDevelopmentPlan(input: {
     standardsVersionUsed: input.recommendationSummary.standardsVersionUsed,
     status: "draft",
     summary: focusSummary
-      ? `Current plan targets: ${focusSummary}. Keep family-facing language practical, supportive, and non-diagnostic.`
+      ? `Current plan targets: ${focusSummary}${moduleSummary ? `, with guided practice in ${moduleSummary}` : ""}. Keep family-facing language practical, supportive, and non-diagnostic.`
       : "Use this plan to translate the latest support recommendations into realistic weekly actions.",
-    assignments,
+    assignments: [...assignments, ...wellbeingAssignments].slice(0, 6),
     checkpoints,
     progressNotes: "",
     createdAt,

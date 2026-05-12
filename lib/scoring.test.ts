@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { defaultMentalWellbeingProfile } from "./mental-wellbeing";
 import { computeAssessment } from "./scoring";
 import type { AssessmentPayload } from "@/types/assessment";
 
@@ -47,6 +48,15 @@ const payload: AssessmentPayload = {
     adaptations: "",
     referral: "",
   },
+  mentalWellbeing: {
+    ...defaultMentalWellbeingProfile(),
+    perspectives: {
+      child: { focus: 3, resilience: 3, selfTalk: 4, confidence: 4, selfRegulation: 3, helpSeeking: 4 },
+      observer: { focus: 3, resilience: 3, selfTalk: 3, confidence: 3, selfRegulation: 3, helpSeeking: 3 },
+      caregiver: { focus: 4, resilience: 4, selfTalk: 4, confidence: 4, selfRegulation: 4, helpSeeking: 4 },
+    },
+    checkIn: { mood: 4, stress: 2, readiness: 4, sleepQuality: 4, fatigue: 2, soreness: 2 },
+  },
   attachments: [],
 };
 
@@ -67,5 +77,7 @@ describe("computeAssessment", () => {
     expect(result.socialAverage).toBe(1);
     expect(result.mentalAverage).toBe(3);
     expect(result.ski).toBe(3.2);
+    expect(result.mentalWellbeing.mentalSkillsAverage).toBeGreaterThan(3);
+    expect(result.mentalWellbeing.riskLevel).toBe("low");
   });
 });

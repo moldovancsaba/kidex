@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { buildDashboardAnalytics } from "@/lib/dashboard-analytics";
 import { defaultConsentPolicy } from "@/lib/consent-policy";
+import { defaultMentalWellbeingProfile } from "@/lib/mental-wellbeing";
 import type { ChildProfile } from "@/repositories/child.repository";
 import type { AssessmentRecord } from "@/types/assessment";
 import { DEFAULT_KIDEX_SETTINGS } from "@/services/settings-service";
@@ -62,6 +63,7 @@ function makeAssessment(overrides: Partial<AssessmentRecord>): AssessmentRecord 
       adaptations: "",
       referral: "",
     },
+    mentalWellbeing: overrides.mentalWellbeing || defaultMentalWellbeingProfile(),
     attachments: overrides.attachments || [],
     createdAt: overrides.createdAt || "2026-05-01T09:00:00.000Z",
     updatedAt: overrides.updatedAt || "2026-05-01T09:00:00.000Z",
@@ -70,6 +72,15 @@ function makeAssessment(overrides: Partial<AssessmentRecord>): AssessmentRecord 
       socialAverage: 4,
       mentalAverage: 3.8,
       ski: 4.1,
+      mentalWellbeing: {
+        phase: "baseline",
+        mentalSkillsAverage: 4,
+        checkInAverage: 4,
+        recoveryAverage: 4,
+        disagreementIndex: 0.5,
+        riskLevel: "low",
+        flaggedSignals: [],
+      },
       completion: { done: 10, total: 10 },
       ...(overrides.computed || {}),
     },
@@ -101,21 +112,66 @@ describe("buildDashboardAnalytics", () => {
           childId: "child-a",
           child: { name: "Ada", birthDate: "2018-01-01", ageGroup: "7-9", dominantHand: "", dominantEye: "", dominantFoot: "", knownTraits: "", parentSignals: "" },
           createdAt: "2026-03-01T09:00:00.000Z",
-          computed: { movementAverage: 4.1, socialAverage: 4, mentalAverage: 3.9, ski: 4.0, completion: { done: 10, total: 10 } },
+          computed: {
+            movementAverage: 4.1,
+            socialAverage: 4,
+            mentalAverage: 3.9,
+            ski: 4.0,
+            mentalWellbeing: {
+              phase: "baseline",
+              mentalSkillsAverage: 4.1,
+              checkInAverage: 4,
+              recoveryAverage: 4,
+              disagreementIndex: 0.4,
+              riskLevel: "low",
+              flaggedSignals: [],
+            },
+            completion: { done: 10, total: 10 },
+          },
         }),
         makeAssessment({
           _id: "a2",
           childId: "child-a",
           child: { name: "Ada", birthDate: "2018-01-01", ageGroup: "7-9", dominantHand: "", dominantEye: "", dominantFoot: "", knownTraits: "", parentSignals: "" },
           createdAt: "2026-05-01T09:00:00.000Z",
-          computed: { movementAverage: 5.1, socialAverage: 4.6, mentalAverage: 4.4, ski: 4.8, completion: { done: 10, total: 10 } },
+          computed: {
+            movementAverage: 5.1,
+            socialAverage: 4.6,
+            mentalAverage: 4.4,
+            ski: 4.8,
+            mentalWellbeing: {
+              phase: "follow_up",
+              mentalSkillsAverage: 4.5,
+              checkInAverage: 4.4,
+              recoveryAverage: 4.3,
+              disagreementIndex: 0.3,
+              riskLevel: "low",
+              flaggedSignals: [],
+            },
+            completion: { done: 10, total: 10 },
+          },
         }),
         makeAssessment({
           _id: "b1",
           childId: "child-b",
           child: { name: "Ben", birthDate: "2018-02-01", ageGroup: "7-9", dominantHand: "", dominantEye: "", dominantFoot: "", knownTraits: "", parentSignals: "" },
           createdAt: "2026-01-10T09:00:00.000Z",
-          computed: { movementAverage: 3.3, socialAverage: 3, mentalAverage: 2.8, ski: 2.9, completion: { done: 10, total: 10 } },
+          computed: {
+            movementAverage: 3.3,
+            socialAverage: 3,
+            mentalAverage: 2.8,
+            ski: 2.9,
+            mentalWellbeing: {
+              phase: "follow_up",
+              mentalSkillsAverage: 2.6,
+              checkInAverage: 2.2,
+              recoveryAverage: 2.1,
+              disagreementIndex: 1.4,
+              riskLevel: "high",
+              flaggedSignals: ["urgentConcern", "overload"],
+            },
+            completion: { done: 10, total: 10 },
+          },
         }),
       ],
       standards: DEFAULT_KIDEX_SETTINGS.standards,
@@ -131,6 +187,7 @@ describe("buildDashboardAnalytics", () => {
       level: "high",
       band: "watch",
     });
+    expect(analytics.watchlist[0]?.reasons.some((reason) => reason.includes("urgent wellbeing"))).toBe(true);
     expect(analytics.orientationMix.find((entry) => entry.label === "movement")?.count).toBe(2);
     expect(analytics.childrenNeedingConsentReview).toBe(2);
   });

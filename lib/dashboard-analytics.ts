@@ -136,6 +136,9 @@ function orientationForRecord(record: AssessmentRecord | null): OrientationLabel
 }
 
 function watchlistAction(reasons: string[]) {
+  if (reasons.some((reason) => reason.includes("urgent wellbeing"))) return "Escalate to the responsible adult lead today and document the follow-up action.";
+  if (reasons.some((reason) => reason.includes("wellbeing risk"))) return "Review wellbeing context, confirm support needs, and document a follow-up plan.";
+  if (reasons.some((reason) => reason.includes("recovery"))) return "Adjust load and expectations, then re-check recovery state in the next contact.";
   if (reasons.some((reason) => reason.includes("consent"))) return "Refresh caregiver consent before the next share or export.";
   if (reasons.some((reason) => reason.includes("follow-up"))) return "Schedule a follow-up assessment and re-open the support plan.";
   if (reasons.some((reason) => reason.includes("benchmark"))) return "Review benchmark fit and update the current development plan.";
@@ -196,7 +199,11 @@ export function buildDashboardAnalytics(input: {
     if (!bucket) continue;
     if (typeof assessment.computed.ski === "number") bucket.readiness.push(assessment.computed.ski);
     if (typeof assessment.computed.movementAverage === "number") bucket.function.push(assessment.computed.movementAverage);
-    bucket.wellbeing.push(average([assessment.computed.socialAverage, assessment.computed.mentalAverage]));
+    bucket.wellbeing.push(
+      typeof assessment.computed.mentalWellbeing?.checkInAverage === "number"
+        ? assessment.computed.mentalWellbeing.checkInAverage
+        : average([assessment.computed.socialAverage, assessment.computed.mentalAverage]),
+    );
   }
 
   const readinessByAgeGroupMap = new Map<string, DashboardAgeBandPoint>();
@@ -250,6 +257,31 @@ export function buildDashboardAnalytics(input: {
       if (consentAlerts.length > 0) {
         score += consentAlerts.some((alert) => alert.severity === "error") ? 2 : 1;
         reasons.push("Family consent requires review before the next share or export.");
+      }
+
+      const wellbeing = node.latest?.computed.mentalWellbeing;
+      if (wellbeing?.riskLevel === "high") {
+        score += 4;
+        reasons.push("High wellbeing risk needs urgent wellbeing follow-up.");
+      } else if (wellbeing?.riskLevel === "medium") {
+        score += 2;
+        reasons.push("Medium wellbeing risk needs structured follow-up.");
+      }
+
+      if (typeof wellbeing?.recoveryAverage === "number" && wellbeing.recoveryAverage <= 2.5) {
+        score += 2;
+        reasons.push("Recovery context is low and may be affecting readiness.");
+      } else if (typeof wellbeing?.recoveryAverage === "number" && wellbeing.recoveryAverage <= 3) {
+        score += 1;
+        reasons.push("Recovery context should be reviewed before the next progression step.");
+      }
+
+      if (wellbeing?.flaggedSignals.includes("urgentConcern")) {
+        score += 4;
+        reasons.push("An urgent wellbeing concern was explicitly flagged.");
+      } else if ((wellbeing?.flaggedSignals.length || 0) > 0) {
+        score += 1;
+        reasons.push("Recent wellbeing concern signals were recorded.");
       }
 
       const level: RiskLevel = score >= 5 ? "high" : score >= 3 ? "medium" : "low";

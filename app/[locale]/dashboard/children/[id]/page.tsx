@@ -566,6 +566,57 @@ export default function ChildHistoryPage({ params }: { params: Promise<{ id: str
       </SectionCard>
 
       {recommendationSummary ? (
+        <SectionCard title="Mental Wellbeing Track" subheader="Baseline and follow-up mental-skills, readiness, recovery, and support signals linked to this child record.">
+          <Stack gap="md">
+            <Text size="sm" c="dimmed">
+              {recommendationSummary.mentalWellbeing.phase === "baseline" ? "Baseline" : "Follow-up"} · risk {recommendationSummary.mentalWellbeing.riskLevel}
+              {typeof recommendationSummary.mentalWellbeing.baselineMentalSkillsAverage === "number" && typeof recommendationSummary.mentalWellbeing.mentalSkillsAverage === "number"
+                ? ` · mental skills ${formatScore(recommendationSummary.mentalWellbeing.baselineMentalSkillsAverage)} → ${formatScore(recommendationSummary.mentalWellbeing.mentalSkillsAverage)}`
+                : typeof recommendationSummary.mentalWellbeing.mentalSkillsAverage === "number"
+                  ? ` · mental skills ${formatScore(recommendationSummary.mentalWellbeing.mentalSkillsAverage)}`
+                  : ""}
+            </Text>
+            <SimpleGrid cols={{ base: 2, md: 4 }} spacing="md">
+              <Paper withBorder p="md" radius="md">
+                <Text size="sm" c="dimmed">Mental skills</Text>
+                <Text fw={700}>{formatScore(recommendationSummary.mentalWellbeing.mentalSkillsAverage)}</Text>
+              </Paper>
+              <Paper withBorder p="md" radius="md">
+                <Text size="sm" c="dimmed">Check-in average</Text>
+                <Text fw={700}>{formatScore(recommendationSummary.mentalWellbeing.checkInAverage)}</Text>
+              </Paper>
+              <Paper withBorder p="md" radius="md">
+                <Text size="sm" c="dimmed">Recovery average</Text>
+                <Text fw={700}>{formatScore(recommendationSummary.mentalWellbeing.recoveryAverage)}</Text>
+              </Paper>
+              <Paper withBorder p="md" radius="md">
+                <Text size="sm" c="dimmed">Disagreement index</Text>
+                <Text fw={700}>{formatScore(recommendationSummary.mentalWellbeing.disagreementIndex)}</Text>
+              </Paper>
+            </SimpleGrid>
+            {recommendationSummary.mentalWellbeing.goalModules.length > 0 ? (
+              <Paper withBorder p="md" radius="md">
+                <Text fw={700} size="sm" mb="xs">Guided practice modules</Text>
+                <Text size="sm">{recommendationSummary.mentalWellbeing.goalModules.join(", ")}</Text>
+              </Paper>
+            ) : null}
+            {recommendationSummary.mentalWellbeing.flaggedSignals.length > 0 ? (
+              <Paper withBorder p="md" radius="md">
+                <Text fw={700} size="sm" mb="xs">Flagged concern signals</Text>
+                <Group gap="xs">
+                  {recommendationSummary.mentalWellbeing.flaggedSignals.map((signal) => (
+                    <Badge key={signal} color={recommendationSummary.mentalWellbeing.riskLevel === "high" ? "red" : "orange"} variant="light">
+                      {signal}
+                    </Badge>
+                  ))}
+                </Group>
+              </Paper>
+            ) : null}
+          </Stack>
+        </SectionCard>
+      ) : null}
+
+      {recommendationSummary ? (
         <SectionCard title={tr("recommendationsTitle")}>
           <Stack gap="md">
             <Text size="sm" c="dimmed">

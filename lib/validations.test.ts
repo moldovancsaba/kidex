@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseChildPayload, parseSettingsPayload, parseUserPayload } from "./validations";
+import { parseAssessmentPayload, parseChildPayload, parseSettingsPayload, parseUserPayload } from "./validations";
 
 describe("parseUserPayload", () => {
   it("keeps valid roles and normalizes values", () => {
@@ -68,5 +68,29 @@ describe("parseChildPayload", () => {
     expect(parsed.accessibilityProfile.communicationSupport).toBe("visual_supports");
     expect(parsed.accessibilityProfile.accommodations).toEqual(["visual_schedule", "movement_breaks"]);
     expect(parsed.consentPolicy.mediaCapture.granted).toBe(true);
+  });
+});
+
+describe("parseAssessmentPayload", () => {
+  it("normalizes mental wellbeing inputs", () => {
+    const parsed = parseAssessmentPayload({
+      mode: "rapid",
+      child: { name: "Kid", birthDate: "2018-01-01", ageGroup: "7-9" },
+      session: { date: "2026-05-12", context: "structured" },
+      mentalWellbeing: {
+        phase: "follow_up",
+        perspectives: {
+          child: { focus: 2, resilience: 3, selfTalk: 4 },
+        },
+        checkIn: { mood: 2, stress: 4, readiness: 3, sleepQuality: 2, fatigue: 5, soreness: 4 },
+        goalModules: ["self_talk", "invalid"],
+        riskSignals: { urgentConcern: true },
+      },
+    });
+
+    expect(parsed.mentalWellbeing.phase).toBe("follow_up");
+    expect(parsed.mentalWellbeing.perspectives.child.focus).toBe(2);
+    expect(parsed.mentalWellbeing.goalModules).toEqual(["self_talk"]);
+    expect(parsed.mentalWellbeing.riskSignals.urgentConcern).toBe(true);
   });
 });
