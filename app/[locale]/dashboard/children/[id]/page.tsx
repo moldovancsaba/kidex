@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState, use } from "react";
-import { Alert, Box, Button, Group, Loader, Modal, MultiSelect, Paper, Select, Stack, Table, Text, TextInput, Textarea, useMantineTheme } from "@mantine/core";
+import { useEffect, useMemo, useState, use } from "react";
+import { Alert, Badge, Box, Button, Checkbox, Group, Loader, Modal, MultiSelect, Paper, Select, SimpleGrid, Stack, Table, Text, TextInput, Textarea, useMantineTheme } from "@mantine/core";
 import Image from "next/image";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
@@ -29,7 +29,7 @@ import type { AssessmentRecord } from "@/types/assessment";
 import type { ChildProfile } from "@/repositories/child.repository";
 import type { SupportedRuntimeRole } from "@/lib/roles";
 import type { KidexSettings } from "@/services/settings-service";
-import { Badge, SimpleGrid } from "@mantine/core";
+import { buildDefaultSupportWorkspace, buildSupportWorkspaceSummary, refreshMicroLearning, type ChildSupportWorkspace, type EvidenceMediaType, type ReferralUrgency } from "@/lib/support-workspace";
 
 const RADAR_CHART_HEIGHT = 220;
 const RADAR_TICK_FONT_SIZE = 12;
@@ -53,6 +53,9 @@ export default function ChildHistoryPage({ params }: { params: Promise<{ id: str
   const [settings, setSettings] = useState<KidexSettings | null>(null);
   const [plan, setPlan] = useState<DevelopmentPlan | null>(null);
   const [savingPlan, setSavingPlan] = useState(false);
+  const [supportWorkspace, setSupportWorkspace] = useState<ChildSupportWorkspace | null>(null);
+  const [supportWorkspaceLoaded, setSupportWorkspaceLoaded] = useState(false);
+  const [savingSupportWorkspace, setSavingSupportWorkspace] = useState(false);
   const [consentLinkModalOpen, setConsentLinkModalOpen] = useState(false);
   const [generatedConsentLink, setGeneratedConsentLink] = useState("");
   const [consentLinkTarget, setConsentLinkTarget] = useState<{ id: string; name: string } | null>(null);
@@ -62,6 +65,26 @@ export default function ChildHistoryPage({ params }: { params: Promise<{ id: str
   const [communicationBody, setCommunicationBody] = useState("");
   const [communicationCaregiverIds, setCommunicationCaregiverIds] = useState<string[]>([]);
   const [sendingCommunication, setSendingCommunication] = useState(false);
+  const [newReferral, setNewReferral] = useState({
+    concernType: "",
+    explanation: "",
+    resourceType: "Support service",
+    resourceName: "",
+    locality: "",
+    contact: "",
+    urgency: "routine" as ReferralUrgency,
+    followUpDate: "",
+  });
+  const [newEvidence, setNewEvidence] = useState({
+    title: "",
+    note: "",
+    context: "",
+    domainTags: "",
+    skillTags: "",
+    attachmentName: "",
+    attachmentUrl: "",
+    mediaType: "link" as EvidenceMediaType,
+  });
 
   useEffect(() => {
     Promise.all([
@@ -70,13 +93,16 @@ export default function ChildHistoryPage({ params }: { params: Promise<{ id: str
       fetch("/api/settings").then((res) => res.json()).catch(() => null),
       fetch(`/api/children/${id}/plan`).then((res) => res.json()).catch(() => ({ plan: null })),
       fetch(`/api/children/${id}/communications`).then((res) => res.json()).catch(() => ({ communications: [] })),
+      fetch(`/api/children/${id}/support`).then((res) => res.json()).catch(() => ({ workspace: null })),
     ])
-      .then(([historyData, meData, settingsData, planData, communicationData]) => {
+      .then(([historyData, meData, settingsData, planData, communicationData, supportData]) => {
         setData(historyData);
         setRoles(meData?.user?.roles || []);
         setSettings(settingsData);
         setPlan(planData?.plan || null);
         setCommunications(Array.isArray(communicationData?.communications) ? communicationData.communications : []);
+        setSupportWorkspace(supportData?.workspace || null);
+        setSupportWorkspaceLoaded(true);
       })
       .finally(() => setLoading(false));
   }, [id]);
@@ -142,6 +168,46 @@ export default function ChildHistoryPage({ params }: { params: Promise<{ id: str
     setDeleteConfirmText("");
   }
 
+  const latest = data?.assessments?.[0];
+  const baseline = data?.assessments?.length ? data.assessments[data.assessments.length - 1] : null;
+  const benchmarkData = [
+    { subject: ts("movement"), individual: latest?.computed.movementAverage || 0, average: baseline?.computed.movementAverage || 0 },
+    { subject: ts("social"), individual: latest?.computed.socialAverage || 0, average: baseline?.computed.socialAverage || 0 },
+    { subject: ts("mental"), individual: latest?.computed.mentalAverage || 0, average: baseline?.computed.mentalAverage || 0 },
+  ];
+  const allScores = latest ? Object.entries(latest.scores).map(([key, val]) => ({
+    key,
+    label: ts(`${key}.title`),
+    score: val.score || 0
+  })).filter(s => s.score > 0) : [];
+  const strengths = allScores.sort((a, b) => b.score - a.score).slice(0, 3);
+  const focusAreas = allScores.sort((a, b) => a.score - b.score).slice(0, 3);
+  const trend = data ? calculateTrend(data.assessments) : [];
+  const assessmentsWithImages = data ? data.assessments.filter((assessment) => assessment.attachments.length > 0) : [];
+  const rapidDomainSummary = data ? buildRapidDomainSummary(data.assessments, ts) : { movement: [], social: [], mental: [] };
+  const recommendationSummary = latest
+    ? buildRecommendationSummary(
+        latest,
+        data?.assessments || [],
+        getStandardForAssessment(settings?.standards, latest.standardsVersionUsed, latest.child.ageGroup),
+        ts,
+      )
+    : null;
+  const caregiverOptions = (data?.child.caregivers || [])
+    .filter((caregiver) => caregiver.status === "active")
+    .map((caregiver) => ({ value: caregiver.id, label: caregiver.name }));
+  const effectiveSupportWorkspace = useMemo(() => {
+    if (supportWorkspace) return supportWorkspace;
+    if (!supportWorkspaceLoaded || !data?.child || !latest || !recommendationSummary) return null;
+    return buildDefaultSupportWorkspace({
+      child: data.child,
+      recommendationSummary,
+      plan,
+      latestAssessment: latest,
+    });
+  }, [supportWorkspace, supportWorkspaceLoaded, data, latest, recommendationSummary, plan]);
+  const supportSummary = buildSupportWorkspaceSummary(effectiveSupportWorkspace);
+
   if (loading) {
     return (
       <Box style={{ display: "flex", justifyContent: "center", paddingBlock: "2rem" }} role="status">
@@ -157,40 +223,6 @@ export default function ChildHistoryPage({ params }: { params: Promise<{ id: str
       </Text>
     );
   }
-
-  const latest = data.assessments[0];
-  const baseline = data.assessments.length > 0 ? data.assessments[data.assessments.length - 1] : null;
-
-  const benchmarkData = [
-    { subject: ts("movement"), individual: latest?.computed.movementAverage || 0, average: baseline?.computed.movementAverage || 0 },
-    { subject: ts("social"), individual: latest?.computed.socialAverage || 0, average: baseline?.computed.socialAverage || 0 },
-    { subject: ts("mental"), individual: latest?.computed.mentalAverage || 0, average: baseline?.computed.mentalAverage || 0 },
-  ];
-
-  // Calculate Strengths & Focus Areas from the latest record
-  const allScores = latest ? Object.entries(latest.scores).map(([key, val]) => ({
-    key,
-    label: ts(`${key}.title`),
-    score: val.score || 0
-  })).filter(s => s.score > 0) : [];
-
-  const strengths = allScores.sort((a, b) => b.score - a.score).slice(0, 3);
-  const focusAreas = allScores.sort((a, b) => a.score - b.score).slice(0, 3);
-
-  const trend = calculateTrend(data.assessments);
-  const assessmentsWithImages = data.assessments.filter((assessment) => assessment.attachments.length > 0);
-  const rapidDomainSummary = buildRapidDomainSummary(data.assessments, ts);
-  const recommendationSummary = latest
-    ? buildRecommendationSummary(
-        latest,
-        data.assessments,
-        getStandardForAssessment(settings?.standards, latest.standardsVersionUsed, latest.child.ageGroup),
-        ts,
-      )
-    : null;
-  const caregiverOptions = (data.child.caregivers || [])
-    .filter((caregiver) => caregiver.status === "active")
-    .map((caregiver) => ({ value: caregiver.id, label: caregiver.name }));
 
   function ensureDraftPlan() {
     if (!data?.child || !latest || !recommendationSummary) return;
@@ -215,6 +247,146 @@ export default function ChildHistoryPage({ params }: { params: Promise<{ id: str
     if (!response?.ok) return;
     const payload = await response.json();
     setPlan(payload.plan || plan);
+  }
+
+  async function saveSupport() {
+    if (!effectiveSupportWorkspace) return;
+    setSavingSupportWorkspace(true);
+    const response = await fetch(`/api/children/${id}/support`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(effectiveSupportWorkspace),
+    }).catch(() => null);
+    setSavingSupportWorkspace(false);
+    if (!response?.ok) return;
+    const payload = await response.json();
+    setSupportWorkspace(payload.workspace || effectiveSupportWorkspace);
+  }
+
+  function updateCaregiverTool(index: number, patch: Partial<ChildSupportWorkspace["caregiverTools"][number]>) {
+    setSupportWorkspace((current) => current ? {
+      ...current,
+      updatedAt: new Date().toISOString(),
+      caregiverTools: current.caregiverTools.map((entry, entryIndex) => entryIndex === index ? { ...entry, ...patch } : entry),
+    } : current);
+  }
+
+  function updateCoachTool(index: number, patch: Partial<ChildSupportWorkspace["coachTools"][number]>) {
+    setSupportWorkspace((current) => current ? {
+      ...current,
+      updatedAt: new Date().toISOString(),
+      coachTools: current.coachTools.map((entry, entryIndex) => entryIndex === index ? { ...entry, ...patch } : entry),
+    } : current);
+  }
+
+  function updateMicroLearningLesson(sequenceIndex: number, lessonIndex: number, patch: Partial<ChildSupportWorkspace["microLearning"][number]["lessons"][number]>) {
+    setSupportWorkspace((current) => current ? {
+      ...current,
+      updatedAt: new Date().toISOString(),
+      microLearning: current.microLearning.map((sequence, currentSequenceIndex) => {
+        if (currentSequenceIndex !== sequenceIndex) return sequence;
+        const next = {
+          ...sequence,
+          lessons: sequence.lessons.map((lesson, currentLessonIndex) => currentLessonIndex === lessonIndex ? { ...lesson, ...patch } : lesson),
+        };
+        return refreshMicroLearning(next);
+      }),
+    } : current);
+  }
+
+  function updateReferral(index: number, patch: Partial<ChildSupportWorkspace["referrals"][number]>) {
+    setSupportWorkspace((current) => current ? {
+      ...current,
+      updatedAt: new Date().toISOString(),
+      referrals: current.referrals.map((entry, entryIndex) => entryIndex === index ? { ...entry, ...patch, updatedAt: new Date().toISOString() } : entry),
+    } : current);
+  }
+
+  function addReferral() {
+    if (!newReferral.concernType.trim() || !newReferral.explanation.trim()) return;
+    if (!data?.child || !latest || !recommendationSummary) return;
+    setSupportWorkspace((current) => {
+      const base = current || buildDefaultSupportWorkspace({
+        child: data.child,
+        recommendationSummary,
+        plan,
+        latestAssessment: latest,
+      });
+      return {
+        ...base,
+        updatedAt: new Date().toISOString(),
+        referrals: [{
+          id: crypto.randomUUID(),
+          concernType: newReferral.concernType.trim(),
+          urgency: newReferral.urgency,
+          status: "recommended",
+          explanation: newReferral.explanation.trim(),
+          resourceType: newReferral.resourceType.trim(),
+          resourceName: newReferral.resourceName.trim(),
+          locality: newReferral.locality.trim(),
+          contact: newReferral.contact.trim(),
+          followUpDate: newReferral.followUpDate || undefined,
+          resolutionNotes: "",
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        }, ...base.referrals],
+      };
+    });
+    setNewReferral({
+      concernType: "",
+      explanation: "",
+      resourceType: "Support service",
+      resourceName: "",
+      locality: "",
+      contact: "",
+      urgency: "routine",
+      followUpDate: "",
+    });
+  }
+
+  function addEvidenceEntry() {
+    if (!newEvidence.title.trim() || !newEvidence.note.trim()) return;
+    if (!data?.child || !latest || !recommendationSummary) return;
+    setSupportWorkspace((current) => {
+      const base = current || buildDefaultSupportWorkspace({
+        child: data.child,
+        recommendationSummary,
+        plan,
+        latestAssessment: latest,
+      });
+      const attachments = newEvidence.attachmentUrl.trim() ? [{
+        id: crypto.randomUUID(),
+        name: newEvidence.attachmentName.trim() || "Reference",
+        url: newEvidence.attachmentUrl.trim(),
+        mediaType: newEvidence.mediaType,
+      }] : [];
+      return {
+        ...base,
+        updatedAt: new Date().toISOString(),
+        evidenceJournal: [{
+          id: crypto.randomUUID(),
+          title: newEvidence.title.trim(),
+          note: newEvidence.note.trim(),
+          context: newEvidence.context.trim(),
+          domainTags: newEvidence.domainTags.split(",").map((entry) => entry.trim()).filter(Boolean),
+          skillTags: newEvidence.skillTags.split(",").map((entry) => entry.trim()).filter(Boolean),
+          linkedAssessmentId: latest?._id,
+          linkedPlanId: plan?._id,
+          createdAt: new Date().toISOString(),
+          attachments,
+        }, ...base.evidenceJournal],
+      };
+    });
+    setNewEvidence({
+      title: "",
+      note: "",
+      context: "",
+      domainTags: "",
+      skillTags: "",
+      attachmentName: "",
+      attachmentUrl: "",
+      mediaType: "link",
+    });
   }
 
   function updateAssignmentField(index: number, field: "title" | "notes" | "status" | "dueDate" | "audience", value: string) {
@@ -335,7 +507,7 @@ export default function ChildHistoryPage({ params }: { params: Promise<{ id: str
                 try {
                   const users = await getUsers();
                   const printableRecord = withDisplayNamesForReport(latest, users);
-                  await PdfService.generateFamilyReport(printableRecord, t, tc, ts, tr, recommendationSummary, plan, data.child);
+                  await PdfService.generateFamilyReport(printableRecord, t, tc, ts, tr, recommendationSummary, plan, data.child, effectiveSupportWorkspace);
                 } finally {
                   setDownloadingPdf(false);
                 }
@@ -784,6 +956,298 @@ export default function ChildHistoryPage({ params }: { params: Promise<{ id: str
         )}
       </SectionCard>
 
+      <SectionCard
+        title="Support Workspace"
+        subheader="Caregiver tools, coach guidance, micro-learning, referrals, and evidence journaling for this child."
+        action={canWritePlans ? (
+          <Button color="kidex" onClick={() => void saveSupport()} loading={savingSupportWorkspace} disabled={!effectiveSupportWorkspace}>
+            Save support workspace
+          </Button>
+        ) : null}
+      >
+        {!effectiveSupportWorkspace ? (
+          <Text c="dimmed">Support tools will appear once a plan or recommendation set exists for this child.</Text>
+        ) : (
+          <Stack gap="md">
+            <SimpleGrid cols={{ base: 2, md: 5 }} spacing="md">
+              <Paper withBorder p="md" radius="md">
+                <Text size="sm" c="dimmed">Caregiver tools completed</Text>
+                <Text fw={700}>{supportSummary.caregiverCompleted}</Text>
+              </Paper>
+              <Paper withBorder p="md" radius="md">
+                <Text size="sm" c="dimmed">Coach guidance completed</Text>
+                <Text fw={700}>{supportSummary.coachCompleted}</Text>
+              </Paper>
+              <Paper withBorder p="md" radius="md">
+                <Text size="sm" c="dimmed">Active micro-learning</Text>
+                <Text fw={700}>{supportSummary.activeMicroLearning}</Text>
+              </Paper>
+              <Paper withBorder p="md" radius="md">
+                <Text size="sm" c="dimmed">Open referrals</Text>
+                <Text fw={700}>{supportSummary.openReferrals}</Text>
+              </Paper>
+              <Paper withBorder p="md" radius="md">
+                <Text size="sm" c="dimmed">Evidence moments</Text>
+                <Text fw={700}>{supportSummary.evidenceCount}</Text>
+              </Paper>
+            </SimpleGrid>
+
+            <Paper withBorder p="md">
+              <Stack gap="sm">
+                <Text fw={700}>Caregiver education and partnership tools</Text>
+                {effectiveSupportWorkspace.caregiverTools.map((tool, index) => (
+                  <Paper key={tool.id} withBorder p="sm">
+                    <Stack gap="xs">
+                      <Group justify="space-between">
+                        <Text fw={600}>{tool.title}</Text>
+                        <Badge variant="light">{tool.status}</Badge>
+                      </Group>
+                      <Text size="sm">{tool.description}</Text>
+                      <Group grow>
+                        <Select
+                          label="Status"
+                          value={tool.status}
+                          data={[
+                            { value: "recommended", label: "Recommended" },
+                            { value: "acknowledged", label: "Acknowledged" },
+                            { value: "completed", label: "Completed" },
+                          ]}
+                          onChange={(value) => updateCaregiverTool(index, { status: (value as typeof tool.status) || "recommended", completedAt: value === "completed" ? new Date().toISOString() : undefined })}
+                          disabled={!canWritePlans}
+                        />
+                        <TextInput
+                          label="Focus tags"
+                          value={tool.focusTags.join(", ")}
+                          onChange={(event) => updateCaregiverTool(index, { focusTags: event.currentTarget.value.split(",").map((entry) => entry.trim()).filter(Boolean) })}
+                          disabled={!canWritePlans}
+                        />
+                      </Group>
+                      {tool.commitmentLabel ? (
+                        <Checkbox
+                          label={tool.commitmentLabel}
+                          checked={Boolean(tool.commitmentAcceptedAt)}
+                          onChange={(event) => updateCaregiverTool(index, { commitmentAcceptedAt: event.currentTarget.checked ? new Date().toISOString() : undefined })}
+                          disabled={!canWritePlans}
+                        />
+                      ) : null}
+                      <TextInput
+                        label="Notes"
+                        value={tool.notes}
+                        onChange={(event) => updateCaregiverTool(index, { notes: event.currentTarget.value })}
+                        disabled={!canWritePlans}
+                      />
+                    </Stack>
+                  </Paper>
+                ))}
+              </Stack>
+            </Paper>
+
+            <Paper withBorder p="md">
+              <Stack gap="sm">
+                <Text fw={700}>Coach guidance and just-in-time prompts</Text>
+                {effectiveSupportWorkspace.coachTools.map((tool, index) => (
+                  <Paper key={tool.id} withBorder p="sm">
+                    <Stack gap="xs">
+                      <Group justify="space-between">
+                        <Text fw={600}>{tool.title}</Text>
+                        <Badge variant="light">{tool.status}</Badge>
+                      </Group>
+                      <Text size="sm">{tool.description}</Text>
+                      <Group grow>
+                        <Select
+                          label="Status"
+                          value={tool.status}
+                          data={[
+                            { value: "recommended", label: "Recommended" },
+                            { value: "acknowledged", label: "Acknowledged" },
+                            { value: "completed", label: "Completed" },
+                          ]}
+                          onChange={(value) => updateCoachTool(index, { status: (value as typeof tool.status) || "recommended", completedAt: value === "completed" ? new Date().toISOString() : undefined })}
+                          disabled={!canWritePlans}
+                        />
+                        <TextInput
+                          label="Focus tags"
+                          value={tool.focusTags.join(", ")}
+                          onChange={(event) => updateCoachTool(index, { focusTags: event.currentTarget.value.split(",").map((entry) => entry.trim()).filter(Boolean) })}
+                          disabled={!canWritePlans}
+                        />
+                      </Group>
+                      <TextInput
+                        label="Notes"
+                        value={tool.notes}
+                        onChange={(event) => updateCoachTool(index, { notes: event.currentTarget.value })}
+                        disabled={!canWritePlans}
+                      />
+                    </Stack>
+                  </Paper>
+                ))}
+              </Stack>
+            </Paper>
+
+            <Paper withBorder p="md">
+              <Stack gap="sm">
+                <Text fw={700}>Micro-learning and reflection</Text>
+                {effectiveSupportWorkspace.microLearning.map((sequence, sequenceIndex) => (
+                  <Paper key={sequence.id} withBorder p="sm">
+                    <Stack gap="xs">
+                      <Group justify="space-between">
+                        <Box>
+                          <Text fw={600}>{sequence.title}</Text>
+                          <Text size="sm" c="dimmed">
+                            {sequence.focusArea} · {sequence.ageGroup || "all ages"} · streak {sequence.currentStreak}
+                          </Text>
+                        </Box>
+                        <Badge variant="light">{sequence.status}</Badge>
+                      </Group>
+                      {sequence.lessons.map((lesson, lessonIndex) => (
+                        <Paper key={lesson.id} withBorder p="sm">
+                          <Stack gap="xs">
+                            <Checkbox
+                              label={`${lesson.title} (${lesson.durationMinutes} min)`}
+                              checked={lesson.completed}
+                              onChange={(event) => updateMicroLearningLesson(sequenceIndex, lessonIndex, {
+                                completed: event.currentTarget.checked,
+                                completedAt: event.currentTarget.checked ? new Date().toISOString() : undefined,
+                              })}
+                              disabled={!canWritePlans}
+                            />
+                            <Text size="sm" c="dimmed">{lesson.prompt}</Text>
+                            <TextInput
+                              label="Reflection"
+                              value={lesson.reflection}
+                              onChange={(event) => updateMicroLearningLesson(sequenceIndex, lessonIndex, { reflection: event.currentTarget.value })}
+                              disabled={!canWritePlans}
+                            />
+                          </Stack>
+                        </Paper>
+                      ))}
+                    </Stack>
+                  </Paper>
+                ))}
+              </Stack>
+            </Paper>
+
+            <Paper withBorder p="md">
+              <Stack gap="sm">
+                <Text fw={700}>Referral workflow and local support directory</Text>
+                <SimpleGrid cols={{ base: 1, md: 2 }} spacing="sm">
+                  <TextInput label="Concern type" value={newReferral.concernType} onChange={(event) => setNewReferral((current) => ({ ...current, concernType: event.currentTarget.value }))} disabled={!canWritePlans} />
+                  <Select
+                    label="Urgency"
+                    value={newReferral.urgency}
+                    data={[
+                      { value: "routine", label: "Routine" },
+                      { value: "priority", label: "Priority" },
+                      { value: "urgent", label: "Urgent" },
+                    ]}
+                    onChange={(value) => setNewReferral((current) => ({ ...current, urgency: (value as ReferralUrgency) || "routine" }))}
+                    disabled={!canWritePlans}
+                  />
+                  <TextInput label="Resource type" value={newReferral.resourceType} onChange={(event) => setNewReferral((current) => ({ ...current, resourceType: event.currentTarget.value }))} disabled={!canWritePlans} />
+                  <TextInput label="Resource name" value={newReferral.resourceName} onChange={(event) => setNewReferral((current) => ({ ...current, resourceName: event.currentTarget.value }))} disabled={!canWritePlans} />
+                  <TextInput label="Locality" value={newReferral.locality} onChange={(event) => setNewReferral((current) => ({ ...current, locality: event.currentTarget.value }))} disabled={!canWritePlans} />
+                  <TextInput label="Contact" value={newReferral.contact} onChange={(event) => setNewReferral((current) => ({ ...current, contact: event.currentTarget.value }))} disabled={!canWritePlans} />
+                </SimpleGrid>
+                <TextInput label="Follow-up date" type="date" value={newReferral.followUpDate} onChange={(event) => setNewReferral((current) => ({ ...current, followUpDate: event.currentTarget.value }))} disabled={!canWritePlans} />
+                <Textarea label="Parent-safe explanation" value={newReferral.explanation} onChange={(event) => setNewReferral((current) => ({ ...current, explanation: event.currentTarget.value }))} minRows={2} disabled={!canWritePlans} />
+                <Group justify="flex-end">
+                  <Button variant="default" onClick={addReferral} disabled={!canWritePlans || !newReferral.concernType.trim() || !newReferral.explanation.trim()}>
+                    Add referral
+                  </Button>
+                </Group>
+                {effectiveSupportWorkspace.referrals.map((referral, index) => (
+                  <Paper key={referral.id} withBorder p="sm">
+                    <Stack gap="xs">
+                      <Group justify="space-between">
+                        <Text fw={600}>{referral.concernType}</Text>
+                        <Badge color={referral.urgency === "urgent" ? "red" : referral.urgency === "priority" ? "orange" : "blue"} variant="light">
+                          {referral.urgency}
+                        </Badge>
+                      </Group>
+                      <Text size="sm">{referral.explanation}</Text>
+                      <Group grow>
+                        <Select
+                          label="Status"
+                          value={referral.status}
+                          data={[
+                            { value: "recommended", label: "Recommended" },
+                            { value: "contacted", label: "Contacted" },
+                            { value: "scheduled", label: "Scheduled" },
+                            { value: "closed", label: "Closed" },
+                          ]}
+                          onChange={(value) => updateReferral(index, { status: (value as typeof referral.status) || "recommended" })}
+                          disabled={!canWritePlans}
+                        />
+                        <TextInput label="Follow-up date" type="date" value={referral.followUpDate || ""} onChange={(event) => updateReferral(index, { followUpDate: event.currentTarget.value || undefined })} disabled={!canWritePlans} />
+                      </Group>
+                      <TextInput label="Resource name" value={referral.resourceName} onChange={(event) => updateReferral(index, { resourceName: event.currentTarget.value })} disabled={!canWritePlans} />
+                      <TextInput label="Resolution notes" value={referral.resolutionNotes} onChange={(event) => updateReferral(index, { resolutionNotes: event.currentTarget.value })} disabled={!canWritePlans} />
+                    </Stack>
+                  </Paper>
+                ))}
+              </Stack>
+            </Paper>
+
+            <Paper withBorder p="md">
+              <Stack gap="sm">
+                <Text fw={700}>Multimedia evidence journal</Text>
+                <SimpleGrid cols={{ base: 1, md: 2 }} spacing="sm">
+                  <TextInput label="Moment title" value={newEvidence.title} onChange={(event) => setNewEvidence((current) => ({ ...current, title: event.currentTarget.value }))} disabled={!canWritePlans} />
+                  <TextInput label="Context" value={newEvidence.context} onChange={(event) => setNewEvidence((current) => ({ ...current, context: event.currentTarget.value }))} disabled={!canWritePlans} />
+                  <TextInput label="Domain tags" value={newEvidence.domainTags} onChange={(event) => setNewEvidence((current) => ({ ...current, domainTags: event.currentTarget.value }))} disabled={!canWritePlans} placeholder="movement, social, mental" />
+                  <TextInput label="Skill tags" value={newEvidence.skillTags} onChange={(event) => setNewEvidence((current) => ({ ...current, skillTags: event.currentTarget.value }))} disabled={!canWritePlans} placeholder="balance, confidence" />
+                  <TextInput label="Attachment label" value={newEvidence.attachmentName} onChange={(event) => setNewEvidence((current) => ({ ...current, attachmentName: event.currentTarget.value }))} disabled={!canWritePlans} />
+                  <TextInput label="Attachment URL" value={newEvidence.attachmentUrl} onChange={(event) => setNewEvidence((current) => ({ ...current, attachmentUrl: event.currentTarget.value }))} disabled={!canWritePlans} placeholder="https://..." />
+                </SimpleGrid>
+                <Select
+                  label="Attachment type"
+                  value={newEvidence.mediaType}
+                  data={[
+                    { value: "image", label: "Image" },
+                    { value: "video", label: "Video" },
+                    { value: "file", label: "File" },
+                    { value: "link", label: "Link" },
+                  ]}
+                  onChange={(value) => setNewEvidence((current) => ({ ...current, mediaType: (value as EvidenceMediaType) || "link" }))}
+                  disabled={!canWritePlans}
+                />
+                <Textarea label="Observation note" value={newEvidence.note} onChange={(event) => setNewEvidence((current) => ({ ...current, note: event.currentTarget.value }))} minRows={2} disabled={!canWritePlans} />
+                <Group justify="flex-end">
+                  <Button variant="default" onClick={addEvidenceEntry} disabled={!canWritePlans || !newEvidence.title.trim() || !newEvidence.note.trim()}>
+                    Add evidence moment
+                  </Button>
+                </Group>
+                <Stack gap="sm">
+                  {effectiveSupportWorkspace.evidenceJournal.map((entry) => (
+                    <Paper key={entry.id} withBorder p="sm">
+                      <Stack gap="xs">
+                        <Group justify="space-between">
+                          <Text fw={600}>{entry.title}</Text>
+                          <Text size="sm" c="dimmed">{new Date(entry.createdAt).toLocaleDateString()}</Text>
+                        </Group>
+                        <Text size="sm">{entry.note}</Text>
+                        <Text size="sm" c="dimmed">
+                          {[entry.context, entry.domainTags.join(", "), entry.skillTags.join(", ")].filter(Boolean).join(" · ")}
+                        </Text>
+                        {entry.attachments.length > 0 ? (
+                          <Group gap="xs">
+                            {entry.attachments.map((attachment) => (
+                              <Button key={attachment.id} component="a" href={attachment.url} target="_blank" rel="noreferrer" variant="light" size="compact-sm">
+                                {attachment.mediaType}: {attachment.name}
+                              </Button>
+                            ))}
+                          </Group>
+                        ) : null}
+                      </Stack>
+                    </Paper>
+                  ))}
+                </Stack>
+              </Stack>
+            </Paper>
+          </Stack>
+        )}
+      </SectionCard>
+
       {recommendationSummary ? (
         <SectionCard title={tr("familyReportTitle")}>
           <Stack gap="sm">
@@ -806,6 +1270,21 @@ export default function ChildHistoryPage({ params }: { params: Promise<{ id: str
                     <Text key={assignment.id} size="sm">• {assignment.title}</Text>
                   ))}
                 </Stack>
+              </Paper>
+            ) : null}
+            {supportSummary.openReferrals > 0 || supportSummary.recentEvidenceTitles.length > 0 ? (
+              <Paper withBorder p="sm">
+                <Text fw={700}>Support follow-up</Text>
+                {supportSummary.openReferrals > 0 ? (
+                  <Text size="sm" c="dimmed">{supportSummary.openReferrals} referral follow-up item(s) are currently open.</Text>
+                ) : null}
+                {supportSummary.recentEvidenceTitles.length > 0 ? (
+                  <Stack gap={4} mt="xs">
+                    {supportSummary.recentEvidenceTitles.map((title) => (
+                      <Text key={title} size="sm">• {title}</Text>
+                    ))}
+                  </Stack>
+                ) : null}
               </Paper>
             ) : null}
           </Stack>

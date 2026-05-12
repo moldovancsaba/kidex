@@ -21,6 +21,7 @@ export type AuditAction =
   | "media.upload"
   | "plan.upsert"
   | "settings.update"
+  | "support.upsert"
   | "user.delete"
   | "user.upsert";
 

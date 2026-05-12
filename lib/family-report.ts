@@ -1,6 +1,7 @@
 import type { ChildAccessibilityProfile } from "@/lib/accessibility-profile";
 import type { DevelopmentPlan } from "@/lib/development-plans";
 import type { RecommendationSummary } from "@/lib/recommendations";
+import type { ChildSupportWorkspace } from "@/lib/support-workspace";
 import type { AssessmentRecord } from "@/types/assessment";
 
 export interface FamilyFriendlyRecommendation {
@@ -15,6 +16,8 @@ export interface FamilyFriendlyReportSummary {
   recommendations: FamilyFriendlyRecommendation[];
   nextSteps: string[];
   accessibilityNotes: string[];
+  referralNotes: string[];
+  evidenceMoments: string[];
 }
 
 function readinessHeadline(summary: RecommendationSummary): string {
@@ -55,8 +58,9 @@ export function buildFamilyFriendlyReportSummary(input: {
   recommendationSummary: RecommendationSummary;
   plan?: DevelopmentPlan | null;
   accessibilityProfile?: ChildAccessibilityProfile | null;
+  supportWorkspace?: ChildSupportWorkspace | null;
 }): FamilyFriendlyReportSummary {
-  const { recommendationSummary, plan, accessibilityProfile } = input;
+  const { recommendationSummary, plan, accessibilityProfile, supportWorkspace } = input;
   const simplifiedFamilyView = accessibilityProfile?.familyViewMode === "simplified";
   const recommendations = recommendationSummary.recommendations.slice(0, 3).map((recommendation) => ({
     title: recommendation.title,
@@ -77,6 +81,13 @@ export function buildFamilyFriendlyReportSummary(input: {
   const wellbeingSummary = typeof recommendationSummary.mentalWellbeing.recoveryAverage === "number"
     ? ` Current recovery check-in is ${recommendationSummary.mentalWellbeing.recoveryAverage < 3 ? "showing some strain" : "holding reasonably steady"}, and the support plan should stay practical and low-pressure.`
     : "";
+  const referralNotes = (supportWorkspace?.referrals || [])
+    .filter((entry) => entry.status !== "closed")
+    .slice(0, 2)
+    .map((entry) => entry.resourceName
+      ? `${entry.concernType}: consider ${entry.resourceName}${entry.locality ? ` in ${entry.locality}` : ""}.`
+      : `${entry.concernType}: the team has flagged a follow-up support pathway and should explain the next step clearly.`);
+  const evidenceMoments = (supportWorkspace?.evidenceJournal || []).slice(0, 3).map((entry) => entry.title);
   const accessibilityNotes = [
     ...(accessibilityProfile?.accommodations || []).map(accommodationLabel).filter(Boolean),
     accessibilityProfile?.supportNotes || "",
@@ -95,5 +106,7 @@ export function buildFamilyFriendlyReportSummary(input: {
     recommendations,
     nextSteps,
     accessibilityNotes,
+    referralNotes,
+    evidenceMoments,
   };
 }

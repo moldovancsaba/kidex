@@ -3,6 +3,7 @@ import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import type { DevelopmentPlan } from "@/lib/development-plans";
 import type { RecommendationSummary } from "@/lib/recommendations";
+import type { ChildSupportWorkspace } from "@/lib/support-workspace";
 import type { AssessmentRecord } from "@/types/assessment";
 import { formatScore } from "./utils";
 import { rapidSections } from "./kidex-schema";
@@ -140,12 +141,13 @@ export const PdfService = {
     recommendationSummary: RecommendationSummary,
     plan?: DevelopmentPlan | null,
     childProfile?: ChildProfile | null,
+    supportWorkspace?: ChildSupportWorkspace | null,
   ): Promise<void> {
     const doc = new jsPDF({ unit: "mm", format: "a4" }) as JsPDFWithAutoTable;
     await this.ensureUnicodeFont(doc);
     const logoDataUrl = await this.getLogoDataUrl();
     const reportDate = new Date(record.createdAt).toLocaleDateString();
-    const summary = buildFamilyFriendlyReportSummary({ record, recommendationSummary, plan, accessibilityProfile: childProfile?.accessibilityProfile });
+    const summary = buildFamilyFriendlyReportSummary({ record, recommendationSummary, plan, accessibilityProfile: childProfile?.accessibilityProfile, supportWorkspace });
 
     if (logoDataUrl) {
       doc.addImage(logoDataUrl, "JPEG", 14, 10, 20, 20);
@@ -210,6 +212,32 @@ export const PdfService = {
       y += 10;
       doc.setFontSize(11);
       summary.accessibilityNotes.forEach((note) => {
+        const lines = doc.splitTextToSize(`• ${note}`, 165);
+        doc.text(lines, 24, y);
+        y += lines.length * 5 + 2;
+      });
+    }
+
+    if (summary.referralNotes.length > 0) {
+      y += 4;
+      doc.setFontSize(14);
+      doc.text("Support follow-up", 20, y);
+      y += 10;
+      doc.setFontSize(11);
+      summary.referralNotes.forEach((note) => {
+        const lines = doc.splitTextToSize(`• ${note}`, 165);
+        doc.text(lines, 24, y);
+        y += lines.length * 5 + 2;
+      });
+    }
+
+    if (summary.evidenceMoments.length > 0) {
+      y += 4;
+      doc.setFontSize(14);
+      doc.text("Recent evidence moments", 20, y);
+      y += 10;
+      doc.setFontSize(11);
+      summary.evidenceMoments.forEach((note) => {
         const lines = doc.splitTextToSize(`• ${note}`, 165);
         doc.text(lines, 24, y);
         y += lines.length * 5 + 2;

@@ -29,6 +29,7 @@ import { formatScore } from "@/lib/utils";
 import { SectionCard } from "@/components/ui/SectionCard";
 import { ReadinessGauge } from "@/components/analytics/ReadinessGauge";
 import { MaturityRadarChart } from "@/components/analytics/MaturityRadarChart";
+import { buildSupportWorkspaceSummary, type ChildSupportWorkspace } from "@/lib/support-workspace";
 import type { AssessmentRecord } from "@/types/assessment";
 import type { ChildProfile } from "@/repositories/child.repository";
 import type { KidexSettings } from "@/services/settings-service";
@@ -56,6 +57,7 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
   const [settings, setSettings] = useState<KidexSettings | null>(null);
   const [plan, setPlan] = useState<DevelopmentPlan | null>(null);
   const [child, setChild] = useState<ChildProfile | null>(null);
+  const [supportWorkspace, setSupportWorkspace] = useState<ChildSupportWorkspace | null>(null);
 
   const sections = record ? sectionsForMode(record.mode) : [];
   const recordedAt = record ? new Date(record.createdAt) : new Date();
@@ -88,7 +90,7 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
       );
       if (audience === "family") {
         if (!hasActiveConsent(child?.consentPolicy, "familyReport")) return;
-        await PdfService.generateFamilyReport(printableRecord, t, tc, ts, tr, recommendationSummary, plan, child);
+        await PdfService.generateFamilyReport(printableRecord, t, tc, ts, tr, recommendationSummary, plan, child, supportWorkspace);
       } else if (reportFormat === "map") {
         await PdfService.generateMapReport(printableRecord, t, tc, ts, tr, history, recommendationSummary);
       } else {
@@ -133,6 +135,10 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
           fetch(`/api/children/${data.assessment.childId}/plan`)
             .then((res) => res.json())
             .then((planData) => setPlan(planData?.plan || null))
+            .catch(() => null);
+          fetch(`/api/children/${data.assessment.childId}/support`)
+            .then((res) => res.json())
+            .then((supportData) => setSupportWorkspace(supportData?.workspace || null))
             .catch(() => null);
           fetch(`/api/children/${data.assessment.childId}/history`)
             .then(r => r.json())
@@ -184,6 +190,7 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
     getStandardForAssessment(settings?.standards, record.standardsVersionUsed, record.child.ageGroup),
     ts,
   );
+  const supportSummary = buildSupportWorkspaceSummary(supportWorkspace);
   const canGenerateFamilyReport = hasActiveConsent(child?.consentPolicy, "familyReport");
   const canExportProfessional = hasActiveConsent(child?.consentPolicy, "dataSharing");
   const deltaRadarData = [
@@ -420,6 +427,39 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
               ) : null}
             </Stack>
           </SectionCard>
+
+          {(supportSummary.caregiverCompleted > 0 || supportSummary.activeMicroLearning > 0 || supportSummary.openReferrals > 0 || supportSummary.evidenceCount > 0) ? (
+            <SectionCard title="Support follow-through">
+              <SimpleGrid cols={{ base: 2, md: 4 }} spacing="md">
+                <Paper withBorder p="sm">
+                  <Text size="sm" c="dimmed">Caregiver tools completed</Text>
+                  <Text fw={700}>{supportSummary.caregiverCompleted}</Text>
+                </Paper>
+                <Paper withBorder p="sm">
+                  <Text size="sm" c="dimmed">Active micro-learning</Text>
+                  <Text fw={700}>{supportSummary.activeMicroLearning}</Text>
+                </Paper>
+                <Paper withBorder p="sm">
+                  <Text size="sm" c="dimmed">Open referrals</Text>
+                  <Text fw={700}>{supportSummary.openReferrals}</Text>
+                </Paper>
+                <Paper withBorder p="sm">
+                  <Text size="sm" c="dimmed">Evidence moments</Text>
+                  <Text fw={700}>{supportSummary.evidenceCount}</Text>
+                </Paper>
+              </SimpleGrid>
+              {supportSummary.recentEvidenceTitles.length > 0 ? (
+                <Paper withBorder p="sm" mt="md">
+                  <Text fw={700}>Recent evidence references</Text>
+                  <Stack gap={4} mt="xs">
+                    {supportSummary.recentEvidenceTitles.map((title) => (
+                      <Text key={title} size="sm">• {title}</Text>
+                    ))}
+                  </Stack>
+                </Paper>
+              ) : null}
+            </SectionCard>
+          ) : null}
 
           <SimpleGrid cols={{ base: 1, md: 3 }} spacing="md" mt="md">
             <RecordRadarChart title={t("rapidMovementTitle")} data={radarData.movement} domain="movement" />
