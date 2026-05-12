@@ -44,6 +44,12 @@ describe("parseChildPayload", () => {
       birthDate: "2020-01-01",
       dominantHand: "right",
       caregivers: [{ name: " Parent One ", email: "PARENT@EXAMPLE.COM", preferredLocale: "ar" }],
+      accessibilityProfile: {
+        familyViewMode: "simplified",
+        communicationSupport: "visual_supports",
+        accommodations: ["visual_schedule", "movement_breaks", "invalid"],
+        participationBarriers: "Crowded spaces and rushed transitions",
+      },
       consentPolicy: {
         mediaCapture: { granted: true, effectiveFrom: "2026-05-11" },
       },
@@ -57,6 +63,9 @@ describe("parseChildPayload", () => {
     expect(parsed.caregivers).toHaveLength(1);
     expect(parsed.caregivers[0].email).toBe("parent@example.com");
     expect(parsed.caregivers[0].preferredLocale).toBe("ar");
+    expect(parsed.accessibilityProfile.familyViewMode).toBe("simplified");
+    expect(parsed.accessibilityProfile.communicationSupport).toBe("visual_supports");
+    expect(parsed.accessibilityProfile.accommodations).toEqual(["visual_schedule", "movement_breaks"]);
     expect(parsed.consentPolicy.mediaCapture.granted).toBe(true);
   });
 });

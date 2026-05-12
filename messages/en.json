@@ -234,6 +234,34 @@
     "hu": "Hungarian",
     "ar": "Arabic"
   },
+  "accessibilityProfileTitle": "Accessibility and participation supports",
+  "familyViewMode": "Family view mode",
+  "communicationSupport": "Communication support",
+  "accommodations": "Accommodations",
+  "participationBarriers": "Participation barriers",
+  "supportNotes": "Support notes",
+  "strengthsNotes": "Strengths and comfort notes",
+  "noAccommodations": "No structured accommodations recorded yet.",
+  "simplifiedFamilyViewBadge": "Simplified family view",
+  "accommodationsBadge": "{count, plural, one {# accommodation} other {# accommodations}}",
+  "familyViewModeLabel": {
+    "standard": "Standard family view",
+    "simplified": "Simplified family view"
+  },
+  "communicationSupportLabel": {
+    "standard": "Standard conversation",
+    "plain_language": "Plain language",
+    "visual_supports": "Visual supports first",
+    "supported_conversation": "Supported conversation"
+  },
+  "accommodationLabel": {
+    "visual_schedule": "Visual schedule",
+    "quiet_space": "Quiet reset space",
+    "movement_breaks": "Movement breaks",
+    "step_by_step_instructions": "Step-by-step instructions",
+    "extra_processing_time": "Extra processing time",
+    "caregiver_present": "Caregiver present"
+  },
     "typeDeleteToConfirm": "Type `delete` to confirm.",
     "restoreChild": "Restore child",
     "typeRestoreToConfirm": "Type `restore` to confirm.",

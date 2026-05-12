@@ -88,7 +88,7 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
       );
       if (audience === "family") {
         if (!hasActiveConsent(child?.consentPolicy, "familyReport")) return;
-        await PdfService.generateFamilyReport(printableRecord, t, tc, ts, tr, recommendationSummary, plan);
+        await PdfService.generateFamilyReport(printableRecord, t, tc, ts, tr, recommendationSummary, plan, child);
       } else if (reportFormat === "map") {
         await PdfService.generateMapReport(printableRecord, t, tc, ts, tr, history, recommendationSummary);
       } else {
@@ -246,6 +246,16 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
       <SectionCard title={t("reportPreview")}>
         <Stack gap="xl">
           <ConsentAlertPanel alerts={getConsentAlerts(child?.consentPolicy)} title={t("consentAlertTitle")} t={t} />
+          {child?.accessibilityProfile ? (
+            <Paper withBorder p="md" radius="md">
+              <Stack gap="xs">
+                <Text fw={700}>{td("accessibilityProfileTitle")}</Text>
+                <Text size="sm"><strong>{td("familyViewMode")}:</strong> {td(`familyViewModeLabel.${child.accessibilityProfile.familyViewMode}`)}</Text>
+                <Text size="sm"><strong>{td("communicationSupport")}:</strong> {td(`communicationSupportLabel.${child.accessibilityProfile.communicationSupport}`)}</Text>
+                <Text size="sm"><strong>{td("accommodations")}:</strong> {child.accessibilityProfile.accommodations.length > 0 ? child.accessibilityProfile.accommodations.map((value) => td(`accommodationLabel.${value}`)).join(", ") : td("noAccommodations")}</Text>
+              </Stack>
+            </Paper>
+          ) : null}
           <Group gap="md" align="center" justify="space-between" wrap="wrap">
             <Group gap="md">
               <Image src="/logo.jpeg" alt="KIDEX" width={64} height={64} style={{ borderRadius: "var(--mantine-radius-md)" }} />

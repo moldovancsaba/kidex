@@ -297,7 +297,7 @@ export default function ChildHistoryPage({ params }: { params: Promise<{ id: str
                 try {
                   const users = await getUsers();
                   const printableRecord = withDisplayNamesForReport(latest, users);
-                  await PdfService.generateFamilyReport(printableRecord, t, tc, ts, tr, recommendationSummary, plan);
+                  await PdfService.generateFamilyReport(printableRecord, t, tc, ts, tr, recommendationSummary, plan, data.child);
                 } finally {
                   setDownloadingPdf(false);
                 }
@@ -336,6 +336,25 @@ export default function ChildHistoryPage({ params }: { params: Promise<{ id: str
                 </Group>
               </Paper>
             ))}
+          </Stack>
+        </SectionCard>
+      ) : null}
+
+      {data.child.accessibilityProfile ? (
+        <SectionCard title={td("accessibilityProfileTitle")}>
+          <Stack gap="xs">
+            <Text size="sm"><strong>{td("familyViewMode")}:</strong> {td(`familyViewModeLabel.${data.child.accessibilityProfile.familyViewMode}`)}</Text>
+            <Text size="sm"><strong>{td("communicationSupport")}:</strong> {td(`communicationSupportLabel.${data.child.accessibilityProfile.communicationSupport}`)}</Text>
+            <Text size="sm"><strong>{td("accommodations")}:</strong> {data.child.accessibilityProfile.accommodations.length > 0 ? data.child.accessibilityProfile.accommodations.map((value) => td(`accommodationLabel.${value}`)).join(", ") : td("noAccommodations")}</Text>
+            {data.child.accessibilityProfile.participationBarriers ? (
+              <Text size="sm"><strong>{td("participationBarriers")}:</strong> {data.child.accessibilityProfile.participationBarriers}</Text>
+            ) : null}
+            {data.child.accessibilityProfile.supportNotes ? (
+              <Text size="sm"><strong>{td("supportNotes")}:</strong> {data.child.accessibilityProfile.supportNotes}</Text>
+            ) : null}
+            {data.child.accessibilityProfile.strengthsNotes ? (
+              <Text size="sm"><strong>{td("strengthsNotes")}:</strong> {data.child.accessibilityProfile.strengthsNotes}</Text>
+            ) : null}
           </Stack>
         </SectionCard>
       ) : null}

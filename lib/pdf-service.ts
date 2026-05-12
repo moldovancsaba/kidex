@@ -1,3 +1,4 @@
+import type { ChildProfile } from "@/repositories/child.repository";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import type { DevelopmentPlan } from "@/lib/development-plans";
@@ -138,12 +139,13 @@ export const PdfService = {
     tr: TFunction,
     recommendationSummary: RecommendationSummary,
     plan?: DevelopmentPlan | null,
+    childProfile?: ChildProfile | null,
   ): Promise<void> {
     const doc = new jsPDF({ unit: "mm", format: "a4" }) as JsPDFWithAutoTable;
     await this.ensureUnicodeFont(doc);
     const logoDataUrl = await this.getLogoDataUrl();
     const reportDate = new Date(record.createdAt).toLocaleDateString();
-    const summary = buildFamilyFriendlyReportSummary({ record, recommendationSummary, plan });
+    const summary = buildFamilyFriendlyReportSummary({ record, recommendationSummary, plan, accessibilityProfile: childProfile?.accessibilityProfile });
 
     if (logoDataUrl) {
       doc.addImage(logoDataUrl, "JPEG", 14, 10, 20, 20);
@@ -200,6 +202,19 @@ export const PdfService = {
       doc.text(lines, 24, y);
       y += lines.length * 5 + 2;
     });
+
+    if (summary.accessibilityNotes.length > 0) {
+      y += 4;
+      doc.setFontSize(14);
+      doc.text("Helpful support notes", 20, y);
+      y += 10;
+      doc.setFontSize(11);
+      summary.accessibilityNotes.forEach((note) => {
+        const lines = doc.splitTextToSize(`• ${note}`, 165);
+        doc.text(lines, 24, y);
+        y += lines.length * 5 + 2;
+      });
+    }
 
     doc.setFontSize(10);
     doc.text(doc.splitTextToSize(tr("familyReportFooter"), 170), 20, 270);

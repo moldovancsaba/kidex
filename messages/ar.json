@@ -190,6 +190,34 @@
     "hu": "الهنغارية",
     "ar": "العربية"
   },
+  "accessibilityProfileTitle": "دعم الإتاحة والمشاركة",
+  "familyViewMode": "نمط عرض الأسرة",
+  "communicationSupport": "دعم التواصل",
+  "accommodations": "التكييفات الداعمة",
+  "participationBarriers": "عوائق المشاركة",
+  "supportNotes": "ملاحظات الدعم",
+  "strengthsNotes": "ملاحظات نقاط القوة والراحة",
+  "noAccommodations": "لا توجد تكييفات منظمة مسجلة بعد.",
+  "simplifiedFamilyViewBadge": "عرض أسري مبسط",
+  "accommodationsBadge": "{count, plural, one {تكييف واحد} other {# تكييفات}}",
+  "familyViewModeLabel": {
+    "standard": "عرض أسري قياسي",
+    "simplified": "عرض أسري مبسط"
+  },
+  "communicationSupportLabel": {
+    "standard": "تواصل اعتيادي",
+    "plain_language": "لغة مبسطة",
+    "visual_supports": "دعم بصري أولاً",
+    "supported_conversation": "محادثة مدعومة"
+  },
+  "accommodationLabel": {
+    "visual_schedule": "جدول بصري",
+    "quiet_space": "مساحة هادئة للتهدئة",
+    "movement_breaks": "فواصل حركية",
+    "step_by_step_instructions": "تعليمات خطوة بخطوة",
+    "extra_processing_time": "وقت إضافي للمعالجة",
+    "caregiver_present": "حضور ولي الأمر"
+  },
   "consentPolicyLabel": {
       "mediaCapture": "التقاط الصور والفيديو",
       "familyReport": "مشاركة تقرير الأسرة",

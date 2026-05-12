@@ -234,6 +234,34 @@
     "hu": "Magyar",
     "ar": "Arab"
   },
+  "accessibilityProfileTitle": "Akadálymentesítési és részvételi támogatások",
+  "familyViewMode": "Családi nézet módja",
+  "communicationSupport": "Kommunikációs támogatás",
+  "accommodations": "Alkalmazkodási támogatások",
+  "participationBarriers": "Részvételi akadályok",
+  "supportNotes": "Támogatási megjegyzések",
+  "strengthsNotes": "Erősségek és komfortmegfigyelések",
+  "noAccommodations": "Még nincs rögzített strukturált alkalmazkodás.",
+  "simplifiedFamilyViewBadge": "Egyszerűsített családi nézet",
+  "accommodationsBadge": "{count, plural, one {# támogatás} other {# támogatás}}",
+  "familyViewModeLabel": {
+    "standard": "Normál családi nézet",
+    "simplified": "Egyszerűsített családi nézet"
+  },
+  "communicationSupportLabel": {
+    "standard": "Szokásos kommunikáció",
+    "plain_language": "Egyszerű nyelvezet",
+    "visual_supports": "Vizuális támogatás előtérben",
+    "supported_conversation": "Támogatott beszélgetés"
+  },
+  "accommodationLabel": {
+    "visual_schedule": "Vizuális napirend",
+    "quiet_space": "Csendes megnyugvó hely",
+    "movement_breaks": "Mozgásszünetek",
+    "step_by_step_instructions": "Lépésenkénti instrukciók",
+    "extra_processing_time": "Több feldolgozási idő",
+    "caregiver_present": "Gondviselő jelenléte"
+  },
     "typeDeleteToConfirm": "A megerősítéshez írd be: `delete`.",
     "restoreChild": "Gyermek visszaállítása",
     "typeRestoreToConfirm": "A megerősítéshez írd be: `restore`.",

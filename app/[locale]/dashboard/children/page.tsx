@@ -5,6 +5,7 @@ import { Alert, Badge, Box, Button, Checkbox, Divider, Group, Loader, Modal, Mul
 import { useParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
+import { ACCOMMODATION_OPTIONS, COMMUNICATION_SUPPORTS, defaultAccessibilityProfile, FAMILY_VIEW_MODES, type AccommodationOption, type ChildAccessibilityProfile, type CommunicationSupport, type FamilyViewMode } from "@/lib/accessibility-profile";
 import { defaultConsentPolicy, deriveLegacyConsents, getConsentAlerts, type ChildConsentPolicy, type ConsentPolicyKey } from "@/lib/consent-policy";
 import { normalizePreferredLocale } from "@/lib/locales";
 import { canPerformAction } from "@/lib/permissions";
@@ -39,6 +40,7 @@ export default function ChildrenListPage() {
   const [draftBirthDate, setDraftBirthDate] = useState("");
   const [draftKnownTraits, setDraftKnownTraits] = useState("");
   const [draftParentSignals, setDraftParentSignals] = useState("");
+  const [draftAccessibilityProfile, setDraftAccessibilityProfile] = useState<ChildAccessibilityProfile>(defaultAccessibilityProfile());
   const [draftAgeGroup, setDraftAgeGroup] = useState<"" | "4-6" | "7-9" | "10-12">("");
   const [draftConsentPolicy, setDraftConsentPolicy] = useState<ChildConsentPolicy>(defaultConsentPolicy());
   const [draftCaregivers, setDraftCaregivers] = useState<FamilyCaregiver[]>([]);
@@ -204,6 +206,7 @@ export default function ChildrenListPage() {
     setDraftBirthDate(child.birthDate);
     setDraftKnownTraits(child.knownTraits || "");
     setDraftParentSignals(child.parentSignals || "");
+    setDraftAccessibilityProfile(child.accessibilityProfile || defaultAccessibilityProfile());
     setDraftAgeGroup((child.ageGroup || calculateAgeGroup(child.birthDate) || "") as "" | "4-6" | "7-9" | "10-12");
     setDraftConsentPolicy(child.consentPolicy || defaultConsentPolicy({
       consentPhoto: child.consentPhoto,
@@ -218,6 +221,7 @@ export default function ChildrenListPage() {
     setDraftBirthDate("");
     setDraftKnownTraits("");
     setDraftParentSignals("");
+    setDraftAccessibilityProfile(defaultAccessibilityProfile());
     setDraftAgeGroup("");
     setDraftConsentPolicy(defaultConsentPolicy());
     setDraftCaregivers([]);
@@ -245,6 +249,7 @@ export default function ChildrenListPage() {
         dominantFoot: editing.dominantFoot || "",
         knownTraits: draftKnownTraits,
         parentSignals: draftParentSignals,
+        accessibilityProfile: draftAccessibilityProfile,
         caregivers: draftCaregivers,
       })
     }).catch(() => null);
@@ -282,6 +287,7 @@ export default function ChildrenListPage() {
         dominantFoot: "",
         knownTraits: draftKnownTraits,
         parentSignals: draftParentSignals,
+        accessibilityProfile: draftAccessibilityProfile,
         caregivers: draftCaregivers,
       })
     }).catch(() => null);
@@ -349,6 +355,9 @@ export default function ChildrenListPage() {
     { value: "hu", label: t("localeLabel.hu") },
     { value: "ar", label: t("localeLabel.ar") },
   ];
+  const familyViewModeOptions = FAMILY_VIEW_MODES.map((value) => ({ value, label: t(`familyViewModeLabel.${value}`) }));
+  const communicationSupportOptions = COMMUNICATION_SUPPORTS.map((value) => ({ value, label: t(`communicationSupportLabel.${value}`) }));
+  const accommodationOptions = ACCOMMODATION_OPTIONS.map((value) => ({ value, label: t(`accommodationLabel.${value}`) }));
   const consentApproverOptions = [
     { value: "", label: t("consentApproverStaff") },
     ...draftCaregivers
@@ -356,6 +365,13 @@ export default function ChildrenListPage() {
       .map((caregiver) => ({ value: caregiver.id, label: caregiver.name })),
   ];
   const consentKeys: ConsentPolicyKey[] = ["mediaCapture", "familyReport", "dataSharing", "publicity"];
+
+  function updateAccessibilityProfile<K extends keyof ChildAccessibilityProfile>(field: K, value: ChildAccessibilityProfile[K]) {
+    setDraftAccessibilityProfile((current) => ({
+      ...current,
+      [field]: value,
+    }));
+  }
 
   async function deleteChild(child: ChildProfile) {
     if (!child._id) return;
@@ -522,6 +538,20 @@ export default function ChildrenListPage() {
                             ) : null}
                           </Group>
                         ) : null}
+                        {child.accessibilityProfile?.familyViewMode === "simplified" || (child.accessibilityProfile?.accommodations?.length || 0) > 0 ? (
+                          <Group gap="xs" mt={8}>
+                            {child.accessibilityProfile?.familyViewMode === "simplified" ? (
+                              <Badge color="cyan" variant="light" size="sm">
+                                {t("simplifiedFamilyViewBadge")}
+                              </Badge>
+                            ) : null}
+                            {(child.accessibilityProfile?.accommodations?.length || 0) > 0 ? (
+                              <Badge color="indigo" variant="light" size="sm">
+                                {t("accommodationsBadge", { count: child.accessibilityProfile?.accommodations?.length || 0 })}
+                              </Badge>
+                            ) : null}
+                          </Group>
+                        ) : null}
                         {child.latestSki !== undefined && (
                           <Group gap="xs" mt={8}>
                             <Badge color="kidex" variant="filled" size="sm">
@@ -591,6 +621,31 @@ export default function ChildrenListPage() {
             <Select label={ta("ageGroup")} value={draftAgeGroup} onChange={(v) => setDraftAgeGroup(parseAgeGroup(v))} data={[{ value: "", label: ta("ageGroupPending") }, { value: "4-6", label: "4-6" }, { value: "7-9", label: "7-9" }, { value: "10-12", label: "10-12" }]} />
             <Textarea label={ta("knownTraits")} value={draftKnownTraits} onChange={(event) => setDraftKnownTraits(event.target.value)} minRows={2} />
             <Textarea label={ta("parentSignals")} value={draftParentSignals} onChange={(event) => setDraftParentSignals(event.target.value)} minRows={2} />
+            <Divider label={t("accessibilityProfileTitle")} labelPosition="left" />
+            <Select
+              label={t("familyViewMode")}
+              value={draftAccessibilityProfile.familyViewMode}
+              onChange={(value) => updateAccessibilityProfile("familyViewMode", (value || "standard") as FamilyViewMode)}
+              data={familyViewModeOptions}
+              allowDeselect={false}
+            />
+            <Select
+              label={t("communicationSupport")}
+              value={draftAccessibilityProfile.communicationSupport}
+              onChange={(value) => updateAccessibilityProfile("communicationSupport", (value || "standard") as CommunicationSupport)}
+              data={communicationSupportOptions}
+              allowDeselect={false}
+            />
+            <MultiSelect
+              label={t("accommodations")}
+              value={draftAccessibilityProfile.accommodations}
+              onChange={(value) => updateAccessibilityProfile("accommodations", value as AccommodationOption[])}
+              data={accommodationOptions}
+              searchable
+            />
+            <Textarea label={t("participationBarriers")} value={draftAccessibilityProfile.participationBarriers} onChange={(event) => updateAccessibilityProfile("participationBarriers", event.currentTarget.value)} minRows={2} />
+            <Textarea label={t("supportNotes")} value={draftAccessibilityProfile.supportNotes} onChange={(event) => updateAccessibilityProfile("supportNotes", event.currentTarget.value)} minRows={2} />
+            <Textarea label={t("strengthsNotes")} value={draftAccessibilityProfile.strengthsNotes} onChange={(event) => updateAccessibilityProfile("strengthsNotes", event.currentTarget.value)} minRows={2} />
             <Divider label={t("consentManagement")} labelPosition="left" />
             <Stack gap="sm">
               {consentKeys.map((key) => (
@@ -694,6 +749,31 @@ export default function ChildrenListPage() {
           <Select label={ta("ageGroup")} value={draftAgeGroup} onChange={(v) => setDraftAgeGroup(parseAgeGroup(v))} data={[{ value: "", label: ta("ageGroupPending") }, { value: "4-6", label: "4-6" }, { value: "7-9", label: "7-9" }, { value: "10-12", label: "10-12" }]} />
           <Textarea label={ta("knownTraits")} value={draftKnownTraits} onChange={(event) => setDraftKnownTraits(event.target.value)} minRows={2} />
           <Textarea label={ta("parentSignals")} value={draftParentSignals} onChange={(event) => setDraftParentSignals(event.target.value)} minRows={2} />
+          <Divider label={t("accessibilityProfileTitle")} labelPosition="left" />
+          <Select
+            label={t("familyViewMode")}
+            value={draftAccessibilityProfile.familyViewMode}
+            onChange={(value) => updateAccessibilityProfile("familyViewMode", (value || "standard") as FamilyViewMode)}
+            data={familyViewModeOptions}
+            allowDeselect={false}
+          />
+          <Select
+            label={t("communicationSupport")}
+            value={draftAccessibilityProfile.communicationSupport}
+            onChange={(value) => updateAccessibilityProfile("communicationSupport", (value || "standard") as CommunicationSupport)}
+            data={communicationSupportOptions}
+            allowDeselect={false}
+          />
+          <MultiSelect
+            label={t("accommodations")}
+            value={draftAccessibilityProfile.accommodations}
+            onChange={(value) => updateAccessibilityProfile("accommodations", value as AccommodationOption[])}
+            data={accommodationOptions}
+            searchable
+          />
+          <Textarea label={t("participationBarriers")} value={draftAccessibilityProfile.participationBarriers} onChange={(event) => updateAccessibilityProfile("participationBarriers", event.currentTarget.value)} minRows={2} />
+          <Textarea label={t("supportNotes")} value={draftAccessibilityProfile.supportNotes} onChange={(event) => updateAccessibilityProfile("supportNotes", event.currentTarget.value)} minRows={2} />
+          <Textarea label={t("strengthsNotes")} value={draftAccessibilityProfile.strengthsNotes} onChange={(event) => updateAccessibilityProfile("strengthsNotes", event.currentTarget.value)} minRows={2} />
           <Divider label={t("consentManagement")} labelPosition="left" />
           <Stack gap="sm">
             {consentKeys.map((key) => (

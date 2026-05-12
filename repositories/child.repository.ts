@@ -1,4 +1,6 @@
 import { ObjectId } from "mongodb";
+import type { ChildAccessibilityProfile } from "@/lib/accessibility-profile";
+import { defaultAccessibilityProfile, normalizeAccessibilityProfile } from "@/lib/accessibility-profile";
 import type { ChildConsentPolicy, ConsentHistoryEvent } from "@/lib/consent-policy";
 import { normalizeConsentPolicy } from "@/lib/consent-policy";
 import { getDatabase } from "@/lib/mongodb";
@@ -24,6 +26,7 @@ export interface ChildProfile {
   dominantFoot?: string;
   knownTraits?: string;
   parentSignals?: string;
+  accessibilityProfile?: ChildAccessibilityProfile;
   caregivers?: FamilyCaregiver[];
   familyAccessHistory?: FamilyAccessEvent[];
   locale?: string;
@@ -224,6 +227,7 @@ export async function deleteChildById(id: ObjectId) {
     dominantFoot: typeof jsonChild.dominantFoot === "string" ? jsonChild.dominantFoot : "",
     knownTraits: typeof jsonChild.knownTraits === "string" ? jsonChild.knownTraits : "",
     parentSignals: typeof jsonChild.parentSignals === "string" ? jsonChild.parentSignals : "",
+    accessibilityProfile: normalizeAccessibilityProfile(jsonChild.accessibilityProfile || defaultAccessibilityProfile()),
     caregivers: Array.isArray(jsonChild.caregivers) ? (jsonChild.caregivers as FamilyCaregiver[]) : [],
     familyAccessHistory: Array.isArray(jsonChild.familyAccessHistory) ? (jsonChild.familyAccessHistory as FamilyAccessEvent[]) : [],
     createdAt: typeof jsonChild.createdAt === "string" ? jsonChild.createdAt : "",

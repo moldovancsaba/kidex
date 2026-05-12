@@ -1,4 +1,5 @@
 import type { AssessmentPayload, EvidenceAttachment, ScoreEntry } from "@/types/assessment";
+import { normalizeAccessibilityProfile, type ChildAccessibilityProfile } from "@/lib/accessibility-profile";
 import { normalizeConsentPolicy, type ChildConsentPolicy } from "@/lib/consent-policy";
 import { normalizeFamilyCaregivers, type FamilyCaregiver } from "@/lib/family-access";
 import { ensureInstitutionIds, normalizeInstitutionDirectory, type InstitutionDefinition } from "@/lib/institutions";
@@ -204,6 +205,7 @@ export interface ChildPayload {
   dominantFoot: string;
   knownTraits: string;
   parentSignals: string;
+  accessibilityProfile: ChildAccessibilityProfile;
   caregivers: FamilyCaregiver[];
 }
 
@@ -225,6 +227,7 @@ export function parseChildPayload(input: unknown): ChildPayload {
     dominantFoot: stringValue(data.dominantFoot, 80),
     knownTraits: stringValue(data.knownTraits),
     parentSignals: stringValue(data.parentSignals),
+    accessibilityProfile: normalizeAccessibilityProfile(data.accessibilityProfile),
     caregivers: normalizeFamilyCaregivers(data.caregivers),
   };
 }
