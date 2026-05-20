@@ -257,6 +257,22 @@ The current downstream interpretation stack includes:
 - next-session conductor focus priorities
 - confidence / reliability context
 - development-plan and support-workspace linkage
+- culture and trust pulse aggregation
+
+## Culture survey routes
+
+- `GET /api/culture-surveys`
+  - authenticated
+  - returns launch list plus aggregate culture analytics
+- `POST /api/culture-surveys`
+  - authenticated admin/settings-writer flow
+  - creates a launch or closes an active launch
+- `GET /api/culture-voice?token=...`
+  - public
+  - resolves anonymous survey metadata from the signed token
+- `POST /api/culture-voice`
+  - public
+  - submits one anonymous response into the launch
 
 ## Audit-covered operations
 

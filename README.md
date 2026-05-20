@@ -22,6 +22,7 @@ KIDEX currently includes:
 - audit trail and governance export center
 - institution-aware access control with `admin`, `conductor`, and `observer` roles
 - dashboard analytics, watchlists, readiness trends, and support follow-through indicators
+- anonymous culture and trust pulse launches with aggregated culture-index reporting
 - multilingual UI in English, Hungarian, and Arabic
 
 ## Main routes
@@ -33,6 +34,7 @@ KIDEX currently includes:
 - `/{locale}/dashboard/records`: assessment registry
 - `/{locale}/dashboard/settings`: settings, governance, standards, users, and restore workflows
 - `/{locale}/consent/[token]`: public caregiver consent-review page
+- `/{locale}/voice/[token]`: public anonymous culture-survey page
 - `/{locale}/legal/gtc`
 - `/{locale}/legal/privacy`
 

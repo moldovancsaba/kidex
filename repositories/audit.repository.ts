@@ -14,6 +14,8 @@ export type AuditAction =
   | "communication.create"
   | "consent.request"
   | "consent.update"
+  | "culture.launch"
+  | "culture.respond"
   | "export.data"
   | "export.pdf"
   | "family.upsert"
@@ -34,7 +36,7 @@ export interface AuditLogEntry {
   actorName?: string;
   actorRoles?: string[];
   institutionId?: string;
-  targetType?: "assessment" | "child" | "settings" | "user" | "invite" | "media" | "report" | "communication";
+  targetType?: "assessment" | "child" | "settings" | "user" | "invite" | "media" | "report" | "communication" | "survey";
   targetId?: string;
   targetLabel?: string;
   summary: string;

@@ -14,6 +14,7 @@ import { normalizeInstitutionId } from "@/lib/institutions";
 import { normalizePreferredLocale } from "@/lib/locales";
 import { canPerformAction } from "@/lib/permissions";
 import type { SupportedRuntimeRole } from "@/lib/roles";
+import type { CultureAnalyticsSummary, CultureSurveyLaunch, CultureSurveyTargetRole } from "@/lib/culture-surveys";
 import { getActiveVariantName, getVariantForVersion, syncVersionFromVariant, type StandardsAgeGroup, type StandardsDomain, type StandardsEvidenceStatus } from "@/lib/standards-config";
 import { computeReadinessImpactPreview, formulaWeightPercentages, summarizeVersionThresholds, validateStandardsVersion } from "@/lib/standards-governance";
 
@@ -88,6 +89,15 @@ export default function SettingsPage() {
   const [governanceMetrics, setGovernanceMetrics] = useState<{ deletedChildren: number; deletedAssessments: number; missingConsentReport: number; missingChildLink: number }>({ deletedChildren: 0, deletedAssessments: 0, missingConsentReport: 0, missingChildLink: 0 });
   const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>([]);
   const [exportingScope, setExportingScope] = useState<string | null>(null);
+  const [cultureSurveys, setCultureSurveys] = useState<CultureSurveyLaunch[]>([]);
+  const [cultureAnalytics, setCultureAnalytics] = useState<CultureAnalyticsSummary | null>(null);
+  const [cultureTitleDraft, setCultureTitleDraft] = useState("");
+  const [cultureScopeDraft, setCultureScopeDraft] = useState("");
+  const [cultureRoleDraft, setCultureRoleDraft] = useState<CultureSurveyTargetRole>("athlete");
+  const [cultureMinResponsesDraft, setCultureMinResponsesDraft] = useState(5);
+  const [cultureClosesAtDraft, setCultureClosesAtDraft] = useState("");
+  const [cultureShareLink, setCultureShareLink] = useState("");
+  const [cultureSaving, setCultureSaving] = useState(false);
 
   useEffect(() => {
     void (async () => {
@@ -114,6 +124,7 @@ export default function SettingsPage() {
           fetch("/api/assessments").then((r) => r.json()).catch(() => ({ assessments: [] })),
           fetch("/api/children").then((r) => r.json()).catch(() => []),
         ]);
+        const cultureRes = await fetch("/api/culture-surveys").then((r) => r.json()).catch(() => ({ launches: [], analytics: null }));
 
         const activeAssessments = Array.isArray(activeAssessmentsRes?.assessments) ? activeAssessmentsRes.assessments : [];
         const activeChildren = Array.isArray(activeChildrenRes) ? activeChildrenRes : [];
@@ -127,6 +138,8 @@ export default function SettingsPage() {
           missingConsentReport: activeAssessments.filter((assessment: AssessmentSummary) => !assessment.session?.consentReport).length,
           missingChildLink: activeAssessments.filter((assessment: AssessmentSummary) => !assessment.childId).length,
         });
+        setCultureSurveys(Array.isArray(cultureRes?.launches) ? cultureRes.launches : []);
+        setCultureAnalytics(cultureRes?.analytics ?? null);
       } finally {
         setLoading(false);
       }
@@ -722,6 +735,52 @@ export default function SettingsPage() {
     } finally {
       setExportingScope(null);
     }
+  }
+
+  async function refreshCultureSurveys() {
+    const response = await fetch("/api/culture-surveys").then((r) => r.json()).catch(() => ({ launches: [], analytics: null }));
+    setCultureSurveys(Array.isArray(response?.launches) ? response.launches : []);
+    setCultureAnalytics(response?.analytics ?? null);
+  }
+
+  async function createCultureSurveyLaunch() {
+    if (!canWriteSettings) return;
+    setCultureSaving(true);
+    const response = await fetch("/api/culture-surveys", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        title: cultureTitleDraft,
+        scopeLabel: cultureScopeDraft,
+        targetRole: cultureRoleDraft,
+        minResponses: cultureMinResponsesDraft,
+        closesAt: cultureClosesAtDraft || undefined,
+        institutionId: defaultPrimaryInstitutionId,
+        locale,
+      }),
+    }).then((r) => r.json()).catch(() => null);
+    setCultureSaving(false);
+    if (!response?.launch) {
+      setMessage(tc("error"));
+      return;
+    }
+    setCultureShareLink(response.shareLink || "");
+    setCultureTitleDraft("");
+    setCultureScopeDraft("");
+    setCultureMinResponsesDraft(5);
+    setCultureClosesAtDraft("");
+    await refreshCultureSurveys();
+    setMessage(tc("success"));
+  }
+
+  async function closeCultureSurvey(surveyId?: string) {
+    if (!surveyId || !canWriteSettings) return;
+    await fetch("/api/culture-surveys", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "close", surveyId }),
+    }).catch(() => null);
+    await refreshCultureSurveys();
   }
 
   if (loading) {
@@ -1625,6 +1684,128 @@ export default function SettingsPage() {
               </Paper>
             )}
           </Stack>
+        </Stack>
+      </SectionCard>
+
+      <SectionCard title="Culture Voice and Trust Surveys">
+        <Stack gap="lg">
+          <Stack gap="xs">
+            <Text fw={700}>Anonymous launch and review</Text>
+            <Text size="sm" c="dimmed">
+              Launch anonymous athlete, caregiver, or staff culture pulses. Results stay hidden until the minimum response threshold is met.
+            </Text>
+          </Stack>
+
+          {isAdmin ? (
+            <Paper withBorder p="md">
+              <Stack gap="sm">
+                <TextInput
+                  label="Launch title"
+                  value={cultureTitleDraft}
+                  onChange={(event) => setCultureTitleDraft(event.currentTarget.value)}
+                  placeholder="Spring trust and belonging pulse"
+                />
+                <TextInput
+                  label="Scope label"
+                  value={cultureScopeDraft}
+                  onChange={(event) => setCultureScopeDraft(event.currentTarget.value)}
+                  placeholder="U10 Blue Team"
+                />
+                <Group grow>
+                  <Select
+                    label="Target role"
+                    value={cultureRoleDraft}
+                    onChange={(value) => setCultureRoleDraft((value as CultureSurveyTargetRole) || "athlete")}
+                    data={[
+                      { value: "athlete", label: "Athlete voice" },
+                      { value: "caregiver", label: "Caregiver perspective" },
+                      { value: "staff", label: "Staff perspective" },
+                    ]}
+                    allowDeselect={false}
+                  />
+                  <NumberInput
+                    label="Minimum responses"
+                    min={3}
+                    max={30}
+                    value={cultureMinResponsesDraft}
+                    onChange={(value) => setCultureMinResponsesDraft(typeof value === "number" ? value : 5)}
+                  />
+                  <TextInput
+                    label="Closes at"
+                    type="date"
+                    value={cultureClosesAtDraft}
+                    onChange={(event) => setCultureClosesAtDraft(event.currentTarget.value)}
+                  />
+                </Group>
+                <Group justify="space-between">
+                  <Button color="kidex" onClick={() => void createCultureSurveyLaunch()} loading={cultureSaving} disabled={!cultureTitleDraft.trim() || !cultureScopeDraft.trim()}>
+                    Launch anonymous survey
+                  </Button>
+                  {cultureShareLink ? (
+                    <Text size="sm" c="dimmed">{cultureShareLink}</Text>
+                  ) : null}
+                </Group>
+              </Stack>
+            </Paper>
+          ) : null}
+
+          {cultureAnalytics ? (
+            <Stack gap="sm">
+              <Text fw={700}>Current aggregate snapshot</Text>
+              <Text size="sm">Publishable launches: {cultureAnalytics.headline.publishableLaunches}</Text>
+              <Text size="sm">Total responses: {cultureAnalytics.headline.totalResponses}</Text>
+              <Text size="sm">Average culture index: {cultureAnalytics.headline.averageCultureIndex?.toFixed(2) || "-"}</Text>
+              <Text size="sm">Watch launches: {cultureAnalytics.headline.watchCount}</Text>
+            </Stack>
+          ) : null}
+
+          <Paper withBorder p={0}>
+            <Table striped highlightOnHover>
+              <Table.Thead>
+                <Table.Tr>
+                  <Table.Th>Title</Table.Th>
+                  <Table.Th>Scope</Table.Th>
+                  <Table.Th>Role</Table.Th>
+                  <Table.Th>Status</Table.Th>
+                  <Table.Th>Responses</Table.Th>
+                  <Table.Th>Culture index</Table.Th>
+                  <Table.Th>Actions</Table.Th>
+                </Table.Tr>
+              </Table.Thead>
+              <Table.Tbody>
+                {cultureSurveys.length === 0 ? (
+                  <Table.Tr>
+                    <Table.Td colSpan={7}>
+                      <Text size="sm" c="dimmed">No culture surveys launched yet.</Text>
+                    </Table.Td>
+                  </Table.Tr>
+                ) : cultureSurveys.map((survey) => {
+                  const summary = cultureAnalytics?.launchSummaries.find((entry) => entry.id === survey._id);
+                  return (
+                    <Table.Tr key={survey._id || survey.title}>
+                      <Table.Td>{survey.title}</Table.Td>
+                      <Table.Td>{survey.scopeLabel}</Table.Td>
+                      <Table.Td>{survey.targetRole}</Table.Td>
+                      <Table.Td>
+                        <Badge variant="light" color={survey.status === "active" ? "teal" : "gray"}>
+                          {survey.status}
+                        </Badge>
+                      </Table.Td>
+                      <Table.Td>{summary?.responseCount || survey.responses.length}/{survey.minResponses}</Table.Td>
+                      <Table.Td>{summary?.publishable ? summary.cultureIndex?.toFixed(2) : "Hidden"}</Table.Td>
+                      <Table.Td>
+                        {survey.status === "active" && isAdmin ? (
+                          <Button size="sm" variant="light" color="red" onClick={() => void closeCultureSurvey(survey._id)}>
+                            Close
+                          </Button>
+                        ) : null}
+                      </Table.Td>
+                    </Table.Tr>
+                  );
+                })}
+              </Table.Tbody>
+            </Table>
+          </Paper>
         </Stack>
       </SectionCard>
 

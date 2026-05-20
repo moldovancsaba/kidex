@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Alert, Badge, Box, Button, Group, Loader, Paper, Stack, Text, useMantineTheme } from "@mantine/core";
+import { Alert, Badge, Box, Button, Group, Loader, Paper, Stack, Table, Text, useMantineTheme } from "@mantine/core";
 import { useTranslations } from "next-intl";
 import { Bar, BarChart, CartesianGrid, Cell, Legend, Line, LineChart, Pie, PieChart, PolarAngleAxis, PolarGrid, PolarRadiusAxis, Radar, RadarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { LongitudinalChart } from "@/components/analytics/LongitudinalChart";
@@ -12,6 +12,7 @@ import { SectionCard } from "@/components/ui/SectionCard";
 import { rapidSections } from "@/lib/kidex-schema";
 import { getDomainMainColor, type AssessmentDomain } from "@/lib/domain-colors";
 import { buildDashboardAnalytics } from "@/lib/dashboard-analytics";
+import type { CultureAnalyticsSummary } from "@/lib/culture-surveys";
 import type { ChildProfile } from "@/repositories/child.repository";
 import type { AssessmentRecord } from "@/types/assessment";
 import type { User } from "@/services/user-service";
@@ -23,6 +24,7 @@ type DashboardData = {
   assessments: AssessmentRecord[];
   children: ChildProfile[];
   settings: KidexSettings | null;
+  cultureAnalytics: CultureAnalyticsSummary | null;
 };
 
 const DASHBOARD_CHART_CONFIG = {
@@ -59,16 +61,18 @@ export function MainDashboard() {
       fetch("/api/assessments").then((r) => r.json() as Promise<{ assessments: AssessmentRecord[] }>),
       fetch("/api/children?metrics=true").then((r) => r.json() as Promise<ChildProfile[]>),
       fetch("/api/settings").then((r) => r.json() as Promise<KidexSettings>),
+      fetch("/api/culture-surveys").then((r) => r.json()).catch(() => ({ analytics: null })),
     ])
-      .then(([usersData, assessmentsData, childrenData, settingsData]) => {
+      .then(([usersData, assessmentsData, childrenData, settingsData, cultureData]) => {
         setData({
           users: usersData.users ?? [],
           assessments: assessmentsData.assessments ?? [],
           children: Array.isArray(childrenData) ? childrenData : [],
           settings: settingsData ?? null,
+          cultureAnalytics: cultureData?.analytics ?? null,
         });
       })
-      .catch(() => setData({ users: [], assessments: [], children: [], settings: null }))
+      .catch(() => setData({ users: [], assessments: [], children: [], settings: null, cultureAnalytics: null }))
       .finally(() => setLoading(false));
   }, []);
 
@@ -287,6 +291,72 @@ export function MainDashboard() {
           consent: analytics.childrenNeedingConsentReview,
         })}
       </Text>
+
+      {data?.cultureAnalytics ? (
+        <SectionCard title="Culture and trust pulse" subheader="Anonymous voice launches and culture-index signals across teams and institutions.">
+          <Stack gap="md">
+            <Stack gap="md" style={{ flexDirection: "row", flexWrap: "wrap" }}>
+              <MetricCard label="Publishable launches" value={String(data.cultureAnalytics.headline.publishableLaunches)} />
+              <MetricCard label="Total responses" value={String(data.cultureAnalytics.headline.totalResponses)} />
+              <MetricCard label="Average culture index" value={formatScore(data.cultureAnalytics.headline.averageCultureIndex)} />
+              <MetricCard label="Watch launches" value={String(data.cultureAnalytics.headline.watchCount)} />
+            </Stack>
+            <Stack gap="md" style={{ flexDirection: "row", flexWrap: "wrap" }}>
+              <Box style={{ flex: "1 1 320px", minWidth: 0 }}>
+                <ResponsiveContainer width="100%" height={220}>
+                  <LineChart data={data.cultureAnalytics.trend}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="label" tick={{ fontSize: 12, fontFamily: CHART_FONT_FAMILY }} />
+                    <YAxis domain={[1, 5]} tick={{ fontSize: 12, fontFamily: CHART_FONT_FAMILY }} />
+                    <Tooltip />
+                    <Legend />
+                    <Line type="monotone" dataKey="index" name="Culture index" stroke="var(--mantine-color-kidex-6)" strokeWidth={2.5} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </Box>
+              <Box style={{ flex: "1 1 320px", minWidth: 0 }}>
+                <ResponsiveContainer width="100%" height={220}>
+                  <BarChart data={data.cultureAnalytics.roleComparison.map((entry) => ({ ...entry, role: entry.role }))}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="role" tick={{ fontSize: 12, fontFamily: CHART_FONT_FAMILY }} />
+                    <YAxis domain={[0, 5]} tick={{ fontSize: 12, fontFamily: CHART_FONT_FAMILY }} />
+                    <Tooltip />
+                    <Bar dataKey="index" name="Role index" fill="var(--mantine-color-kidex-6)" radius={[6, 6, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </Box>
+            </Stack>
+            <Paper withBorder p={0}>
+              <Table striped highlightOnHover>
+                <Table.Thead>
+                  <Table.Tr>
+                    <Table.Th>Scope</Table.Th>
+                    <Table.Th>Culture index</Table.Th>
+                    <Table.Th>Launches</Table.Th>
+                    <Table.Th>Latest pulse</Table.Th>
+                  </Table.Tr>
+                </Table.Thead>
+                <Table.Tbody>
+                  {data.cultureAnalytics.scorecards.length === 0 ? (
+                    <Table.Tr>
+                      <Table.Td colSpan={4}>
+                        <Text size="sm" c="dimmed">No publishable culture launches yet.</Text>
+                      </Table.Td>
+                    </Table.Tr>
+                  ) : data.cultureAnalytics.scorecards.map((card) => (
+                    <Table.Tr key={card.scopeLabel}>
+                      <Table.Td>{card.scopeLabel}</Table.Td>
+                      <Table.Td>{formatScore(card.index)}</Table.Td>
+                      <Table.Td>{card.launches}</Table.Td>
+                      <Table.Td>{card.latestLabel}</Table.Td>
+                    </Table.Tr>
+                  ))}
+                </Table.Tbody>
+              </Table>
+            </Paper>
+          </Stack>
+        </SectionCard>
+      ) : null}
 
       <SectionCard title={t("cohortTrajectoryTitle")} subheader={t("cohortTrajectorySubtitle")}>
         <Stack gap="md" style={{ flexDirection: "row", flexWrap: "wrap" }}>

@@ -98,6 +98,7 @@ The settings and governance stack includes:
 - restore workflows
 - governance export bundles
 - legal/company profile management
+- anonymous culture-survey launch and review
 
 Primary surface:
 
@@ -136,6 +137,7 @@ Primary surface:
 - progress-comparison summaries
 - watchlists and risk indicators
 - support follow-through indicators
+- anonymous culture-index and role-comparison analytics
 
 ## Public versus protected surfaces
 
@@ -144,6 +146,7 @@ Public:
 - landing page
 - legal pages
 - consent review page
+- culture-survey response page
 - SSO and Google OAuth callback routes
 
 Protected:
