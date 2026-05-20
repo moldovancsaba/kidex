@@ -44,9 +44,8 @@ const TEMPLATES = {
 };
 
 /**
- * Sends an invitation email. 
- * Currently uses a Mock implementation that logs to console.
- * To enable real emails, plug in Resend/SendGrid/SES here.
+ * Sends an invitation email through Gmail when an access token is available.
+ * Falls back to mock console delivery when the sender has not linked Google.
  */
 export async function sendInviteEmail({ to, inviteLink, locale, accessToken, customTemplate }: InviteEmailParams): Promise<boolean> {
   const template = TEMPLATES[locale] || TEMPLATES.en;
@@ -54,9 +53,7 @@ export async function sendInviteEmail({ to, inviteLink, locale, accessToken, cus
   let subject = customTemplate?.subject || template.subject;
   let html = customTemplate?.body || template.body(inviteLink);
 
-  // If using custom template, we need to replace the link placeholder
   if (customTemplate) {
-    // Replace all occurrences of {{link}} with the actual inviteLink
     html = html.replace(/{{link}}/g, inviteLink);
   }
 

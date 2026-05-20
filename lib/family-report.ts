@@ -1,5 +1,7 @@
 import type { ChildAccessibilityProfile } from "@/lib/accessibility-profile";
+import { buildChildStateSummary, type ChildStateDomainSummary } from "@/lib/child-state-summary";
 import type { DevelopmentPlan } from "@/lib/development-plans";
+import { buildParentImprovementGuidance, type ParentImprovementGuidance } from "@/lib/parent-guidance";
 import type { RecommendationSummary } from "@/lib/recommendations";
 import type { ChildSupportWorkspace } from "@/lib/support-workspace";
 import type { AssessmentRecord } from "@/types/assessment";
@@ -13,6 +15,11 @@ export interface FamilyFriendlyRecommendation {
 export interface FamilyFriendlyReportSummary {
   headline: string;
   summary: string;
+  currentStateHeadline: string;
+  currentStateSummary: string;
+  currentStateDomains: ChildStateDomainSummary[];
+  currentStateConfidence: string;
+  parentGuidance: ParentImprovementGuidance[];
   recommendations: FamilyFriendlyRecommendation[];
   nextSteps: string[];
   accessibilityNotes: string[];
@@ -56,12 +63,15 @@ function accommodationLabel(value: string): string {
 export function buildFamilyFriendlyReportSummary(input: {
   record: AssessmentRecord;
   recommendationSummary: RecommendationSummary;
+  historyCount?: number;
   plan?: DevelopmentPlan | null;
   accessibilityProfile?: ChildAccessibilityProfile | null;
   supportWorkspace?: ChildSupportWorkspace | null;
 }): FamilyFriendlyReportSummary {
-  const { recommendationSummary, plan, accessibilityProfile, supportWorkspace } = input;
+  const { record, recommendationSummary, historyCount = 1, plan, accessibilityProfile, supportWorkspace } = input;
   const simplifiedFamilyView = accessibilityProfile?.familyViewMode === "simplified";
+  const childStateSummary = buildChildStateSummary(record, recommendationSummary, historyCount);
+  const parentGuidance = buildParentImprovementGuidance({ recommendationSummary, plan, supportWorkspace });
   const recommendations = recommendationSummary.recommendations.slice(0, 3).map((recommendation) => ({
     title: recommendation.title,
     message: recommendation.domain
@@ -103,6 +113,15 @@ export function buildFamilyFriendlyReportSummary(input: {
     summary: `${simplifiedFamilyView
       ? "This report uses simpler family-facing language and focuses on the next helpful step."
       : "This report summarizes current progress in a child-safe, non-diagnostic way."} It reflects the latest observations and highlights where simple, steady support can help next.${wellbeingSummary}${profileSummary ? ` ${profileSummary}` : ""}`,
+    currentStateHeadline: childStateSummary.parentHeadline,
+    currentStateSummary: childStateSummary.parentSummary,
+    currentStateDomains: childStateSummary.domains,
+    currentStateConfidence: childStateSummary.confidence === "high"
+      ? "This picture is supported by a fuller set of observations."
+      : childStateSummary.confidence === "medium"
+        ? "This picture is useful, but the next follow-up will help confirm the pattern."
+        : "Parts of this picture are still incomplete, so the next follow-up is important before drawing strong conclusions.",
+    parentGuidance,
     recommendations,
     nextSteps,
     accessibilityNotes,

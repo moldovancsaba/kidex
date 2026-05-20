@@ -1,12 +1,14 @@
 "use client";
 
-import { useEffect, useMemo, useState, use } from "react";
+import { useEffect, useState, use } from "react";
 import { Alert, Badge, Box, Button, Checkbox, Group, Loader, Modal, MultiSelect, Paper, Select, SimpleGrid, Stack, Table, Text, TextInput, Textarea, useMantineTheme } from "@mantine/core";
 import Image from "next/image";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { PolarAngleAxis, PolarGrid, PolarRadiusAxis, Radar, RadarChart, ResponsiveContainer, Tooltip } from "recharts";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { buildChildStateSummary } from "@/lib/child-state-summary";
+import { buildFamilyFriendlyReportSummary } from "@/lib/family-report";
 import { rapidSections } from "@/lib/kidex-schema";
 import { calculateTrend } from "@/lib/utils/trends";
 import { formatScore } from "@/lib/utils";
@@ -193,19 +195,31 @@ export default function ChildHistoryPage({ params }: { params: Promise<{ id: str
         ts,
       )
     : null;
+  const childStateSummary = latest && recommendationSummary
+    ? buildChildStateSummary(latest, recommendationSummary, data?.assessments.length || 0)
+    : null;
   const caregiverOptions = (data?.child.caregivers || [])
     .filter((caregiver) => caregiver.status === "active")
     .map((caregiver) => ({ value: caregiver.id, label: caregiver.name }));
-  const effectiveSupportWorkspace = useMemo(() => {
-    if (supportWorkspace) return supportWorkspace;
-    if (!supportWorkspaceLoaded || !data?.child || !latest || !recommendationSummary) return null;
-    return buildDefaultSupportWorkspace({
-      child: data.child,
-      recommendationSummary,
-      plan,
-      latestAssessment: latest,
-    });
-  }, [supportWorkspace, supportWorkspaceLoaded, data, latest, recommendationSummary, plan]);
+  const effectiveSupportWorkspace = supportWorkspace
+    || (!supportWorkspaceLoaded || !data?.child || !latest || !recommendationSummary
+      ? null
+      : buildDefaultSupportWorkspace({
+          child: data.child,
+          recommendationSummary,
+          plan,
+          latestAssessment: latest,
+        }));
+  const familySummary = latest && recommendationSummary
+    ? buildFamilyFriendlyReportSummary({
+        record: latest,
+        recommendationSummary,
+        historyCount: data?.assessments.length || 0,
+        plan,
+        accessibilityProfile: data?.child.accessibilityProfile,
+        supportWorkspace: effectiveSupportWorkspace,
+      })
+    : null;
   const supportSummary = buildSupportWorkspaceSummary(effectiveSupportWorkspace);
 
   if (loading) {
@@ -507,7 +521,7 @@ export default function ChildHistoryPage({ params }: { params: Promise<{ id: str
                 try {
                   const users = await getUsers();
                   const printableRecord = withDisplayNamesForReport(latest, users);
-                  await PdfService.generateFamilyReport(printableRecord, t, tc, ts, tr, recommendationSummary, plan, data.child, effectiveSupportWorkspace);
+                  await PdfService.generateFamilyReport(printableRecord, t, tc, ts, tr, recommendationSummary, plan, data.child, effectiveSupportWorkspace, data.assessments.length);
                 } finally {
                   setDownloadingPdf(false);
                 }
@@ -736,6 +750,60 @@ export default function ChildHistoryPage({ params }: { params: Promise<{ id: str
           </Box>
         </Stack>
       </SectionCard>
+
+      {childStateSummary ? (
+        <SectionCard title="Current State Summary" subheader="One shared interpretation of the child’s current physical, social, and mental state for the conductor and the parent conversation.">
+          <Stack gap="md">
+            <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
+              <Paper withBorder p="md" radius="md">
+                <Stack gap="xs">
+                  <Group justify="space-between" align="center">
+                    <Text fw={700}>Conductor view</Text>
+                    <Badge variant="light" color={childStateSummary.supportPressure === "high" ? "red" : childStateSummary.supportPressure === "medium" ? "orange" : "teal"}>
+                      pressure {childStateSummary.supportPressure}
+                    </Badge>
+                  </Group>
+                  <Text>{childStateSummary.conductorHeadline}</Text>
+                  <Text size="sm" c="dimmed">{childStateSummary.conductorSummary}</Text>
+                </Stack>
+              </Paper>
+              <Paper withBorder p="md" radius="md">
+                <Stack gap="xs">
+                  <Group justify="space-between" align="center">
+                    <Text fw={700}>Parent-ready view</Text>
+                    <Badge variant="outline" color={childStateSummary.confidence === "high" ? "teal" : childStateSummary.confidence === "medium" ? "yellow" : "gray"}>
+                      confidence {childStateSummary.confidence}
+                    </Badge>
+                  </Group>
+                  <Text>{childStateSummary.parentHeadline}</Text>
+                  <Text size="sm" c="dimmed">{childStateSummary.parentSummary}</Text>
+                </Stack>
+              </Paper>
+            </SimpleGrid>
+            <SimpleGrid cols={{ base: 1, md: 3 }} spacing="md">
+              {childStateSummary.domains.map((domain) => (
+                <StateDomainCard key={domain.key} domain={domain} />
+              ))}
+            </SimpleGrid>
+            <Paper withBorder p="md" radius="md">
+              <Text fw={700} size="sm" mb="xs">Reliability context</Text>
+              <Text size="sm" c="dimmed">
+                High-confidence items: {recommendationSummary?.confidenceContext.highConfidenceCount ?? 0} · Medium-confidence items: {recommendationSummary?.confidenceContext.mediumConfidenceCount ?? 0} · Low-confidence items: {recommendationSummary?.confidenceContext.lowConfidenceCount ?? 0} · Missing confidence: {recommendationSummary?.confidenceContext.missingConfidenceCount ?? 0}
+              </Text>
+            </Paper>
+            {childStateSummary.limitations.length > 0 ? (
+              <Paper withBorder p="md" radius="md">
+                <Text fw={700} size="sm" mb="xs">Interpretation limits</Text>
+                <Stack gap={4}>
+                  {childStateSummary.limitations.map((limitation) => (
+                    <Text key={limitation} size="sm" c="dimmed">{limitation}</Text>
+                  ))}
+                </Stack>
+              </Paper>
+            ) : null}
+          </Stack>
+        </SectionCard>
+      ) : null}
 
       {recommendationSummary ? (
         <SectionCard title="Mental Wellbeing Track" subheader="Baseline and follow-up mental-skills, readiness, recovery, and support signals linked to this child record.">
@@ -1249,22 +1317,33 @@ export default function ChildHistoryPage({ params }: { params: Promise<{ id: str
       </SectionCard>
 
       {recommendationSummary ? (
-        <SectionCard title={tr("familyReportTitle")}>
-          <Stack gap="sm">
-            <Text size="sm" c="dimmed">{tr("familyReportIntro")}</Text>
-            <Paper withBorder p="sm">
-              <Text fw={700}>{tr("familyHeadline")}</Text>
-              <Text size="sm" c="dimmed">
-                {recommendationSummary.readinessStatus === "ready"
-                  ? tr("familyReady")
-                  : recommendationSummary.readinessStatus === "developing"
-                    ? tr("familyDeveloping")
-                    : tr("familySupport")}
-              </Text>
+      <SectionCard title={tr("familyReportTitle")}>
+        <Stack gap="sm">
+          <Text size="sm" c="dimmed">{tr("familyReportIntro")}</Text>
+          <Paper withBorder p="sm">
+            <Text fw={700}>{tr("familyHeadline")}</Text>
+            <Text size="sm" c="dimmed">{familySummary?.currentStateSummary}</Text>
+          </Paper>
+          {familySummary?.parentGuidance.map((guidance) => (
+            <Paper key={guidance.id} withBorder p="sm">
+              <Stack gap={4}>
+                <Text fw={700}>{guidance.title}</Text>
+                <Text size="sm">{guidance.whyNow}</Text>
+                {guidance.thisWeek.map((step) => (
+                  <Text key={step} size="sm" c="dimmed">• {step}</Text>
+                ))}
+                {guidance.linkedSupport.length > 0 ? (
+                  <Text size="sm" c="dimmed">Linked support: {guidance.linkedSupport.join(", ")}</Text>
+                ) : null}
+                {guidance.boundaryNote ? (
+                  <Text size="sm" c="orange.8">{guidance.boundaryNote}</Text>
+                ) : null}
+              </Stack>
             </Paper>
-            {plan?.assignments?.length ? (
-              <Paper withBorder p="sm">
-                <Text fw={700}>{tr("familyNextStepsTitle")}</Text>
+          ))}
+          {plan?.assignments?.length ? (
+            <Paper withBorder p="sm">
+              <Text fw={700}>{tr("familyNextStepsTitle")}</Text>
                 <Stack gap={4} mt="xs">
                   {plan.assignments.slice(0, 3).map((assignment) => (
                     <Text key={assignment.id} size="sm">• {assignment.title}</Text>
@@ -1477,6 +1556,27 @@ function DeleteSurveyModal({
         </Group>
       </Stack>
     </Modal>
+  );
+}
+
+function StateDomainCard({
+  domain,
+}: {
+  domain: ReturnType<typeof buildChildStateSummary>["domains"][number];
+}) {
+  const color = domain.status === "below_min" ? "red" : domain.status === "developing" ? "orange" : domain.status === "ready" ? "teal" : "gray";
+
+  return (
+    <Paper withBorder p="md" radius="md">
+      <Stack gap={6}>
+        <Group justify="space-between" align="center">
+          <Text fw={700}>{domain.label}</Text>
+          <Badge variant="light" color={color}>{domain.conductorLabel}</Badge>
+        </Group>
+        <Text size="sm" c="dimmed">Parent wording: {domain.parentLabel}</Text>
+        <Text fw={700}>{typeof domain.average === "number" ? formatScore(domain.average) : "—"}</Text>
+      </Stack>
+    </Paper>
   );
 }
 

@@ -34,18 +34,18 @@ const record: AssessmentRecord = {
     consentReport: true,
   },
   scores: {
-    labboltozat: { score: 2, note: "" },
-    egyensuly_rapid: { score: 2, note: "" },
-    szokdeles: { score: 5, note: "" },
-    testtartas: { score: 4, note: "" },
-    figyelem_rapid: { score: 3, note: "" },
-    feladatmegertes: { score: 3, note: "" },
-    kitartas_rapid: { score: 2, note: "" },
-    frusztracio: { score: 2, note: "" },
-    egyuttmukodes_rapid: { score: 4, note: "" },
-    szabalykovetes_rapid: { score: 4, note: "" },
-    kommunikacio_rapid: { score: 3, note: "" },
-    versenyreakcio: { score: 3, note: "" },
+    labboltozat: { score: 2, note: "", confidence: "low" },
+    egyensuly_rapid: { score: 2, note: "", confidence: "medium" },
+    szokdeles: { score: 5, note: "", confidence: "high" },
+    testtartas: { score: 4, note: "", confidence: "high" },
+    figyelem_rapid: { score: 3, note: "", confidence: "medium" },
+    feladatmegertes: { score: 3, note: "", confidence: "medium" },
+    kitartas_rapid: { score: 2, note: "", confidence: "low" },
+    frusztracio: { score: 2, note: "", confidence: "medium" },
+    egyuttmukodes_rapid: { score: 4, note: "", confidence: "high" },
+    szabalykovetes_rapid: { score: 4, note: "", confidence: "high" },
+    kommunikacio_rapid: { score: 3, note: "", confidence: "medium" },
+    versenyreakcio: { score: 3, note: "", confidence: undefined },
   },
   notes: {
     general: "",
@@ -109,5 +109,8 @@ describe("buildRecommendationSummary", () => {
     expect(summary.mentalWellbeing.riskLevel).toBe("medium");
     expect(summary.mentalWellbeing.goalModules).toContain("Positive self-talk reset");
     expect(summary.recommendations.some((entry) => entry.id === "recovery-support")).toBe(true);
+    expect(summary.confidenceContext.lowConfidenceCount).toBe(2);
+    expect(summary.confidenceContext.missingConfidenceCount).toBe(1);
+    expect(summary.recommendations.some((entry) => entry.sourceEvidence.some((evidence) => evidence.label === "Scoring confidence"))).toBe(true);
   });
 });

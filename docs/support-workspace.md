@@ -1,112 +1,145 @@
 # KIDEX Support Workspace
 
-This document describes the current child-scoped support workflow now implemented in KIDEX.
+The support workspace is the child-scoped follow-through layer that sits after assessment and interpretation.
+
+It turns:
+
+- recommendations
+- parent guidance
+- development plans
+- caregiver partnership tools
+- coach guidance
+
+into an operational record the team can update over time.
 
 ## Purpose
 
-KIDEX is no longer only an assessment and reporting tool. Each child can now carry a **support workspace** that turns recommendations into practical follow-through for:
+The support workspace exists so KIDEX does not stop at “what was measured.”
 
-- caregivers
-- coaches and conductors
-- short mental-growth practice
-- referral follow-up
-- evidence-backed reflection
+It helps the team track:
 
-The support workspace is child-centered and sits beside assessments, plans, consent, communication, and reports.
+- what families were asked to support
+- what coaches or conductors should reinforce
+- what short learning or reflection sequence is active
+- whether referral follow-up is open
+- what evidence moments should be kept with the child timeline
 
-## Current model
+## Current data model
 
-The runtime model lives in [lib/support-workspace.ts](/Users/Shared/Projects/kidex/lib/support-workspace.ts).
+The runtime model lives in [`lib/support-workspace.ts`](../lib/support-workspace.ts).
 
-Each workspace contains:
+Each workspace can contain:
 
 - `caregiverTools`
-  - concise education resources
-  - family-support prompts
-  - optional pledge / commitment acknowledgements
-  - completion status and notes
+  - short caregiver education items
+  - partnership prompts
+  - optional commitment or pledge language
+  - progress status and notes
 - `coachTools`
-  - role-specific guidance cards
-  - just-in-time coaching prompts
-  - completion status and notes
+  - practical guidance cards for the next coached cycle
+  - progress status and notes
 - `microLearning`
   - short child-scoped lesson sequences
-  - simple completion and reflection tracking
-  - lightweight streak calculation
+  - lesson completion
+  - simple reflection text
+  - current streak calculation
 - `referrals`
   - concern type
   - urgency
-  - parent-safe explanation
-  - resource type, locality, and contact
-  - status, follow-up date, and resolution notes
+  - explanation
+  - resource and locality fields
+  - follow-up and resolution status
 - `evidenceJournal`
   - structured development moments
-  - domain tags and skill tags
+  - domain tags
+  - skill tags
   - optional attachment references
   - links back to assessment or plan context
 
-## How it is created
+## How the first workspace is created
 
-If no persisted workspace exists yet, the child history page derives a default workspace from:
+If no saved workspace exists yet, the child history page derives a default draft from:
 
 - the latest recommendation summary
 - the latest assessment
 - the current development plan
-- child context such as age band and caregiver presence
+- mental wellbeing signals
+- child and caregiver context
 
-That default state can then be edited and saved through the support API.
+That draft can then be edited and saved.
 
-## Current product surfaces
+## Relationship to other modules
+
+The support workspace is not standalone. It is linked to:
+
+- child state summary
+- parent improvement guidance
+- development plan
+- family-safe reporting
+- governed communications
+- referral-safe escalation handling
+
+## Main UI surfaces
 
 ### Child history
 
-[app/[locale]/dashboard/children/[id]/page.tsx](/Users/Shared/Projects/kidex/app/%5Blocale%5D/dashboard/children/%5Bid%5D/page.tsx) is the main operational surface.
+Primary operational surface:
 
-It currently supports:
+- `/{locale}/dashboard/children/[id]`
 
-- caregiver education and partnership tracking
-- coach guidance tracking
-- micro-learning lesson completion and reflections
-- referral entry and follow-up updates
-- multimedia evidence moment capture
+This page supports:
+
+- editing caregiver tools
+- editing coach tools
+- progressing micro-learning
+- adding and updating referrals
+- capturing evidence moments
+- reviewing the support context beside state summaries and plans
 
 ### Record detail
 
-[app/[locale]/dashboard/records/[id]/page.tsx](/Users/Shared/Projects/kidex/app/%5Blocale%5D/dashboard/records/%5Bid%5D/page.tsx) shows a compact support follow-through summary so record review does not lose downstream context.
+Compact review surface:
+
+- `/{locale}/dashboard/records/[id]`
+
+This page shows support follow-through summary signals so assessment review stays connected to action.
 
 ### Family report
 
-Family-safe reporting now pulls selected support context through:
+The family report can include selected support context, including:
 
-- [lib/family-report.ts](/Users/Shared/Projects/kidex/lib/family-report.ts)
-- [lib/pdf-service.ts](/Users/Shared/Projects/kidex/lib/pdf-service.ts)
-
-Current family-facing additions include:
-
-- open support follow-up notes
+- parent improvement guidance
+- next steps from the plan
+- helpful support notes
+- open referral-safe follow-up notes
 - recent evidence moments
-- support language that stays non-diagnostic
 
 ## Boundaries
 
-The current slice is intentionally bounded:
+The current implementation does not provide:
 
-- it does **not** implement a separate LMS
-- it does **not** provide public caregiver self-service editing for the support workspace
-- it does **not** turn completion metrics into outcome claims
-- it does **not** imply clinical endorsement from referral-directory presence alone
+- a public caregiver editing portal for the full workspace
+- outcome claims based only on task completion
+- a standalone course platform
+- clinical endorsement of referral-directory content
 
-## Audit and governance
+## Permissions and governance
 
-Support-workspace saves write `support.upsert` audit events.
-
-The workspace stays inside the existing child permission model:
+The workspace stays inside the child access model:
 
 - read requires child read access
 - write requires child write access
-- reports still respect consent and export governance
 
-## Related systems
+Support-workspace saves are audit logged.
 
-- [docs/access-model.md](./access-model.md)
-- [docs/api.md](./api.md)
+Reports and exports that reference support data still remain subject to:
+
+- consent governance
+- export permissions
+- child visibility rules
+
+## Related documents
+
+- [Product Overview](./product-overview.md)
+- [API Reference](./api.md)
+- [Access Model](./access-model.md)

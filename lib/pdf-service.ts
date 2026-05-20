@@ -18,8 +18,7 @@ interface JsPDFWithAutoTable extends jsPDF {
 type TFunction = (key: string) => string;
 
 /**
- * PDF Service for Kidex Reports
- * Handles generation of "Original" and "Map" report formats.
+ * PDF service for KIDEX report exports.
  */
 export const PdfService = {
   async ensureUnicodeFont(doc: jsPDF): Promise<void> {
@@ -47,7 +46,7 @@ export const PdfService = {
     doc.setFont(fontName, "normal");
   },
   /**
-   * Generates the "Original" technical assessment report.
+   * Generates the original technical assessment report.
    */
   async generateOriginalReport(record: AssessmentRecord, t: TFunction, tc: TFunction, ts: TFunction): Promise<void> {
     const doc = new jsPDF({ unit: "mm", format: "a4" }) as JsPDFWithAutoTable;
@@ -104,8 +103,8 @@ export const PdfService = {
       columnStyles: { 0: { cellWidth: 55, fontStyle: "bold" }, 1: { cellWidth: 125 } }
     });
 
-    // Detailed Tables
-    const sections = rapidSections; // Using rapid as default for now
+    // Detailed tables mirror the current rapid assessment export format.
+    const sections = rapidSections;
     for (const section of sections) {
       autoTable(doc, {
         startY: doc.lastAutoTable!.finalY + 6,
@@ -142,12 +141,20 @@ export const PdfService = {
     plan?: DevelopmentPlan | null,
     childProfile?: ChildProfile | null,
     supportWorkspace?: ChildSupportWorkspace | null,
+    historyCount = 1,
   ): Promise<void> {
     const doc = new jsPDF({ unit: "mm", format: "a4" }) as JsPDFWithAutoTable;
     await this.ensureUnicodeFont(doc);
     const logoDataUrl = await this.getLogoDataUrl();
     const reportDate = new Date(record.createdAt).toLocaleDateString();
-    const summary = buildFamilyFriendlyReportSummary({ record, recommendationSummary, plan, accessibilityProfile: childProfile?.accessibilityProfile, supportWorkspace });
+    const summary = buildFamilyFriendlyReportSummary({
+      record,
+      recommendationSummary,
+      historyCount,
+      plan,
+      accessibilityProfile: childProfile?.accessibilityProfile,
+      supportWorkspace,
+    });
 
     if (logoDataUrl) {
       doc.addImage(logoDataUrl, "JPEG", 14, 10, 20, 20);
@@ -180,9 +187,53 @@ export const PdfService = {
 
     let y = doc.lastAutoTable?.finalY ? doc.lastAutoTable.finalY + 12 : 120;
     doc.setFontSize(14);
+    doc.text("Current state right now", 20, y);
+    y += 8;
+    doc.setFontSize(12);
+    doc.text(summary.currentStateHeadline, 20, y);
+    y += 8;
+    doc.setFontSize(11);
+    const currentStateLines = doc.splitTextToSize(summary.currentStateSummary, 170);
+    doc.text(currentStateLines, 20, y);
+    y += currentStateLines.length * 5 + 4;
+    summary.currentStateDomains.forEach((domain) => {
+      const lines = doc.splitTextToSize(`${domain.label}: ${domain.parentLabel}${typeof domain.average === "number" ? ` (${formatScore(domain.average)})` : ""}`, 165);
+      doc.text(lines, 24, y);
+      y += lines.length * 5 + 1;
+    });
+    const confidenceLines = doc.splitTextToSize(summary.currentStateConfidence, 165);
+    doc.text(confidenceLines, 24, y + 2);
+    y += confidenceLines.length * 5 + 8;
+    doc.setFontSize(14);
     doc.text(tr("familyRecommendationsTitle"), 20, y);
     y += 10;
     doc.setFontSize(11);
+    summary.parentGuidance.forEach((guidance) => {
+      const titleLines = doc.splitTextToSize(`• ${guidance.title}`, 165);
+      doc.text(titleLines, 24, y);
+      y += titleLines.length * 5;
+      const whyLines = doc.splitTextToSize(`Why now: ${guidance.whyNow}`, 158);
+      doc.text(whyLines, 28, y);
+      y += whyLines.length * 5;
+      guidance.thisWeek.forEach((step) => {
+        const stepLines = doc.splitTextToSize(`This week: ${step}`, 154);
+        doc.text(stepLines, 32, y);
+        y += stepLines.length * 5;
+      });
+      if (guidance.boundaryNote) {
+        const boundaryLines = doc.splitTextToSize(`Boundary: ${guidance.boundaryNote}`, 154);
+        doc.text(boundaryLines, 32, y);
+        y += boundaryLines.length * 5;
+      }
+      y += 4;
+    });
+
+    if (summary.recommendations.length > 0) {
+      doc.setFontSize(14);
+      doc.text("Why these suggestions were chosen", 20, y);
+      y += 10;
+      doc.setFontSize(11);
+    }
     summary.recommendations.forEach((recommendation) => {
       const lines = doc.splitTextToSize(`• ${recommendation.title}: ${recommendation.message}`, 165);
       doc.text(lines, 24, y);
@@ -252,7 +303,7 @@ export const PdfService = {
   },
 
   /**
-   * Generates the high-fidelity 10-page "Map" professional report.
+   * Generates the professional map report.
    */
   async generateMapReport(
     record: AssessmentRecord, 

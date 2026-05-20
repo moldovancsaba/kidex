@@ -1,72 +1,152 @@
 # Deployment
 
-## GitHub
+## Repository
 
-Repository: `https://github.com/moldovancsaba/kidex`
+- GitHub repository: `moldovancsaba/kidex`
+- Deployable app root: repository root
 
-The deployable app is the repository root.
+## Runtime requirements
 
-## Vercel
-
-Create or update the Vercel project with these settings:
-
-- Git repository: `moldovancsaba/kidex`
-- Root directory: repository root
-- Framework preset: Next.js
+- Node.js: `22.x`
 - Build command: `npm run build`
 - Install command: `npm install`
 
-Environment variables:
+## Vercel
+
+Suggested Vercel settings:
+
+- framework preset: Next.js
+- root directory: repository root
+- install command: `npm install`
+- build command: `npm run build`
+
+## Environment variables
+
+### Required
 
 ```txt
-MONGODB_URI
-MONGODB_DB
-IMGBB_API_KEY
+MONGODB_URI=
+MONGODB_DB=kidex
+IMGBB_API_KEY=
+AUTH_SECRET=
+KIDEX_ENFORCE_AUTH=true
+SSO_CLIENT_ID=
+SSO_CLIENT_SECRET=
+SSO_BASE_URL=https://sso.doneisbetter.com
+SSO_REDIRECT_URI=https://your-domain.com/api/oauth/callback
 ```
 
-`IMGBB_API_KEY` has already been added to Vercel. `MONGODB_URI` must point to the MongoDB Atlas cluster and include credentials for a database user with read/write access.
+### Optional but recommended for real invite sending
 
-## MongoDB Atlas Checklist
+```txt
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+GOOGLE_REDIRECT_URI=https://your-domain.com/api/auth/google/callback
+```
 
-1. Create a database user with read/write access.
-2. Add Vercel outbound access. For an early pilot, Atlas network access can be opened broadly; for production, restrict according to the deployment model available.
-3. Copy the driver connection string into Vercel as `MONGODB_URI`.
-4. Set `MONGODB_DB` to `kidex`.
-5. Redeploy the Vercel project after changing environment variables.
+Notes:
 
-## ImgBB Uploads
+- platform login depends on the `SSO_*` variables
+- Gmail invite delivery depends on the `GOOGLE_*` variables
+- without Google OAuth, invite sending falls back to mock mode rather than failing the whole app
 
-The app sends uploads to the server-side endpoint `/api/uploads/imgbb`.
+## MongoDB checklist
 
-The browser never receives `IMGBB_API_KEY`.
+1. Provision a database user with read/write access.
+2. Add the deployment network access needed by your environment.
+3. Set `MONGODB_URI`.
+4. Set `MONGODB_DB` to the desired database name, usually `kidex`.
+5. Run `npm run db:setup` locally or in a trusted setup environment before first real use if bootstrap data is needed.
 
-The assessment record stores:
+## Media uploads
+
+Uploads go through `/api/uploads/imgbb`.
+
+The browser does not receive `IMGBB_API_KEY`.
+
+Attachment metadata persisted in the app can include:
 
 - image URL
-- thumbnail URL when returned by ImgBB
-- delete URL when returned by ImgBB
-- file name, MIME type, size, upload time
+- thumbnail URL
+- delete URL
+- file name
+- MIME type
+- size
+- upload time
 
-Media upload is blocked in the UI until video/photo consent is checked.
+Upload behavior is governed by active media consent and child/assessment context.
 
-## Post-deploy checks (0.5.x)
+## Auth and public-route behavior
 
-1. Open `/dashboard/settings` and verify:
-- Standards Version Manager renders active version and version table.
-- Restore Bin loads deleted children and assessments.
-2. Create and update one assessment, then verify:
-- `standardsVersionUsed` is present on the saved record.
-- `mentalWellbeing` is present on the saved record and computed values are returned.
-3. Soft-delete one child and one assessment, verify:
-- They disappear from default lists.
-- They appear in deleted views and can be restored.
-4. Verify localized chart outcome sentences appear on:
-- `/dashboard`
-- `/dashboard/children/[id]`
-- `/dashboard/records/[id]`
-5. Open `/dashboard/children/[id]` and verify:
-- the support workspace renders caregiver tools, coach tools, micro-learning, referrals, and evidence journal sections
-- support workspace can be saved and reloaded
-6. Export a family report and verify:
-- family-safe report generation succeeds
-- support follow-up and recent evidence moments appear when the workspace has them
+When `KIDEX_ENFORCE_AUTH=true`:
+
+- dashboard pages require an authenticated session
+- most API routes require the same session
+- legal pages and consent-review pages remain public
+
+Current public paths include:
+
+- `/{locale}`
+- `/{locale}/legal/gtc`
+- `/{locale}/legal/privacy`
+- `/{locale}/consent/[token]`
+- `/api/auth/*`
+- `/api/oauth/*`
+- `/api/consent-review`
+
+## Post-deploy verification
+
+Run these checks against the deployed environment.
+
+### Platform access
+
+1. Verify SSO login works and the first-user bootstrap or approved-user flow behaves correctly.
+2. Verify logout clears the session.
+3. If Google invite delivery is configured, connect Gmail from settings and send a test invite.
+
+### Core records
+
+1. Create a child profile with caregivers, consent policy, and accessibility data.
+2. Create a rapid assessment and verify:
+   - per-item confidence can be set
+   - low-confidence rows require an observation note
+   - computed scoring returns domain averages and SKI
+   - `mentalWellbeing` and consent snapshot data are persisted
+3. Update the same assessment and verify `updateHistory` changes.
+
+### Interpretation
+
+1. Open the child history page and verify:
+   - current state summary renders
+   - reliability context renders
+   - parent improvement guidance renders
+   - development plan, communications, and support workspace sections load
+2. Open the record detail page and verify the same interpretation stack appears there.
+
+### Consent and exports
+
+1. Verify media upload is blocked when media consent is inactive.
+2. Verify family PDF export is blocked when family-report consent is inactive.
+3. Verify professional export is blocked when data-sharing consent is inactive.
+4. Generate both report types when consent is active.
+
+### Governance
+
+1. Open settings and verify:
+   - users load
+   - institutions load
+   - standards versions and variants load
+   - audit list loads
+   - restore bin loads
+2. Generate a governance export bundle and confirm the action is audit logged.
+
+## Local verification before production deploy
+
+```bash
+npm test
+npm run lint
+npm run build
+npm run typecheck
+```
+
+In this repository, `npm run typecheck` is most reliable after a successful build because `.next/types` is regenerated during the build process.

@@ -23,10 +23,9 @@ export async function GET(request: NextRequest) {
     const tokens = await exchangeCodeForToken(code);
     const ssoUser = await getUserInfo(tokens.access_token);
 
-    // Check if the user's email is in our local approved list
     let localUser = await findUserByEmail(ssoUser.email);
     
-    // Migration Fallback: If not found by email, try to find by name (for existing users)
+    // Older bootstrap data may predate email-based identity storage.
     if (!localUser && ssoUser.name) {
       const db = await getDatabase();
       const doc = await db.collection("users").findOne({ name: ssoUser.name, email: { $exists: false } });
@@ -43,7 +42,7 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Bootstrap: If no users exist AT ALL in the system, make the first one an admin
+    // Bootstrap the first platform user with setup access.
     const allUsers = await listAllUsers();
     if (allUsers.length === 0) {
       console.info(`Bootstrapping first user as admin: ${ssoUser.email}`);
@@ -59,13 +58,11 @@ export async function GET(request: NextRequest) {
     
     if (!localUser) {
       console.warn(`Login denied for non-whitelisted email: ${ssoUser.email}`);
-      // Redirect to landing page with an error parameter
       const loginUrl = new URL("/", request.url);
       loginUrl.searchParams.set("error", "access_denied");
       return NextResponse.redirect(loginUrl);
     }
 
-    // Create session using SSO info but merging local roles
     await createSession({
       id: ssoUser.id,
       email: ssoUser.email,
@@ -75,10 +72,8 @@ export async function GET(request: NextRequest) {
       accessToken: tokens.access_token
     });
 
-    // Clean up state cookie
     cookieStore.delete("oauth_state");
 
-    // Redirect to dashboard
     return NextResponse.redirect(new URL("/", request.url));
   } catch (error) {
     console.error("Auth callback error:", error);

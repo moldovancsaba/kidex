@@ -6,6 +6,13 @@ import type { RecommendationSummary } from "./recommendations";
 const recommendationSummary: RecommendationSummary = {
   readinessStatus: "developing",
   standardsVersionUsed: "v1",
+  confidenceContext: {
+    lowConfidenceCount: 0,
+    mediumConfidenceCount: 2,
+    highConfidenceCount: 4,
+    missingConfidenceCount: 0,
+    lowConfidenceItems: [],
+  },
   mentalWellbeing: {
     phase: "follow_up",
     mentalSkillsAverage: 3.1,

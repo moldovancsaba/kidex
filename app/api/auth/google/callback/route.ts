@@ -24,13 +24,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "No active session" }, { status: 401 });
     }
 
-    // Save tokens to the user document in MongoDB
     await updateGoogleToken(session.email, tokens);
-
-    // Clean up state cookie
     cookieStore.delete("google_oauth_state");
-
-    // Redirect back to settings
     return NextResponse.redirect(new URL("/dashboard/settings", request.url));
   } catch (error) {
     console.error("Google Auth callback error:", error);

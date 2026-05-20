@@ -26,9 +26,7 @@ export function SymmetryChart({ title, data }: SymmetryChartProps) {
       )}
       <Box style={{ width: "100%", height: ANALYTICS_CONFIG.chartHeight }}>
         <ResponsiveContainer width="100%" height="100%">
-          {/* Note: PolarArea is effectively a RadarChart with one data series 
-              and often different styling, but RadarChart in Recharts is 
-              the standard way to represent these domain balances. */}
+          {/* Recharts uses RadarChart for this single-series domain-balance view. */}
           <RadarChart cx="50%" cy="50%" outerRadius={ANALYTICS_CONFIG.radarOuterRadius} data={data}>
             <PolarGrid stroke={theme.colors.gray[4]} />
             <PolarAngleAxis

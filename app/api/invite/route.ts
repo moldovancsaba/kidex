@@ -34,16 +34,13 @@ export async function POST(request: Request) {
       const user = await findUserByEmail(session.email);
       if (user?.googleToken) {
         accessToken = user.googleToken.access_token;
-        
-        // Basic check if we should refresh (ideally check expiry, but Gmail returns 401 if expired)
-        // For robustness, we can try to refresh if it fails, or just refresh always if close to expiry.
-        // Here we'll just try to use it and let the service handle errors.
-        // Actually, let's just refresh if we have a refresh_token to be safe.
+
+        // Refresh eagerly when a refresh token is available so invite delivery
+        // does not depend on the previously cached Gmail access token still being valid.
         if (user.googleToken.refresh_token) {
           try {
             const newTokens = await refreshGoogleToken(user.googleToken.refresh_token);
             accessToken = newTokens.access_token;
-            // Update DB with new access token
             await updateGoogleToken(session.email, { ...user.googleToken, ...newTokens });
           } catch (e) {
             console.error("Failed to refresh Google token:", e);

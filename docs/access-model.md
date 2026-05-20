@@ -1,90 +1,155 @@
 # KIDEX Access Model
 
-This document defines the current runtime authorization model after the first RBAC implementation pass.
+This document defines the current runtime authorization and visibility model implemented in KIDEX.
+
+## Runtime roles
+
+Implemented roles:
+
+- `admin`
+- `conductor`
+- `observer`
+
+Reserved future roles are documented in [role-taxonomy.md](./role-taxonomy.md) but are not accepted by the runtime today.
 
 ## Permission matrix
 
-| Action group | `admin` | `conductor` | `observer` |
+| Capability | `admin` | `conductor` | `observer` |
 | --- | --- | --- | --- |
 | Read users, children, assessments, settings | yes | yes | yes |
-| Create or update users | yes | yes, institution-scoped | no |
-| Delete users | yes | no | no |
 | Create or update children and assessments | yes | yes, institution-scoped | no |
 | Delete or restore children and assessments | yes | yes, institution-scoped | no |
-| Upload media | yes | yes | no |
-| Create or update plans, communications, and support workspace | yes | yes, institution-scoped | no |
-| Update global settings and scoring standards | yes | no | no |
+| Create or update development plans | yes | yes, institution-scoped | no |
+| Create or update support workspace | yes | yes, institution-scoped | no |
+| Create governed communications | yes | yes, institution-scoped | no |
+| Upload media | yes | yes, institution-scoped | no |
+| Create or update users | yes | yes, institution-scoped and without admin escalation | no |
+| Delete users | yes | no | no |
 | Send invites | yes | no | no |
+| Update global settings and standards | yes | no | no |
+| Review audit and governance exports | yes | no | no |
 
 ## Institution boundaries
 
-- Every user is normalized into at least one institution membership.
-- Existing and bootstrap data default to the `default` institution until richer institution setup is introduced.
-- Non-admin users can only view or mutate users, children, and assessments that belong to at least one of their institutions.
+- Every user is normalized to at least one institution membership.
+- Bootstrap data defaults to the `default` institution until the admin configures real institutions.
+- Non-admin users can only read or mutate resources that overlap with their institution memberships.
 
-## Resource ownership
+## Resource ownership and visibility
 
-- Children and assessments now store:
-  - `institutionId`
-  - `createdByUserEmail`
-  - `practitionerEmails`
-  - `visibility`
-- Child-scoped plans, communications, consent links, and support workspace records inherit the same child access boundary instead of defining parallel ownership rules.
-- The current runtime defaults visibility to `institution`.
-- The model is ready for later introduction of `restricted` visibility without changing the route contract again.
+Children and assessments currently store or derive:
 
-## Standards governance
+- `institutionId`
+- `createdByUserEmail`
+- `practitionerEmails`
+- `visibility`
 
-- Standards settings are normalized server-side before persistence.
-- The active version must resolve to a real version.
-- Benchmark thresholds are clamped into valid numeric ranges and `min` cannot exceed `target`.
-- Version metadata now supports `createdBy`, `createdAt`, `publishedBy`, `publishedAt`, `status`, `notes`, and `sourceVersion`.
+Current visibility behavior:
 
-## UI visibility and route gating
+- default runtime visibility is `institution`
+- `restricted` is represented in the model but not yet expanded into a broader end-user workflow
 
-- Dashboard navigation is permission-driven and only shows sections the current role can actually reach.
-- Direct dashboard route access is gated client-side against the canonical permission model:
-  - `/dashboard/assessment` requires `assessments.write`
-  - `/dashboard/records` requires `assessments.read`
-  - `/dashboard/children` requires `children.read`
-  - `/dashboard/settings` requires `settings.read`
-- The UI gate is not the security boundary. API routes still enforce the real permission checks server-side.
-- Read-only roles can still view records, children, and settings where permitted, but edit, delete, restore, invite, upload, and standards-management actions remain hidden or disabled unless their permission allows them.
-- The child history surface now contains additional operational sections for:
-  - development plans
-  - governed communications
-  - support workspace
-  These still respect the same child read/write permission boundary rather than introducing separate role rules.
+Child-scoped records inherit the child boundary:
 
-## Support workspace and wellbeing workflows
+- development plans
+- communications
+- support workspace
+- consent links
+- report and export actions
 
-- Assessments now include a structured `mentalWellbeing` block used for:
-  - baseline vs follow-up mental-skills comparisons
-  - mood / stress / readiness check-ins
-  - sleep / fatigue / soreness recovery interpretation
-  - concern-signal escalation prompts
-- The child support workspace adds:
-  - caregiver education and pledge tracking
-  - coach guidance tracking
-  - micro-learning reflections
-  - referral workflow entries
-  - evidence-journal entries
-- These workflows inherit child access rules:
-  - readers can inspect the data when they can read the child
-  - only writers can mutate the data
+## UI route gating
 
-## Audit and governance
+Dashboard navigation is permission-driven and hides sections the user cannot use.
 
-- Sensitive mutations are written to the persistent audit log, including:
-  - child create, update, delete, and restore
-  - assessment create, update, delete, and restore
-  - user access changes and deletions
-  - invite sends
-  - settings updates
-  - evidence media uploads
-  - PDF report exports
-  - support workspace saves
-- Media upload is governed server-side:
-  - the upload route checks stored child or assessment photo consent when a target record is provided
-  - otherwise it requires explicit consent assertion from the current assessment workflow
-- Audit review is exposed in dashboard settings for admin users only.
+Current protected route expectations:
+
+- `/dashboard/assessment` requires assessment write access
+- `/dashboard/children` requires child read access
+- `/dashboard/records` requires assessment read access
+- `/dashboard/settings` requires settings read access
+
+UI gating is not the security boundary. API routes still enforce authorization server-side.
+
+## Public routes
+
+These routes remain public even when `KIDEX_ENFORCE_AUTH=true`:
+
+- landing page
+- legal pages
+- SSO auth routes
+- Google OAuth invite routes
+- public consent-review route and API
+
+## Consent and export governance
+
+Consent is enforced as structured policy rather than only booleans.
+
+Current governed consent domains:
+
+- `mediaCapture`
+- `familyReport`
+- `dataSharing`
+- `publicity`
+
+Current enforcement points:
+
+- media upload requires active media consent
+- family PDF export requires active family-report consent
+- professional export requires active data-sharing consent
+- assessment records snapshot consent state at the time of record creation/update
+
+## Standards and scoring governance
+
+Only admins can mutate standards and formula configuration.
+
+Current standards model supports:
+
+- active version
+- multiple versions
+- benchmark variants
+- age-band thresholds
+- formula weights
+- publish metadata
+- source-version traceability
+
+Standards are normalized server-side before persistence.
+
+## Reliability and interpretation context
+
+Assessment reliability is now represented explicitly in the model.
+
+Per-item scoring can include:
+
+- scorer confidence
+- observed-by context
+- observation note
+
+Downstream interpretation surfaces now reflect:
+
+- low-confidence item counts
+- missing-confidence counts
+- reliability cautions in state summaries
+- recommendation evidence markers when low-confidence items contributed
+
+## Audit model
+
+Sensitive operations are audit logged, including:
+
+- child and assessment lifecycle changes
+- user access changes
+- invite sending
+- standards and settings changes
+- communications
+- support workspace saves
+- media uploads
+- report exports
+- governance exports
+
+## Bootstrap rules
+
+If there are no users in the system, the first successful SSO user is bootstrapped as:
+
+- `admin`
+- `conductor`
+
+That preserves initial setup ability plus day-to-day practitioner capability.

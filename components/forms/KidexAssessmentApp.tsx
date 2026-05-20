@@ -15,12 +15,14 @@ import {
   SimpleGrid,
   Stack,
   Text,
+  TextInput,
   Textarea
 } from "@mantine/core";
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { sectionsForMode } from "@/lib/kidex-schema";
+import { buildAssessmentConsistencySummary, guidanceForItem } from "@/lib/assessment-consistency";
 import { defaultMentalWellbeingProfile, MENTAL_SKILL_KEYS, WELLBEING_CHECKIN_KEYS, WELLBEING_GOAL_MODULES, WELLBEING_PERSPECTIVES, type MentalSkillKey, type WellbeingCheckInKey, type WellbeingGoalModuleKey, type WellbeingPerspectiveKey } from "@/lib/mental-wellbeing";
 import { computeAssessment } from "@/lib/scoring";
 import { calculateAgeGroup } from "@/lib/utils/age";
@@ -146,6 +148,7 @@ export function KidexAssessmentApp() {
 
   const sections = sectionsForMode(assessment.mode);
   const computed = useMemo(() => computeAssessment(assessment), [assessment]);
+  const consistencySummary = useMemo(() => buildAssessmentConsistencySummary(assessment, sections, ts), [assessment, sections, ts]);
   const standard = getStandardForAgeGroup(assessment.child.ageGroup);
   const conductorOptions = useMemo(() => conductors.map((name) => ({ id: name, name })), [conductors]);
   const observerOptions = useMemo(() => observers.map((name) => ({ id: name, name })), [observers]);
@@ -337,6 +340,11 @@ export function KidexAssessmentApp() {
   }
 
   async function saveAssessment() {
+    if (consistencySummary.lowConfidenceWithoutNote.length > 0) {
+      setSaveState("error");
+      setMessage(`Add an observation note for low-confidence items before saving: ${consistencySummary.lowConfidenceWithoutNote.slice(0, 3).join(", ")}.`);
+      return;
+    }
     setSaveState("saving");
     setMessage("");
     const url = recordId ? `/api/assessments/${recordId}` : "/api/assessments";
@@ -547,6 +555,28 @@ export function KidexAssessmentApp() {
         <MetricCard label={ts("mental")} value={formatScore(computed.mentalAverage)} target={standard?.mental.target} />
         <MetricCard label="SKI" value={formatScore(computed.ski)} target={standard?.ski.target} />
       </SimpleGrid>
+
+      <SectionCard title="Assessment Consistency">
+        <Stack gap="sm">
+          <SimpleGrid cols={{ base: 2, md: 5 }} spacing="md">
+            <MetricCard label="Scored items" value={`${consistencySummary.scoredCount}`} />
+            <MetricCard label="High confidence" value={`${consistencySummary.highConfidenceCount}`} />
+            <MetricCard label="Medium confidence" value={`${consistencySummary.mediumConfidenceCount}`} />
+            <MetricCard label="Low confidence" value={`${consistencySummary.lowConfidenceCount}`} />
+            <MetricCard label="Missing confidence" value={`${consistencySummary.missingConfidenceCount}`} />
+          </SimpleGrid>
+          <Text size="sm" c="dimmed">
+            Score the most typical repeated pattern, not the best or worst isolated moment. If you are unsure, mark confidence honestly and explain what limited the observation.
+          </Text>
+          {consistencySummary.lowConfidenceCount > 0 ? (
+            <Alert color="yellow" title="Low-confidence scoring is visible downstream">
+              <Text size="sm">
+                {consistencySummary.lowConfidenceItems.join(", ")} {consistencySummary.lowConfidenceItems.length === 1 ? "was" : "were"} marked low-confidence. Current summaries and recommendations will treat those items with caution.
+              </Text>
+            </Alert>
+          ) : null}
+        </Stack>
+      </SectionCard>
 
       <Stack gap="xl" id="setup">
         <SectionCard title={t("setupTitle")}>
@@ -772,6 +802,7 @@ export function KidexAssessmentApp() {
           <Stack gap="md">
             {section.items.map((item, itemIndex) => {
               const entry = assessment.scores[item.key];
+              const guidance = guidanceForItem(item);
               return (
                 <Paper
                   key={item.key}
@@ -791,6 +822,19 @@ export function KidexAssessmentApp() {
                         <Text size="sm" c="dimmed">
                           {ts(`${item.key}.prompt`)}
                         </Text>
+                        <Paper withBorder p="xs" mt="xs" radius="md">
+                          <Stack gap={6}>
+                            <Text size="sm"><strong>Look for:</strong> {guidance.lookFor}</Text>
+                            <Group gap="xs" wrap="wrap">
+                              {guidance.scoreAnchors.map((anchor) => (
+                                <Badge key={anchor.label} variant="light" color="gray">
+                                  {anchor.label}: {anchor.description}
+                                </Badge>
+                              ))}
+                            </Group>
+                            <Text size="sm" c="dimmed">{guidance.driftPrompt}</Text>
+                          </Stack>
+                        </Paper>
                       </Box>
                       <Group gap={6} wrap="wrap" justify="flex-end">
                         {[1, 2, 3, 4, 5, 6].map((n) => {
@@ -800,7 +844,10 @@ export function KidexAssessmentApp() {
                               key={n}
                               variant={selected ? "filled" : "default"}
                               color={selected ? "kidex" : "gray"}
-                              onClick={() => updateScore(item.key, { score: selected ? "" : n })}
+                              onClick={() => updateScore(item.key, {
+                                score: selected ? "" : n,
+                                confidence: selected ? entry?.confidence : (entry?.confidence || "medium"),
+                              })}
                               style={{
                                 width: 42,
                                 height: 42,
@@ -814,10 +861,31 @@ export function KidexAssessmentApp() {
                         })}
                       </Group>
                     </Group>
+                    <SimpleGrid cols={{ base: 1, md: 2 }} spacing="sm">
+                      <Select
+                        label="Scoring confidence"
+                        value={entry?.confidence || ""}
+                        data={[
+                          { value: "low", label: "Low confidence" },
+                          { value: "medium", label: "Medium confidence" },
+                          { value: "high", label: "High confidence" },
+                        ]}
+                        onChange={(value) => updateScore(item.key, { confidence: (value as ScoreEntry["confidence"]) || undefined })}
+                        placeholder="Select confidence"
+                        disabled={typeof entry?.score !== "number"}
+                        clearable
+                      />
+                      <TextInput
+                        label="Observed by"
+                        value={entry?.observer || ""}
+                        onChange={(e) => updateScore(item.key, { observer: e.currentTarget.value })}
+                        placeholder={assessment.session.conductor || "Observer or conductor"}
+                      />
+                    </SimpleGrid>
                     <Textarea
                       value={entry?.note || ""}
                       onChange={(e) => updateScore(item.key, { note: e.target.value })}
-                      placeholder={t("observationNote")}
+                      placeholder={entry?.confidence === "low" ? "Explain what limited scoring confidence or what needs another observation cycle." : t("observationNote")}
                       minRows={2}
                       variant="default"
                       size="sm"

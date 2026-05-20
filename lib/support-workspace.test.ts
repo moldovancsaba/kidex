@@ -21,6 +21,13 @@ const recommendationSummary: RecommendationSummary = {
   readinessStatus: "developing",
   standardsVersionUsed: "v1",
   standardsVariantUsed: "general",
+  confidenceContext: {
+    lowConfidenceCount: 1,
+    mediumConfidenceCount: 4,
+    highConfidenceCount: 3,
+    missingConfidenceCount: 0,
+    lowConfidenceItems: ["Focus"],
+  },
   mentalWellbeing: {
     phase: "follow_up",
     mentalSkillsAverage: 2.9,

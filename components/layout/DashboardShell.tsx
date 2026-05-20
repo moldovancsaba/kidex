@@ -200,7 +200,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
           }
         }}
       >
-        <AppShell.Navbar visibleFrom="md" p={0}>
+        <AppShell.Navbar visibleFrom="md" p={0} className="no-print">
           {navContent}
         </AppShell.Navbar>
 
@@ -210,6 +210,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
             onClick={() => setMobileOpen((v) => !v)}
             size="sm"
             hiddenFrom="md"
+            className="no-print"
             style={{ position: "fixed", top: 10, left: 10, zIndex: 300 }}
             color={KIDEX_COLORS.navText}
             bg={KIDEX_COLORS.white}

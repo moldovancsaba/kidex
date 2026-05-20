@@ -1,20 +1,44 @@
-# KIDEX Definition of Done (DoD)
+# KIDEX Definition of Done
 
-## 1. Build Quality
-- [ ] `npm run build` must complete without any errors.
-- [ ] `npm run build` must complete without any warnings (linting, deprecations, or obsolescence).
-- [ ] Node.js version must be pinned to `22.x` in `package.json`.
+This DoD is for product and platform changes in the current repository.
 
-## 2. Technical Standards
-- [ ] **Async Params**: `params` and `searchParams` in layouts and pages must be treated as Promises.
-- [ ] **i18n Routing**: Use the current `createNavigation` and `defineRouting` API from `next-intl`.
+## Verification
 
-## 3. Communication Style
-- [ ] **Factual Reporting**: Describe what was changed without using hyperbolic words (e.g., avoid "robust", "reliable", "state-of-the-art").
-- [ ] **Tested Claims**: Only claim something works if it has been verified via a successful build or manual test.
-- [ ] **Concise Summary**: Keep summaries brief and technical.
+Required before closing implementation work unless a constraint is explicitly documented:
 
-## 4. UI & i18n
-- [ ] All user-facing strings must be in `/messages`.
-- [ ] No technical jargon in the UI.
-- [ ] UI must follow the design system documented in `docs/design-system.md`.
+- `npm test`
+- `npm run lint`
+- `npm run build`
+- `npm run typecheck`
+
+If one check cannot be completed, the reason must be stated explicitly.
+
+## Build and runtime expectations
+
+- the app must build successfully
+- the relevant route or workflow must still render after the change
+- auth, consent, and export constraints must not be bypassed accidentally
+
+## Data and governance expectations
+
+- new persisted data must be validated
+- sensitive actions must remain permission-checked
+- if the change affects a governed workflow, audit behavior must be preserved or extended deliberately
+- if the change affects reporting or interpretation, family-safe wording must remain separate from practitioner wording where needed
+
+## UI expectations
+
+- all new user-facing strings must live in `messages/*`
+- new UI should reuse the shared Mantine-based design system
+- workflow additions should avoid unnecessary friction, especially inside assessment and child-history surfaces
+
+## Documentation expectations
+
+- update docs when behavior, routes, env vars, permissions, or major workflows change
+- keep README and the affected docs aligned with the shipped code, not roadmap assumptions
+
+## Communication expectations
+
+- describe what changed factually
+- only claim something works when it was actually verified
+- mention known residual risks or repository quirks when relevant

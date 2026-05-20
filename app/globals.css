@@ -1,4 +1,4 @@
-/* Brand tokens (optional hooks for non-MUI surfaces / future use) */
+/* Brand tokens for shared non-component styling and future extensions. */
 :root {
   --brand-navy: #3d3f4d;
   --brand-teal: #13a59e;
@@ -98,15 +98,6 @@ html[dir="rtl"] .recharts-tooltip-wrapper {
     display: block !important;
   }
 
-  .MuiDrawer-root,
-  .MuiDrawer-docked {
-    display: none !important;
-  }
-
-  .MuiAppBar-root {
-    display: none !important;
-  }
-
   .dashboard-main {
     width: 100% !important;
     max-width: none !important;
@@ -139,23 +130,31 @@ html[dir="rtl"] .recharts-tooltip-wrapper {
     padding: 0 !important;
   }
 
-  .print-container .MuiPaper-root {
+  .print-container [data-with-border] {
     box-shadow: none !important;
     border-color: #d2d7e0 !important;
     border-radius: 6px !important;
   }
 
-  .print-container .MuiCard-root,
-  .print-container .MuiPaper-root,
-  .print-container .MuiTableContainer-root {
+  .print-container [data-with-border],
+  .print-container table,
+  .print-container svg {
     break-inside: avoid;
     margin-bottom: 6px !important;
   }
 
-  .print-container .MuiTableCell-root {
+  .print-container table {
+    width: 100%;
+    table-layout: fixed;
+    border-collapse: collapse;
+  }
+
+  .print-container th,
+  .print-container td {
     border-color: #d7dce5 !important;
     padding: 6px 8px !important;
     font-size: 10pt !important;
+    vertical-align: top;
   }
 
   .print-report-header {
@@ -165,32 +164,31 @@ html[dir="rtl"] .recharts-tooltip-wrapper {
     border-bottom: 2px solid #3d3f4d !important;
   }
 
-  .print-report-header .MuiTypography-h4 {
+  .print-report-header h1,
+  .print-report-header h2,
+  .print-report-header h3 {
     font-size: 18pt !important;
     line-height: 1.2 !important;
     margin: 0 0 2px 0 !important;
   }
 
-  .print-report-header .MuiTypography-body1 {
+  .print-report-header p,
+  .print-report-header span {
     font-size: 10.5pt !important;
   }
 
-  .print-container .MuiTypography-h5,
-  .print-container .MuiTypography-h6,
-  .print-container .MuiTypography-subtitle1,
-  .print-container .MuiCardHeader-title {
+  .print-container h4,
+  .print-container h5,
+  .print-container h6 {
     font-size: 12pt !important;
     line-height: 1.25 !important;
   }
 
-  .print-container .MuiTypography-body2,
-  .print-container .MuiTypography-caption {
+  .print-container p,
+  .print-container li,
+  .print-container small {
     font-size: 10pt !important;
     line-height: 1.35 !important;
-  }
-
-  .print-container .MuiStack-root {
-    gap: 6px !important;
   }
 
   .print-metrics-grid {
@@ -200,7 +198,7 @@ html[dir="rtl"] .recharts-tooltip-wrapper {
     margin-bottom: 8px !important;
   }
 
-  .print-metrics-grid .MuiPaper-root {
+  .print-metrics-grid > * {
     min-width: 0 !important;
     padding: 8px !important;
   }
@@ -227,16 +225,8 @@ html[dir="rtl"] .recharts-tooltip-wrapper {
     height: 56px !important;
   }
 
-  .print-container .MuiCardHeader-root,
-  .print-container .MuiCardContent-root {
-    padding: 8px !important;
-  }
-
-  .print-container .MuiTable-root {
-    table-layout: fixed;
-  }
-
-  .print-container .MuiTableCell-root:nth-child(2) {
+  .print-container th:nth-child(2),
+  .print-container td:nth-child(2) {
     width: 64px !important;
   }
 

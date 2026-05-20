@@ -1,55 +1,62 @@
 # KIDEX Role Taxonomy
 
-This document is the canonical role policy for the current KIDEX application.
+This document defines the canonical role model for the current runtime.
 
-## Current active runtime roles
+## Active runtime roles
 
-These roles are implemented in the product today and can be assigned to users:
+These roles are accepted by the product today:
 
 | Role | Scope | Purpose |
 | --- | --- | --- |
-| `admin` | platform | Global administrator for configuration, user access, and high-sensitivity operations. |
-| `conductor` | assessment | Primary practitioner who creates, updates, and manages child development records and assessments. |
-| `observer` | assessment | Read-oriented practitioner role used for review, history lookup, and limited collaboration. |
+| `admin` | platform | configuration, governance, standards, user access, audit, and high-sensitivity actions |
+| `conductor` | institution / practitioner | creates and manages children, assessments, plans, support, and governed communications within allowed scope |
+| `observer` | institution / reviewer | read-oriented access for review, history lookup, and report visibility without mutation powers |
 
 ## Reserved future roles
 
-These roles are part of the platform direction but are **not assignable in the current runtime**:
+These are documented directionally but are not active runtime roles:
 
-| Role | Scope | Purpose |
-| --- | --- | --- |
-| `institution_admin` | institution | Future organization-scoped administrator for local membership and visibility governance. |
-| `reviewer` | assessment | Future specialist reviewer for structured quality review without broad system administration. |
-| `guardian_viewer` | family | Future family-facing read-limited access role. |
-| `auditor` | oversight | Future compliance and audit review role. |
-
-## Extension policy
-
-New roles must not be added casually. A new role is justified only if at least one of the following is true:
-
-- a user group needs a materially different permission boundary that cannot be expressed safely with the current roles
-- a role needs a different scope of ownership, such as institution-scoped versus platform-scoped
-- a role exists primarily for governance, review, or family access and should not inherit practitioner powers
-
-Before a new role moves from reserved to active, KIDEX must define:
-
-1. The role's scope of authority.
-2. The child, assessment, media, report, benchmark, and export actions it may perform.
-3. The server-side authorization behavior for those actions.
-4. The UI visibility and route-gating behavior for that role.
-5. The audit requirements for sensitive actions performed by that role.
+| Role | Purpose |
+| --- | --- |
+| `institution_admin` | future institution-scoped administration |
+| `reviewer` | future structured quality-review role |
+| `guardian_viewer` | future family-facing limited account type |
+| `auditor` | future compliance-focused oversight role |
 
 ## Guardrails
 
-- Current runtime persistence accepts only active runtime roles.
-- Reserved roles may appear in roadmap and design documents, but they must not be silently accepted into stored user data.
-- Header-based role parsing must normalize and reject unknown or reserved values until those roles are explicitly activated.
+- only active runtime roles are accepted into stored user data
+- reserved roles must not be persisted or granted implicitly
+- header parsing normalizes active roles and rejects unknown or reserved ones
 
-## Bootstrap policy
+## Bootstrap rule
 
-If the system has no users, the first authenticated user is bootstrapped with:
+If the system has no users at all, the first successful SSO login is bootstrapped with:
 
 - `admin`
 - `conductor`
 
-This preserves both platform setup ability and day-to-day practitioner capability for the initial operator.
+This preserves both initial setup ability and day-to-day practitioner capability.
+
+## When a new role is justified
+
+A new role should only move from reserved to active when KIDEX needs a materially different boundary for:
+
+- ownership scope
+- child or assessment visibility
+- standards, export, or governance actions
+- family-facing access
+- review or compliance duties
+
+Before activation, define:
+
+1. scope of authority
+2. permission matrix
+3. API enforcement behavior
+4. dashboard visibility and route gating
+5. audit requirements
+
+## Related documents
+
+- [Access Model](./access-model.md)
+- [API Reference](./api.md)

@@ -1,32 +1,44 @@
 # Legal and Company Information
 
-This app includes localized legal pages available under the dashboard:
+KIDEX currently exposes localized public legal pages at:
 
-- `/{locale}/dashboard/legal/gtc`
-- `/{locale}/dashboard/legal/privacy`
+- `/{locale}/legal/gtc`
+- `/{locale}/legal/privacy`
 
-Supported locales currently include `hu`, `en`, and `ar`.
+Supported locales:
 
-## Default company profile
+- `en`
+- `hu`
+- `ar`
 
-These are the current default values seeded in settings and used until modified in Dashboard Settings.
+These routes are public even when dashboard auth enforcement is enabled.
 
-- **Name:** KIDEX s.r.o.
-- **ID-No. (IČO):** 57474869
-- **Registered:** 19.02.2026
-- **Legal form:** Limited Liability Company
-- **Address:** Želiarsky svah 29, Štúrovo, Slovakia 943 01
-- **Share capital:** EUR 5 000
-- **VAT No.:** SK2122770606
-- **Website:** https://kidex.eu
+## Company profile source
 
-## App version and company profile source
+The default company profile is defined in [`services/settings-service.ts`](../services/settings-service.ts) and can be changed through dashboard settings.
 
-The app version is developer-managed in `lib/app-version.ts`.
-The company profile is managed from Dashboard Settings and persisted in global settings (`/api/settings`).
+Current seeded defaults:
 
-They are displayed in:
+- name: `KIDEX s.r.o.`
+- IČO: `57474869`
+- registered: `19.02.2026`
+- legal form: `Limited Liability Company`
+- address: `Želiarsky svah 29, Štúrovo, Slovakia 943 01`
+- share capital: `EUR 5 000`
+- VAT number: `SK2122770606`
+- website: `https://kidex.eu`
 
-- Dashboard footer
-- GTC page
-- Privacy Policy page
+## App version source
+
+The displayed app version comes from [`lib/app-version.ts`](../lib/app-version.ts).
+
+Current app version:
+
+- `0.5.0`
+
+## Where company and version data are shown
+
+- dashboard footer
+- public GTC page
+- public privacy page
+- settings-backed legal content flows

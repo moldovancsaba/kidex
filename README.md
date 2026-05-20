@@ -1,54 +1,73 @@
 # KIDEX
 
-KIDEX is a conductor-facing assessment and reporting app for recording child examination data and generating structured reports.
+KIDEX is a conductor-facing child assessment and development-intelligence platform. It helps practitioners measure a child’s current physical, mental, and social state, explain that state to families in safe language, and turn the result into practical follow-through.
 
-## Features
+## Current product scope
 
-- Rapid KRAS and Full KIDEX assessment modes
-- Bio-psycho-social weighted scoring with SKI calculation
-- Centralized child profiles with longitudinal history
-- **Professional Reporting**: Data-driven PDF exports with longitudinal "Bio-Psycho-Social Maps" and development trend analysis
-- **Chart Outcome Sentences**: Existing KPI and chart surfaces include localized, data-driven explanation sentences
-- **Persistent Audit Log**: Full modification history for assessments, including soft-delete and restore events
-- **Unified Updates**: Ability to re-open and update any existing assessment record directly in survey mode
-- Child management actions (search, edit, delete with history cleanup)
-- New survey from child profile pre-fills only child administration fields (identity context preserved via child UUID)
-- Evidence image upload and camera capture support
-- Report view with direct PDF download export
-- Dashboard analytics (KPI cards + line, pie, and radar charts)
-- Standards governance in Settings:
-  - standards version manager
-  - clone active version
-  - publish lock for versions
-  - impact preview before activation
-- Restore workflows:
-  - restore bin in Settings for children and assessments
-  - inline "Show Deleted" + typed restore confirmation on Children and Records pages
-- Localized legal pages (GTC and Privacy Policy) - Publicly accessible for Google Verification
-- Multilingual UI: Hungarian, English, Arabic (RTL)
-- **Gmail Integration**: Send invitations directly from your linked Gmail account
-- **Custom Email Templates**: Manage localized invitation subjects and HTML bodies via Settings
-- **Internal Deep Linking**: Unified navigation between children profiles, assessment records, and trend charts
+KIDEX currently includes:
+
+- rapid and full assessment workflows
+- centralized child profiles with longitudinal assessment history
+- weighted bio-psycho-social scoring with SKI calculation
+- benchmarked recommendations and standards-version-aware interpretation
+- child-state summaries for conductors and parent-facing communication
+- parent improvement guidance linked to measured support areas
+- development plans, caregiver tools, coach guidance, and micro-learning
+- family-safe and professional PDF reports
+- consent governance for media, family reports, and data sharing
+- family-linked caregivers and public consent-review links
+- governed communication logs with caregiver visibility controls
+- audit trail and governance export center
+- institution-aware access control with `admin`, `conductor`, and `observer` roles
+- dashboard analytics, watchlists, readiness trends, and support follow-through indicators
+- multilingual UI in English, Hungarian, and Arabic
+
+## Main routes
+
+- `/{locale}`: public landing page
+- `/{locale}/dashboard`: analytics dashboard
+- `/{locale}/dashboard/assessment`: assessment workflow
+- `/{locale}/dashboard/children`: child registry
+- `/{locale}/dashboard/records`: assessment registry
+- `/{locale}/dashboard/settings`: settings, governance, standards, users, and restore workflows
+- `/{locale}/consent/[token]`: public caregiver consent-review page
+- `/{locale}/legal/gtc`
+- `/{locale}/legal/privacy`
 
 ## Documentation
 
+- [Product Overview](docs/product-overview.md)
 - [API Reference](docs/api.md)
+- [Access Model](docs/access-model.md)
+- [Support Workspace](docs/support-workspace.md)
 - [Design System](docs/design-system.md)
 - [Deployment](docs/deployment.md)
+- [Role Taxonomy](docs/role-taxonomy.md)
 - [Definition of Done](docs/dod.md)
 - [Legal and Company Info](docs/legal.md)
-- [Product Roadmap](ROADMAP.md)
 
-## Software Versions
+## Runtime and package versions
 
-- Next.js: 15.1.4
-- React: 19.0.0
-- TypeScript: 5.7.3
-- MongoDB: 6.12.0
-- Node.js: >= 22
-- App: 0.5.0
+Current resolved local versions:
 
-## Local Development
+- App version: `0.5.0`
+- Node.js: `22.x`
+- Next.js: `15.5.15`
+- React: `19.2.5`
+- React DOM: `19.2.5`
+- TypeScript: `5.9.3`
+- MongoDB driver: `6.21.0`
+- Mantine Core: `8.3.6`
+- Recharts: `3.8.1`
+- next-intl: `4.9.2`
+
+Use:
+
+- `package.json` for declared dependency ranges
+- `package-lock.json` or `npm ls --depth=0` for resolved installed versions
+- `lib/app-version.ts` for the displayed app version
+
+## Local development
 
 ```bash
 cp .env.example .env.local
@@ -57,25 +76,57 @@ npm run db:setup
 npm run dev
 ```
 
-## Required Environment Variables
+Recommended verification before merge:
+
+```bash
+npm test
+npm run lint
+npm run build
+npm run typecheck
+```
+
+## Environment variables
+
+Core runtime:
 
 ```txt
 MONGODB_URI=
 MONGODB_DB=kidex
 IMGBB_API_KEY=
+AUTH_SECRET=
+KIDEX_ENFORCE_AUTH=true
+```
+
+Platform SSO login:
+
+```txt
+SSO_CLIENT_ID=
+SSO_CLIENT_SECRET=
+SSO_BASE_URL=https://sso.doneisbetter.com
+SSO_REDIRECT_URI=https://your-domain.com/api/oauth/callback
+```
+
+Optional Gmail invite delivery:
+
+```txt
 GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
 GOOGLE_REDIRECT_URI=https://your-domain.com/api/auth/google/callback
 ```
 
-## Data and privacy notes
+## Authentication model
 
-Assessment images are uploaded through a server-side endpoint (`/api/uploads/imgbb`) and only URL metadata is stored in assessment records.
+KIDEX has two separate auth integrations:
 
-Role-based API enforcement can be enabled via `KIDEX_ENFORCE_AUTH`; when enabled, protected endpoints validate `x-kidex-role`.
+- platform login uses the SSO flow under `/api/auth/login` and `/api/oauth/callback`
+- Gmail invite sending uses the Google OAuth flow under `/api/auth/google/login` and `/api/auth/google/callback`
 
-## Data lifecycle and traceability
+If `KIDEX_ENFORCE_AUTH=false`, route protection is bypassed for local or bootstrap scenarios. If it is `true`, dashboard pages and protected API routes require a valid session.
 
-- Assessments and children use soft-delete with restore support.
-- Assessment records persist `standardsVersionUsed` for reproducible historical interpretation.
-- Settings store versioned standards with active version selection.
+## Delivery and governance notes
+
+- Images are uploaded server-side through `/api/uploads/imgbb`; only attachment metadata is stored in MongoDB.
+- Assessments persist standards version and benchmark variant identifiers for reproducible historical interpretation.
+- Consent state is enforced across uploads and report exports.
+- Sensitive mutations and exports are written to the persistent audit log.
+- Invite delivery can run in Gmail mode or mock mode depending on whether an admin has linked Google access.

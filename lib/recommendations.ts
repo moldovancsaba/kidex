@@ -34,6 +34,13 @@ export interface RecommendationSummary {
   readinessStatus: RecommendationStatus;
   standardsVersionUsed?: string;
   standardsVariantUsed?: string;
+  confidenceContext: {
+    lowConfidenceCount: number;
+    mediumConfidenceCount: number;
+    highConfidenceCount: number;
+    missingConfidenceCount: number;
+    lowConfidenceItems: string[];
+  };
   mentalWellbeing: {
     phase: "baseline" | "follow_up";
     mentalSkillsAverage: number | null;
@@ -128,6 +135,16 @@ export function buildRecommendationSummary(
 
   const strengths = [...scoredItems].sort((a, b) => b.score - a.score).slice(0, 3);
   const focusAreas = [...scoredItems].sort((a, b) => a.score - b.score).slice(0, 5);
+  const confidenceContext = {
+    lowConfidenceCount: scoredItems.filter((item) => record.scores[item.key]?.confidence === "low").length,
+    mediumConfidenceCount: scoredItems.filter((item) => record.scores[item.key]?.confidence === "medium").length,
+    highConfidenceCount: scoredItems.filter((item) => record.scores[item.key]?.confidence === "high").length,
+    missingConfidenceCount: scoredItems.filter((item) => !record.scores[item.key]?.confidence).length,
+    lowConfidenceItems: scoredItems
+      .filter((item) => record.scores[item.key]?.confidence === "low")
+      .map((item) => item.label)
+      .slice(0, 5),
+  };
 
   const domains: AssessmentDomain[] = ["movement", "social", "mental"];
   const domainBenchmarks = domains.map((domain) => {
@@ -170,6 +187,14 @@ export function buildRecommendationSummary(
           detail: `${item.label} scored ${item.score}, which contributes to the ${entry.label.toLowerCase()} recommendation.`,
           strength: item.score <= 2 ? ("high" as const) : ("medium" as const),
         })),
+        ...(focusItemsForDomain.some((item) => record.scores[item.key]?.confidence === "low")
+          ? [{
+              type: "observation" as const,
+              label: "Scoring confidence",
+              detail: `At least one supporting item in ${entry.label.toLowerCase()} was marked low-confidence, so this recommendation should be confirmed in the next observed cycle.`,
+              strength: "medium" as const,
+            }]
+          : []),
         ...(baseline && entry.average !== null
           ? [{
               type: "trend" as const,
@@ -324,6 +349,7 @@ export function buildRecommendationSummary(
     readinessStatus,
     standardsVersionUsed: record.standardsVersionUsed,
     standardsVariantUsed: record.standardsVariantUsed,
+    confidenceContext,
     mentalWellbeing: {
       phase: wellbeing.phase,
       mentalSkillsAverage: wellbeing.mentalSkillsAverage,
