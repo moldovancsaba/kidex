@@ -9,7 +9,9 @@ import { Link } from "@/i18n/navigation";
 import { buildChildStateSummary } from "@/lib/child-state-summary";
 import { buildFamilyFriendlyReportSummary } from "@/lib/family-report";
 import { PdfService } from "@/lib/pdf-service";
+import { buildProgressComparisonSummary } from "@/lib/progress-comparison";
 import { buildRecommendationSummary } from "@/lib/recommendations";
+import { buildSessionFocusPriorities } from "@/lib/session-focus";
 import { getConsentAlerts, hasActiveConsent } from "@/lib/consent-policy";
 import { getUsers } from "@/services/user-service";
 import { withDisplayNamesForReport } from "@/lib/report-user-display";
@@ -92,7 +94,7 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
       );
       if (audience === "family") {
         if (!hasActiveConsent(child?.consentPolicy, "familyReport")) return;
-        await PdfService.generateFamilyReport(printableRecord, t, tc, ts, tr, recommendationSummary, plan, child, supportWorkspace, history.length);
+        await PdfService.generateFamilyReport(printableRecord, t, tc, ts, tr, recommendationSummary, plan, child, supportWorkspace, history, history.length);
       } else if (reportFormat === "map") {
         await PdfService.generateMapReport(printableRecord, t, tc, ts, tr, history, recommendationSummary);
       } else {
@@ -193,10 +195,23 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
     ts,
   );
   const childStateSummary = buildChildStateSummary(record, recommendationSummary, history.length);
+  const progressSummary = buildProgressComparisonSummary({
+    record,
+    history,
+    recommendationSummary,
+    plan,
+  });
+  const sessionFocus = buildSessionFocusPriorities({
+    recommendationSummary,
+    progressSummary,
+    plan,
+    supportWorkspace,
+  });
   const supportSummary = buildSupportWorkspaceSummary(supportWorkspace);
   const familySummary = buildFamilyFriendlyReportSummary({
     record,
     recommendationSummary,
+    history,
     historyCount: history.length,
     plan,
     accessibilityProfile: child?.accessibilityProfile,
@@ -384,6 +399,96 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
             </Stack>
           </SectionCard>
 
+          <SectionCard title="Progress and Plan Effectiveness" subheader="One bounded explanation of what changed over time and whether the current support plan looks helpful yet.">
+            <Stack gap="md">
+              <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
+                <Paper withBorder p="md" radius="md">
+                  <Stack gap="xs">
+                    <Text fw={700}>{progressSummary.headline}</Text>
+                    <Text size="sm" c="dimmed">{progressSummary.conductorSummary}</Text>
+                  </Stack>
+                </Paper>
+                <Paper withBorder p="md" radius="md">
+                  <Stack gap="xs">
+                    <Group justify="space-between" align="center">
+                      <Text fw={700}>{progressSummary.planEffectiveness.label}</Text>
+                      <Badge variant="light" color={progressSummary.planEffectiveness.status === "supporting_progress" ? "teal" : progressSummary.planEffectiveness.status === "needs_adjustment" ? "red" : "yellow"}>
+                        {progressSummary.planEffectiveness.status}
+                      </Badge>
+                    </Group>
+                    <Text size="sm" c="dimmed">{progressSummary.planEffectiveness.summary}</Text>
+                  </Stack>
+                </Paper>
+              </SimpleGrid>
+              <SimpleGrid cols={{ base: 1, md: 4 }} spacing="md">
+                {progressSummary.domains.map((domain) => (
+                  <Paper key={domain.key} withBorder p="md" radius="md">
+                    <Stack gap={4}>
+                      <Group justify="space-between" align="center">
+                        <Text fw={700}>{domain.label}</Text>
+                        <Badge
+                          variant="light"
+                          color={domain.direction === "improved" ? "teal" : domain.direction === "regressed" ? "red" : domain.direction === "stable" ? "blue" : "gray"}
+                        >
+                          {domain.direction}
+                        </Badge>
+                      </Group>
+                      <Text size="sm" c="dimmed">
+                        {typeof domain.baseline === "number" && typeof domain.current === "number"
+                          ? `${formatScore(domain.baseline)} -> ${formatScore(domain.current)}`
+                          : "Not enough history"}
+                      </Text>
+                      {typeof domain.delta === "number" ? (
+                        <Text size="sm" fw={600}>
+                          Delta {domain.delta > 0 ? "+" : ""}{formatScore(domain.delta)}
+                        </Text>
+                      ) : null}
+                    </Stack>
+                  </Paper>
+                ))}
+              </SimpleGrid>
+              {progressSummary.limitations.length > 0 ? (
+                <Paper withBorder p="md" radius="md">
+                  <Text fw={700} size="sm" mb="xs">Comparison limits</Text>
+                  <Stack gap={4}>
+                    {progressSummary.limitations.map((entry) => (
+                      <Text key={entry} size="sm" c="dimmed">{entry}</Text>
+                    ))}
+                  </Stack>
+                </Paper>
+              ) : null}
+            </Stack>
+          </SectionCard>
+
+          <SectionCard title="Next Session Focus" subheader="Operational priorities for the next live conductor session, linked to the measured profile and current support plan.">
+            <Stack gap="md">
+              {sessionFocus.map((priority) => (
+                <Paper key={priority.id} withBorder p="md" radius="md">
+                  <Stack gap="xs">
+                    <Group justify="space-between" align="center">
+                      <Text fw={700}>{priority.title}</Text>
+                      <Badge variant="light" color={priority.urgency === "high" ? "red" : priority.urgency === "medium" ? "orange" : "teal"}>
+                        {priority.urgency}
+                      </Badge>
+                    </Group>
+                    <Text size="sm">{priority.whyNow}</Text>
+                    <Stack gap={4}>
+                      {priority.sessionActions.map((action) => (
+                        <Text key={action} size="sm" c="dimmed">• {action}</Text>
+                      ))}
+                    </Stack>
+                    {priority.linkedPlanAssignments.length > 0 ? (
+                      <Text size="sm" c="dimmed">Linked plan: {priority.linkedPlanAssignments.join(", ")}</Text>
+                    ) : null}
+                    {priority.linkedSupport.length > 0 ? (
+                      <Text size="sm" c="dimmed">Linked support: {priority.linkedSupport.join(", ")}</Text>
+                    ) : null}
+                  </Stack>
+                </Paper>
+              ))}
+            </Stack>
+          </SectionCard>
+
           <SectionCard title="Mental Wellbeing Track" subheader="This assessment includes baseline or follow-up mental-skills, recovery, readiness, and support-signal context.">
             <Stack gap="md">
               <Text size="sm" c="dimmed">
@@ -473,6 +578,11 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
               <Paper withBorder p="sm">
                 <Text fw={700}>{tr("familyHeadline")}</Text>
                 <Text size="sm" c="dimmed">{familySummary.currentStateSummary}</Text>
+              </Paper>
+              <Paper withBorder p="sm">
+                <Text fw={700}>{familySummary.progressHeadline}</Text>
+                <Text size="sm" c="dimmed">{familySummary.progressSummary}</Text>
+                <Text size="sm" c="dimmed" mt="xs">{familySummary.planEffectivenessSummary}</Text>
               </Paper>
               {familySummary.parentGuidance.map((guidance) => (
                 <Paper key={guidance.id} withBorder p="sm">

@@ -2,7 +2,9 @@ import type { ChildProfile } from "@/repositories/child.repository";
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import type { DevelopmentPlan } from "@/lib/development-plans";
+import { buildProgressComparisonSummary } from "@/lib/progress-comparison";
 import type { RecommendationSummary } from "@/lib/recommendations";
+import { buildSessionFocusPriorities } from "@/lib/session-focus";
 import type { ChildSupportWorkspace } from "@/lib/support-workspace";
 import type { AssessmentRecord } from "@/types/assessment";
 import { formatScore } from "./utils";
@@ -141,6 +143,7 @@ export const PdfService = {
     plan?: DevelopmentPlan | null,
     childProfile?: ChildProfile | null,
     supportWorkspace?: ChildSupportWorkspace | null,
+    history: AssessmentRecord[] = [record],
     historyCount = 1,
   ): Promise<void> {
     const doc = new jsPDF({ unit: "mm", format: "a4" }) as JsPDFWithAutoTable;
@@ -150,6 +153,7 @@ export const PdfService = {
     const summary = buildFamilyFriendlyReportSummary({
       record,
       recommendationSummary,
+      history,
       historyCount,
       plan,
       accessibilityProfile: childProfile?.accessibilityProfile,
@@ -204,6 +208,19 @@ export const PdfService = {
     const confidenceLines = doc.splitTextToSize(summary.currentStateConfidence, 165);
     doc.text(confidenceLines, 24, y + 2);
     y += confidenceLines.length * 5 + 8;
+    doc.setFontSize(14);
+    doc.text("Change over time", 20, y);
+    y += 8;
+    doc.setFontSize(12);
+    doc.text(summary.progressHeadline, 20, y);
+    y += 8;
+    doc.setFontSize(11);
+    const progressLines = doc.splitTextToSize(summary.progressSummary, 170);
+    doc.text(progressLines, 20, y);
+    y += progressLines.length * 5 + 4;
+    const planEffectivenessLines = doc.splitTextToSize(summary.planEffectivenessSummary, 165);
+    doc.text(planEffectivenessLines, 24, y);
+    y += planEffectivenessLines.length * 5 + 8;
     doc.setFontSize(14);
     doc.text(tr("familyRecommendationsTitle"), 20, y);
     y += 10;
@@ -531,6 +548,19 @@ export const PdfService = {
     doc.text(tr("recommendationsIntro"), 20, 50);
     
     const recs = recommendationSummary?.recommendations || [];
+    const progressSummary = recommendationSummary
+      ? buildProgressComparisonSummary({
+          record,
+          history: history.length > 0 ? history : [record],
+          recommendationSummary,
+        })
+      : null;
+    const sessionFocus = recommendationSummary && progressSummary
+      ? buildSessionFocusPriorities({
+          recommendationSummary,
+          progressSummary,
+        })
+      : [];
     
     let y = 65;
     if (recs.length > 0) {
@@ -563,11 +593,29 @@ export const PdfService = {
     doc.line(20, y + 3, 190, y + 3);
     doc.setFontSize(11);
     doc.setFont("ArialUnicode", "normal");
-    const prioritiesLines = doc.splitTextToSize(record.notes.adaptations || tr("noDevelopmentPriorities"), 170);
+    const prioritiesSource = sessionFocus.length > 0
+      ? sessionFocus.map((priority) => `${priority.title}: ${priority.whyNow}`).join(" ")
+      : progressSummary
+        ? `${progressSummary.headline}. ${progressSummary.conductorSummary}`
+        : record.notes.adaptations || tr("noDevelopmentPriorities");
+    const prioritiesLines = doc.splitTextToSize(prioritiesSource, 170);
     const prioritiesStartY = y + 13;
     doc.text(prioritiesLines, 20, prioritiesStartY);
     const prioritiesHeight = prioritiesLines.length * 5;
-    let signatureTitleY = prioritiesStartY + prioritiesHeight + 12;
+    let prioritiesBottomY = prioritiesStartY + prioritiesHeight;
+    if (sessionFocus.length > 0) {
+      let focusY = prioritiesBottomY + 8;
+      sessionFocus.forEach((priority) => {
+        const titleLines = doc.splitTextToSize(`• ${priority.title}`, 165);
+        doc.text(titleLines, 24, focusY);
+        focusY += titleLines.length * 5;
+        const actionLines = doc.splitTextToSize(priority.sessionActions[0] || "", 158);
+        doc.text(actionLines, 28, focusY);
+        focusY += actionLines.length * 5 + 2;
+      });
+      prioritiesBottomY = focusY;
+    }
+    let signatureTitleY = prioritiesBottomY + 12;
 
     // If content gets too long, move final evaluation block to a clean new page.
     if (signatureTitleY > 175) {

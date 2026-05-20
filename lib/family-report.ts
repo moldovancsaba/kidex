@@ -2,6 +2,7 @@ import type { ChildAccessibilityProfile } from "@/lib/accessibility-profile";
 import { buildChildStateSummary, type ChildStateDomainSummary } from "@/lib/child-state-summary";
 import type { DevelopmentPlan } from "@/lib/development-plans";
 import { buildParentImprovementGuidance, type ParentImprovementGuidance } from "@/lib/parent-guidance";
+import { buildProgressComparisonSummary } from "@/lib/progress-comparison";
 import type { RecommendationSummary } from "@/lib/recommendations";
 import type { ChildSupportWorkspace } from "@/lib/support-workspace";
 import type { AssessmentRecord } from "@/types/assessment";
@@ -19,6 +20,9 @@ export interface FamilyFriendlyReportSummary {
   currentStateSummary: string;
   currentStateDomains: ChildStateDomainSummary[];
   currentStateConfidence: string;
+  progressHeadline: string;
+  progressSummary: string;
+  planEffectivenessSummary: string;
   parentGuidance: ParentImprovementGuidance[];
   recommendations: FamilyFriendlyRecommendation[];
   nextSteps: string[];
@@ -63,14 +67,21 @@ function accommodationLabel(value: string): string {
 export function buildFamilyFriendlyReportSummary(input: {
   record: AssessmentRecord;
   recommendationSummary: RecommendationSummary;
+  history?: AssessmentRecord[];
   historyCount?: number;
   plan?: DevelopmentPlan | null;
   accessibilityProfile?: ChildAccessibilityProfile | null;
   supportWorkspace?: ChildSupportWorkspace | null;
 }): FamilyFriendlyReportSummary {
-  const { record, recommendationSummary, historyCount = 1, plan, accessibilityProfile, supportWorkspace } = input;
+  const { record, recommendationSummary, history = [record], historyCount = history.length, plan, accessibilityProfile, supportWorkspace } = input;
   const simplifiedFamilyView = accessibilityProfile?.familyViewMode === "simplified";
   const childStateSummary = buildChildStateSummary(record, recommendationSummary, historyCount);
+  const progressSummary = buildProgressComparisonSummary({
+    record,
+    history,
+    recommendationSummary,
+    plan,
+  });
   const parentGuidance = buildParentImprovementGuidance({ recommendationSummary, plan, supportWorkspace });
   const recommendations = recommendationSummary.recommendations.slice(0, 3).map((recommendation) => ({
     title: recommendation.title,
@@ -121,6 +132,9 @@ export function buildFamilyFriendlyReportSummary(input: {
       : childStateSummary.confidence === "medium"
         ? "This picture is useful, but the next follow-up will help confirm the pattern."
         : "Parts of this picture are still incomplete, so the next follow-up is important before drawing strong conclusions.",
+    progressHeadline: progressSummary.headline,
+    progressSummary: progressSummary.parentSummary,
+    planEffectivenessSummary: progressSummary.planEffectiveness.summary,
     parentGuidance,
     recommendations,
     nextSteps,

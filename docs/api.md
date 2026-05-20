@@ -252,7 +252,9 @@ The current downstream interpretation stack includes:
 - standards-version-aware recommendations
 - benchmark variant awareness
 - child-state summary
+- progress comparison and plan-effectiveness explanation
 - parent improvement guidance
+- next-session conductor focus priorities
 - confidence / reliability context
 - development-plan and support-workspace linkage
 

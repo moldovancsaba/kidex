@@ -9,6 +9,7 @@ import { PolarAngleAxis, PolarGrid, PolarRadiusAxis, Radar, RadarChart, Responsi
 import { PageHeader } from "@/components/ui/PageHeader";
 import { buildChildStateSummary } from "@/lib/child-state-summary";
 import { buildFamilyFriendlyReportSummary } from "@/lib/family-report";
+import { buildProgressComparisonSummary } from "@/lib/progress-comparison";
 import { rapidSections } from "@/lib/kidex-schema";
 import { calculateTrend } from "@/lib/utils/trends";
 import { formatScore } from "@/lib/utils";
@@ -23,6 +24,7 @@ import { BenchmarkChart } from "@/components/analytics/BenchmarkChart";
 import { SparklineChart } from "@/components/analytics/SparklineChart";
 import { canPerformAction } from "@/lib/permissions";
 import { buildRecommendationSummary } from "@/lib/recommendations";
+import { buildSessionFocusPriorities } from "@/lib/session-focus";
 import { buildSuggestedDevelopmentPlan, type DevelopmentPlan } from "@/lib/development-plans";
 import { getConsentAlerts, hasActiveConsent } from "@/lib/consent-policy";
 import { getStandardForAssessment } from "@/lib/standards";
@@ -198,6 +200,14 @@ export default function ChildHistoryPage({ params }: { params: Promise<{ id: str
   const childStateSummary = latest && recommendationSummary
     ? buildChildStateSummary(latest, recommendationSummary, data?.assessments.length || 0)
     : null;
+  const progressSummary = latest && recommendationSummary
+    ? buildProgressComparisonSummary({
+        record: latest,
+        history: data?.assessments || [latest],
+        recommendationSummary,
+        plan,
+      })
+    : null;
   const caregiverOptions = (data?.child.caregivers || [])
     .filter((caregiver) => caregiver.status === "active")
     .map((caregiver) => ({ value: caregiver.id, label: caregiver.name }));
@@ -214,12 +224,21 @@ export default function ChildHistoryPage({ params }: { params: Promise<{ id: str
     ? buildFamilyFriendlyReportSummary({
         record: latest,
         recommendationSummary,
+        history: data?.assessments || [latest],
         historyCount: data?.assessments.length || 0,
         plan,
         accessibilityProfile: data?.child.accessibilityProfile,
         supportWorkspace: effectiveSupportWorkspace,
       })
     : null;
+  const sessionFocus = recommendationSummary && progressSummary
+    ? buildSessionFocusPriorities({
+        recommendationSummary,
+        progressSummary,
+        plan,
+        supportWorkspace: effectiveSupportWorkspace,
+      })
+    : [];
   const supportSummary = buildSupportWorkspaceSummary(effectiveSupportWorkspace);
 
   if (loading) {
@@ -521,7 +540,7 @@ export default function ChildHistoryPage({ params }: { params: Promise<{ id: str
                 try {
                   const users = await getUsers();
                   const printableRecord = withDisplayNamesForReport(latest, users);
-                  await PdfService.generateFamilyReport(printableRecord, t, tc, ts, tr, recommendationSummary, plan, data.child, effectiveSupportWorkspace, data.assessments.length);
+                  await PdfService.generateFamilyReport(printableRecord, t, tc, ts, tr, recommendationSummary, plan, data.child, effectiveSupportWorkspace, data.assessments, data.assessments.length);
                 } finally {
                   setDownloadingPdf(false);
                 }
@@ -805,6 +824,69 @@ export default function ChildHistoryPage({ params }: { params: Promise<{ id: str
         </SectionCard>
       ) : null}
 
+      {progressSummary ? (
+        <SectionCard title="Progress and Plan Effectiveness" subheader="A bounded explanation of what changed over time and whether the current plan looks helpful yet.">
+          <Stack gap="md">
+            <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
+              <Paper withBorder p="md" radius="md">
+                <Stack gap="xs">
+                  <Text fw={700}>{progressSummary.headline}</Text>
+                  <Text size="sm" c="dimmed">{progressSummary.conductorSummary}</Text>
+                </Stack>
+              </Paper>
+              <Paper withBorder p="md" radius="md">
+                <Stack gap="xs">
+                  <Group justify="space-between" align="center">
+                    <Text fw={700}>{progressSummary.planEffectiveness.label}</Text>
+                    <Badge variant="light" color={progressSummary.planEffectiveness.status === "supporting_progress" ? "teal" : progressSummary.planEffectiveness.status === "needs_adjustment" ? "red" : "yellow"}>
+                      {progressSummary.planEffectiveness.status}
+                    </Badge>
+                  </Group>
+                  <Text size="sm" c="dimmed">{progressSummary.planEffectiveness.summary}</Text>
+                </Stack>
+              </Paper>
+            </SimpleGrid>
+            <SimpleGrid cols={{ base: 1, md: 4 }} spacing="md">
+              {progressSummary.domains.map((domain) => (
+                <Paper key={domain.key} withBorder p="md" radius="md">
+                  <Stack gap={4}>
+                    <Group justify="space-between" align="center">
+                      <Text fw={700}>{domain.label}</Text>
+                      <Badge
+                        variant="light"
+                        color={domain.direction === "improved" ? "teal" : domain.direction === "regressed" ? "red" : domain.direction === "stable" ? "blue" : "gray"}
+                      >
+                        {domain.direction}
+                      </Badge>
+                    </Group>
+                    <Text size="sm" c="dimmed">
+                      {typeof domain.baseline === "number" && typeof domain.current === "number"
+                        ? `${formatScore(domain.baseline)} -> ${formatScore(domain.current)}`
+                        : "Not enough history"}
+                    </Text>
+                    {typeof domain.delta === "number" ? (
+                      <Text size="sm" fw={600}>
+                        Delta {domain.delta > 0 ? "+" : ""}{formatScore(domain.delta)}
+                      </Text>
+                    ) : null}
+                  </Stack>
+                </Paper>
+              ))}
+            </SimpleGrid>
+            {progressSummary.limitations.length > 0 ? (
+              <Paper withBorder p="md" radius="md">
+                <Text fw={700} size="sm" mb="xs">Comparison limits</Text>
+                <Stack gap={4}>
+                  {progressSummary.limitations.map((entry) => (
+                    <Text key={entry} size="sm" c="dimmed">{entry}</Text>
+                  ))}
+                </Stack>
+              </Paper>
+            ) : null}
+          </Stack>
+        </SectionCard>
+      ) : null}
+
       {recommendationSummary ? (
         <SectionCard title="Mental Wellbeing Track" subheader="Baseline and follow-up mental-skills, readiness, recovery, and support signals linked to this child record.">
           <Stack gap="md">
@@ -889,6 +971,37 @@ export default function ChildHistoryPage({ params }: { params: Promise<{ id: str
                       </Text>
                     ))}
                   </Stack>
+                </Stack>
+              </Paper>
+            ))}
+          </Stack>
+        </SectionCard>
+      ) : null}
+
+      {sessionFocus.length > 0 ? (
+        <SectionCard title="Next Session Focus" subheader="Practical next-session priorities for the conductor, linked to the current measured profile.">
+          <Stack gap="md">
+            {sessionFocus.map((priority) => (
+              <Paper key={priority.id} withBorder p="md" radius="md">
+                <Stack gap="xs">
+                  <Group justify="space-between" align="center">
+                    <Text fw={700}>{priority.title}</Text>
+                    <Badge variant="light" color={priority.urgency === "high" ? "red" : priority.urgency === "medium" ? "orange" : "teal"}>
+                      {priority.urgency}
+                    </Badge>
+                  </Group>
+                  <Text size="sm">{priority.whyNow}</Text>
+                  <Stack gap={4}>
+                    {priority.sessionActions.map((action) => (
+                      <Text key={action} size="sm" c="dimmed">• {action}</Text>
+                    ))}
+                  </Stack>
+                  {priority.linkedPlanAssignments.length > 0 ? (
+                    <Text size="sm" c="dimmed">Linked plan: {priority.linkedPlanAssignments.join(", ")}</Text>
+                  ) : null}
+                  {priority.linkedSupport.length > 0 ? (
+                    <Text size="sm" c="dimmed">Linked support: {priority.linkedSupport.join(", ")}</Text>
+                  ) : null}
                 </Stack>
               </Paper>
             ))}

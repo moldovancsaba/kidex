@@ -52,8 +52,10 @@ Saved assessments produce:
 - SKI score
 - standards-version-aware recommendations
 - child-state summary
+- progress comparison and plan-effectiveness interpretation
 - confidence and reliability context
 - parent improvement guidance
+- next-session conductor focus priorities
 
 Primary surfaces:
 
@@ -131,6 +133,7 @@ Primary surface:
 ### Analytics
 
 - readiness, benchmark, and longitudinal charts
+- progress-comparison summaries
 - watchlists and risk indicators
 - support follow-through indicators
 

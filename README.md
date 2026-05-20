@@ -12,6 +12,8 @@ KIDEX currently includes:
 - benchmarked recommendations and standards-version-aware interpretation
 - child-state summaries for conductors and parent-facing communication
 - parent improvement guidance linked to measured support areas
+- progress comparison and plan-effectiveness explanation
+- next-session conductor focus priorities
 - development plans, caregiver tools, coach guidance, and micro-learning
 - family-safe and professional PDF reports
 - consent governance for media, family reports, and data sharing
