@@ -16,6 +16,8 @@ KIDEX is now a conductor-facing child assessment and development-intelligence pl
 - governed communications, audit trail, governance export, and role-based access control
 - progress comparison and plan-effectiveness explanation
 - next-session focus recommendations for conductors
+- anonymous culture/trust pulse launches with protected aggregation
+- culture-index dashboard analytics across role and scope views
 
 For the fuller current product description, use:
 
@@ -41,17 +43,20 @@ Current resolved local versions at the time of this handover:
 
 The latest completed feature delivery covered:
 
-- `#46` progress comparison and plan-effectiveness explanation
-- `#47` next-session focus recommendations for conductors
+- `#25` anonymous athlete voice and trust surveys
+- `#26` positive youth sport culture index for teams and institutions
 
 Main implementation files:
 
-- [lib/progress-comparison.ts](/Users/Shared/Projects/kidex/lib/progress-comparison.ts)
-- [lib/session-focus.ts](/Users/Shared/Projects/kidex/lib/session-focus.ts)
-- [app/[locale]/dashboard/children/[id]/page.tsx](/Users/Shared/Projects/kidex/app/%5Blocale%5D/dashboard/children/%5Bid%5D/page.tsx)
-- [app/[locale]/dashboard/records/[id]/page.tsx](/Users/Shared/Projects/kidex/app/%5Blocale%5D/dashboard/records/%5Bid%5D/page.tsx)
-- [lib/family-report.ts](/Users/Shared/Projects/kidex/lib/family-report.ts)
-- [lib/pdf-service.ts](/Users/Shared/Projects/kidex/lib/pdf-service.ts)
+- [lib/culture-surveys.ts](/Users/Shared/Projects/kidex/lib/culture-surveys.ts)
+- [lib/culture-survey-tokens.ts](/Users/Shared/Projects/kidex/lib/culture-survey-tokens.ts)
+- [repositories/culture-survey.repository.ts](/Users/Shared/Projects/kidex/repositories/culture-survey.repository.ts)
+- [app/api/culture-surveys/route.ts](/Users/Shared/Projects/kidex/app/api/culture-surveys/route.ts)
+- [app/api/culture-voice/route.ts](/Users/Shared/Projects/kidex/app/api/culture-voice/route.ts)
+- [app/[locale]/voice/[token]/page.tsx](/Users/Shared/Projects/kidex/app/%5Blocale%5D/voice/%5Btoken%5D/page.tsx)
+- [app/[locale]/dashboard/settings/page.tsx](/Users/Shared/Projects/kidex/app/%5Blocale%5D/dashboard/settings/page.tsx)
+- [components/dashboard/MainDashboard.tsx](/Users/Shared/Projects/kidex/components/dashboard/MainDashboard.tsx)
+- [repositories/audit.repository.ts](/Users/Shared/Projects/kidex/repositories/audit.repository.ts)
 
 Verification passed for that slice:
 
@@ -62,9 +67,9 @@ Verification passed for that slice:
 
 ## Git State
 
-Latest pushed commit for the delivered `#46` and `#47` work:
+Latest pushed commit for the delivered `#25` and `#26` work:
 
-- `daa626b` `Add progress comparison and session focus guidance`
+- `ecdf095` `Implement culture voice and trust analytics`
 
 Branch state at handover:
 
@@ -77,7 +82,9 @@ Branch state at handover:
 
 The GitHub issue bodies and issue open/closed state were updated successfully through the REST API:
 
-- [#1](https://github.com/moldovancsaba/kidex/issues/1) epic body updated
+- [#1](https://github.com/moldovancsaba/kidex/issues/1) epic body updated earlier
+- [#25](https://github.com/moldovancsaba/kidex/issues/25) updated and closed
+- [#26](https://github.com/moldovancsaba/kidex/issues/26) updated and closed
 - [#46](https://github.com/moldovancsaba/kidex/issues/46) updated and closed
 - [#47](https://github.com/moldovancsaba/kidex/issues/47) updated and closed
 
@@ -87,11 +94,11 @@ The GitHub Project board cards could not be moved because `gh project ...` depen
 
 Cards that still need board-column verification and likely update:
 
+- `#25` should be `Done`
+- `#26` should be `Done`
 - `#46` should be `Done`
 - `#47` should be `Done`
 - `#1` should remain `In Progress (NOW)`
-- `#25` should remain `IDEABANK (SOMEDAY)`
-- `#26` should remain `IDEABANK (SOMEDAY)`
 
 ### Blocking error seen
 
@@ -107,6 +114,18 @@ Once the GraphQL limit clears, use these commands from `/Users/Shared/Projects/k
 
 ```bash
 gh project item-list 9 --owner @me --limit 200 --format json | jq '.items[] | select(.content.number==1 or .content.number==25 or .content.number==26 or .content.number==46 or .content.number==47) | {number:.content.number,id:.id,status:.status}'
+```
+
+If `#25` is not already `Done`:
+
+```bash
+gh project item-edit --id <item-id-for-25> --project-id PVT_kwHOACGtF84BV9ky --field-id PVTSSF_lAHOACGtF84BV9kyzhRVec4 --single-select-option-id 98236657
+```
+
+If `#26` is not already `Done`:
+
+```bash
+gh project item-edit --id <item-id-for-26> --project-id PVT_kwHOACGtF84BV9ky --field-id PVTSSF_lAHOACGtF84BV9kyzhRVec4 --single-select-option-id 98236657
 ```
 
 If `#46` is not already `Done`:
@@ -137,19 +156,19 @@ Status option ids currently in use for project `9`:
 The intended live next-board state is:
 
 - `#1` -> `In Progress (NOW)`
+- `#25` -> `Done`
+- `#26` -> `Done`
 - `#46` -> `Done`
 - `#47` -> `Done`
-- `#25` -> `IDEABANK (SOMEDAY)`
-- `#26` -> `IDEABANK (SOMEDAY)`
 
-After that sync, the remaining open board work is ideabank only unless new conductor-parent issues are created.
+After that sync, the current board should show the delivered roadmap as complete unless new follow-up issues are created.
 
 ## Recommended Next Work
 
-Once the board sync is complete, the next product decision is not another hidden implementation task inside the current codebase. The next real decision is roadmap direction:
+Once the board sync is complete, the next product decision is roadmap direction rather than unfinished implementation in the current codebase:
 
-- either continue with the remaining ideabank items `#25` and `#26`
-- or create a new conductor-parent execution sequence above them if the product goal remains direct child measurement and parent guidance
+- either create the next conductor-parent execution sequence
+- or deliberately expand a new ideabank track from the now-complete baseline
 
 ## Environment Notes
 
