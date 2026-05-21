@@ -126,10 +126,10 @@ Validation is centralized in [`lib/validations.ts`](../lib/validations.ts).
 ### Child plans, support, communications, consent review
 
 - `GET /api/children/:id/plan`
-  - Returns the child’s latest development plan.
+  - Returns the child’s latest development plan, including reassessment cadence and next due date when available.
   - Roles: `admin`, `conductor`, `observer`
 - `POST /api/children/:id/plan`
-  - Creates or updates the development plan.
+  - Creates or updates the development plan, including `reviewCadenceDays`, `nextAssessmentDueDate`, and `reassessmentNotes`.
   - Roles: `admin`, `conductor`
 
 - `GET /api/children/:id/support`
@@ -255,6 +255,7 @@ The current downstream interpretation stack includes:
 - progress comparison and plan-effectiveness explanation
 - parent improvement guidance
 - next-session conductor focus priorities
+- reassessment cadence and follow-up status
 - confidence / reliability context
 - development-plan and support-workspace linkage
 - culture and trust pulse aggregation

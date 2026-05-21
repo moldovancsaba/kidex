@@ -1,6 +1,7 @@
 import type { ChildProfile } from "@/repositories/child.repository";
 import type { AssessmentRecord } from "@/types/assessment";
 import { getConsentAlerts } from "@/lib/consent-policy";
+import { buildReassessmentSummary } from "@/lib/reassessment";
 import { getStandardForAssessment } from "@/lib/standards";
 import type { StandardsConfiguration } from "@/lib/standards-config";
 
@@ -65,6 +66,8 @@ export interface DashboardAnalyticsResult {
   activeChildren: number;
   staleChildren: number;
   childrenNeedingConsentReview: number;
+  overdueFollowUps: number;
+  dueSoonFollowUps: number;
 }
 
 interface ChildAnalyticsNode {
@@ -224,10 +227,33 @@ export function buildDashboardAnalytics(input: {
       const daysSinceLatest = daysBetween(latestAt, now);
       const consentAlerts = getConsentAlerts(node.child.consentPolicy, now);
       const band = benchmarkBandForRecord(input.standards, node.latest);
+      const reassessmentSummary = buildReassessmentSummary({
+        latestAssessmentAt: latestAt,
+        plan: {
+          childId: node.child._id || "",
+          summary: "",
+          status: node.child.latestPlanStatus || "draft",
+          reviewCadenceDays: node.child.reviewCadenceDays ?? 0,
+          nextAssessmentDueDate: node.child.nextAssessmentDueDate,
+          reassessmentNotes: node.child.reassessmentNotes || "",
+          assignments: [],
+          checkpoints: [],
+          progressNotes: "",
+          createdAt: node.child.createdAt,
+          updatedAt: node.child.updatedAt,
+        },
+        now,
+      });
 
       if (node.records.length === 0) {
         score += 6;
         reasons.push("No assessment history yet.");
+      } else if (reassessmentSummary.status === "overdue") {
+        score += 3;
+        reasons.push("Planned reassessment is overdue.");
+      } else if (reassessmentSummary.status === "due_soon") {
+        score += 1;
+        reasons.push("Planned reassessment is due within the next week.");
       } else if (daysSinceLatest > 90) {
         score += 3;
         reasons.push("No follow-up assessment in more than 90 days.");
@@ -330,6 +356,40 @@ export function buildDashboardAnalytics(input: {
   const activeChildren = childNodes.filter((node) => daysBetween(node.latest?.createdAt, now) <= 45).length;
   const staleChildren = childNodes.filter((node) => node.records.length > 0 && daysBetween(node.latest?.createdAt, now) > 90).length;
   const childrenNeedingConsentReview = childNodes.filter((node) => getConsentAlerts(node.child.consentPolicy, now).length > 0).length;
+  const overdueFollowUps = childNodes.filter((node) => buildReassessmentSummary({
+    latestAssessmentAt: node.latest?.createdAt,
+    plan: {
+      childId: node.child._id || "",
+      summary: "",
+      status: node.child.latestPlanStatus || "draft",
+      reviewCadenceDays: node.child.reviewCadenceDays ?? 0,
+      nextAssessmentDueDate: node.child.nextAssessmentDueDate,
+      reassessmentNotes: node.child.reassessmentNotes || "",
+      assignments: [],
+      checkpoints: [],
+      progressNotes: "",
+      createdAt: node.child.createdAt,
+      updatedAt: node.child.updatedAt,
+    },
+    now,
+  }).status === "overdue").length;
+  const dueSoonFollowUps = childNodes.filter((node) => buildReassessmentSummary({
+    latestAssessmentAt: node.latest?.createdAt,
+    plan: {
+      childId: node.child._id || "",
+      summary: "",
+      status: node.child.latestPlanStatus || "draft",
+      reviewCadenceDays: node.child.reviewCadenceDays ?? 0,
+      nextAssessmentDueDate: node.child.nextAssessmentDueDate,
+      reassessmentNotes: node.child.reassessmentNotes || "",
+      assignments: [],
+      checkpoints: [],
+      progressNotes: "",
+      createdAt: node.child.createdAt,
+      updatedAt: node.child.updatedAt,
+    },
+    now,
+  }).status === "due_soon").length;
 
   return {
     monthlyTrend: Array.from(monthlyBuckets.values()).map((bucket) => ({
@@ -347,5 +407,7 @@ export function buildDashboardAnalytics(input: {
     activeChildren,
     staleChildren,
     childrenNeedingConsentReview,
+    overdueFollowUps,
+    dueSoonFollowUps,
   };
 }

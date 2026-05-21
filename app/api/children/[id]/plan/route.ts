@@ -53,6 +53,11 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     standardsVersionUsed: body.standardsVersionUsed,
     status: body.status === "completed" ? "completed" : body.status === "active" ? "active" : "draft",
     summary: String(body.summary).trim(),
+    reviewCadenceDays: typeof body.reviewCadenceDays === "number" && Number.isFinite(body.reviewCadenceDays)
+      ? Math.max(7, Math.min(180, Math.round(body.reviewCadenceDays)))
+      : 30,
+    nextAssessmentDueDate: typeof body.nextAssessmentDueDate === "string" ? body.nextAssessmentDueDate : undefined,
+    reassessmentNotes: String(body.reassessmentNotes || "").trim(),
     assignments: body.assignments.map((assignment, index) => ({
       id: assignment.id || `assignment-${index + 1}`,
       title: String(assignment.title || "").trim(),

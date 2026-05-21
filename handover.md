@@ -16,6 +16,7 @@ KIDEX is now a conductor-facing child assessment and development-intelligence pl
 - governed communications, audit trail, governance export, and role-based access control
 - progress comparison and plan-effectiveness explanation
 - next-session focus recommendations for conductors
+- reassessment cadence, next-review due dates, and overdue follow-up visibility
 - anonymous culture/trust pulse launches with protected aggregation
 - culture-index dashboard analytics across role and scope views
 
@@ -43,20 +44,21 @@ Current resolved local versions at the time of this handover:
 
 The latest completed feature delivery covered:
 
-- `#25` anonymous athlete voice and trust surveys
-- `#26` positive youth sport culture index for teams and institutions
+- `#48` reassessment cadence and follow-up visibility
 
 Main implementation files:
 
-- [lib/culture-surveys.ts](/Users/Shared/Projects/kidex/lib/culture-surveys.ts)
-- [lib/culture-survey-tokens.ts](/Users/Shared/Projects/kidex/lib/culture-survey-tokens.ts)
-- [repositories/culture-survey.repository.ts](/Users/Shared/Projects/kidex/repositories/culture-survey.repository.ts)
-- [app/api/culture-surveys/route.ts](/Users/Shared/Projects/kidex/app/api/culture-surveys/route.ts)
-- [app/api/culture-voice/route.ts](/Users/Shared/Projects/kidex/app/api/culture-voice/route.ts)
-- [app/[locale]/voice/[token]/page.tsx](/Users/Shared/Projects/kidex/app/%5Blocale%5D/voice/%5Btoken%5D/page.tsx)
-- [app/[locale]/dashboard/settings/page.tsx](/Users/Shared/Projects/kidex/app/%5Blocale%5D/dashboard/settings/page.tsx)
+- [lib/reassessment.ts](/Users/Shared/Projects/kidex/lib/reassessment.ts)
+- [lib/development-plans.ts](/Users/Shared/Projects/kidex/lib/development-plans.ts)
+- [repositories/development-plan.repository.ts](/Users/Shared/Projects/kidex/repositories/development-plan.repository.ts)
+- [repositories/child.repository.ts](/Users/Shared/Projects/kidex/repositories/child.repository.ts)
+- [app/api/children/[id]/plan/route.ts](/Users/Shared/Projects/kidex/app/api/children/%5Bid%5D/plan/route.ts)
+- [app/[locale]/dashboard/children/[id]/page.tsx](/Users/Shared/Projects/kidex/app/%5Blocale%5D/dashboard/children/%5Bid%5D/page.tsx)
+- [app/[locale]/dashboard/children/page.tsx](/Users/Shared/Projects/kidex/app/%5Blocale%5D/dashboard/children/page.tsx)
+- [app/[locale]/dashboard/records/[id]/page.tsx](/Users/Shared/Projects/kidex/app/%5Blocale%5D/dashboard/records/%5Bid%5D/page.tsx)
 - [components/dashboard/MainDashboard.tsx](/Users/Shared/Projects/kidex/components/dashboard/MainDashboard.tsx)
-- [repositories/audit.repository.ts](/Users/Shared/Projects/kidex/repositories/audit.repository.ts)
+- [lib/family-report.ts](/Users/Shared/Projects/kidex/lib/family-report.ts)
+- [lib/pdf-service.ts](/Users/Shared/Projects/kidex/lib/pdf-service.ts)
 
 Verification passed for that slice:
 
@@ -67,105 +69,29 @@ Verification passed for that slice:
 
 ## Git State
 
-Latest pushed commit for the delivered `#25` and `#26` work:
+Latest pushed commit on `origin/main`:
 
-- `ecdf095` `Implement culture voice and trust analytics`
+- `054b287` `Update handover for pending board sync`
+
+Local working tree currently contains the verified `#48` and `#49` implementation slices and related documentation updates, but these changes have not yet been committed or pushed.
 
 Branch state at handover:
 
 - local branch: `main`
 - remote target: `origin/main`
 
-## Deferred GitHub Board Sync
+## GitHub Board State
 
-### What is already updated
-
-The GitHub issue bodies and issue open/closed state were updated successfully through the REST API:
-
-- [#1](https://github.com/moldovancsaba/kidex/issues/1) epic body updated earlier
-- [#25](https://github.com/moldovancsaba/kidex/issues/25) updated and closed
-- [#26](https://github.com/moldovancsaba/kidex/issues/26) updated and closed
-- [#46](https://github.com/moldovancsaba/kidex/issues/46) updated and closed
-- [#47](https://github.com/moldovancsaba/kidex/issues/47) updated and closed
-
-### What is still pending
-
-The GitHub Project board cards could not be moved because `gh project ...` depends on GitHub GraphQL, and GraphQL rate limiting blocked the mutation path.
-
-Cards that still need board-column verification and likely update:
-
-- `#25` should be `Done`
-- `#26` should be `Done`
-- `#46` should be `Done`
-- `#47` should be `Done`
-- `#1` should remain `In Progress (NOW)`
-
-### Blocking error seen
-
-`gh project ...` returned:
-
-```text
-GraphQL: API rate limit already exceeded for user ID 2206999.
-```
-
-### Commands to run later
-
-Once the GraphQL limit clears, use these commands from `/Users/Shared/Projects/kidex`:
-
-```bash
-gh project item-list 9 --owner @me --limit 200 --format json | jq '.items[] | select(.content.number==1 or .content.number==25 or .content.number==26 or .content.number==46 or .content.number==47) | {number:.content.number,id:.id,status:.status}'
-```
-
-If `#25` is not already `Done`:
-
-```bash
-gh project item-edit --id <item-id-for-25> --project-id PVT_kwHOACGtF84BV9ky --field-id PVTSSF_lAHOACGtF84BV9kyzhRVec4 --single-select-option-id 98236657
-```
-
-If `#26` is not already `Done`:
-
-```bash
-gh project item-edit --id <item-id-for-26> --project-id PVT_kwHOACGtF84BV9ky --field-id PVTSSF_lAHOACGtF84BV9kyzhRVec4 --single-select-option-id 98236657
-```
-
-If `#46` is not already `Done`:
-
-```bash
-gh project item-edit --id PVTI_lAHOACGtF84BV9kyzgskFNI --project-id PVT_kwHOACGtF84BV9ky --field-id PVTSSF_lAHOACGtF84BV9kyzhRVec4 --single-select-option-id 98236657
-```
-
-If `#47` is not already `Done`:
-
-```bash
-gh project item-edit --id PVTI_lAHOACGtF84BV9kyzgskFQ0 --project-id PVT_kwHOACGtF84BV9ky --field-id PVTSSF_lAHOACGtF84BV9kyzhRVec4 --single-select-option-id 98236657
-```
-
-Status option ids currently in use for project `9`:
-
-- `IDEABANK (SOMEDAY)` -> `db5fbc3d`
-- `Roadmap (LATER)` -> `71315ce8`
-- `Backlog (SOONER)` -> `737735f8`
-- `Todo (NEXT)` -> `f75ad846`
-- `In Progress (NOW)` -> `47fc9ee4`
-- `Review (ALMOST)` -> `d79759d3`
-- `Done` -> `98236657`
-- `Declined (NEVER)` -> `7557ebc9`
-
-### Desired board state after sync
-
-The intended live next-board state is:
+The project board and issue tracker are now aligned:
 
 - `#1` -> `In Progress (NOW)`
-- `#25` -> `Done`
-- `#26` -> `Done`
-- `#46` -> `Done`
-- `#47` -> `Done`
+- `#48` -> `Done`
 
-After that sync, the current board should show the delivered roadmap as complete unless new follow-up issues are created.
+All earlier roadmap and ideabank child issues now show `Done` on project `9`.
 
 ## Recommended Next Work
 
-Once the board sync is complete, the next product decision is roadmap direction rather than unfinished implementation in the current codebase:
+The next product decision is roadmap direction rather than cleanup:
 
 - either create the next conductor-parent execution sequence
 - or deliberately expand a new ideabank track from the now-complete baseline

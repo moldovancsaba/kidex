@@ -10,6 +10,7 @@ import { buildChildStateSummary } from "@/lib/child-state-summary";
 import { buildFamilyFriendlyReportSummary } from "@/lib/family-report";
 import { PdfService } from "@/lib/pdf-service";
 import { buildProgressComparisonSummary } from "@/lib/progress-comparison";
+import { buildReassessmentSummary } from "@/lib/reassessment";
 import { buildRecommendationSummary } from "@/lib/recommendations";
 import { buildSessionFocusPriorities } from "@/lib/session-focus";
 import { getConsentAlerts, hasActiveConsent } from "@/lib/consent-policy";
@@ -96,7 +97,7 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
         if (!hasActiveConsent(child?.consentPolicy, "familyReport")) return;
         await PdfService.generateFamilyReport(printableRecord, t, tc, ts, tr, recommendationSummary, plan, child, supportWorkspace, history, history.length);
       } else if (reportFormat === "map") {
-        await PdfService.generateMapReport(printableRecord, t, tc, ts, tr, history, recommendationSummary);
+        await PdfService.generateMapReport(printableRecord, t, tc, ts, tr, history, recommendationSummary, plan);
       } else {
         await PdfService.generateOriginalReport(printableRecord, t, tc, ts);
       }
@@ -200,6 +201,10 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
     history,
     recommendationSummary,
     plan,
+  });
+  const reassessmentSummary = buildReassessmentSummary({
+    plan,
+    latestAssessmentAt: record.createdAt,
   });
   const sessionFocus = buildSessionFocusPriorities({
     recommendationSummary,
@@ -401,6 +406,11 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
 
           <SectionCard title="Progress and Plan Effectiveness" subheader="One bounded explanation of what changed over time and whether the current support plan looks helpful yet.">
             <Stack gap="md">
+              <Alert color={reassessmentSummary.status === "overdue" ? "red" : reassessmentSummary.status === "due_soon" ? "yellow" : reassessmentSummary.status === "on_track" ? "teal" : "gray"}>
+                <Text fw={700}>Reassessment cadence</Text>
+                <Text size="sm">{reassessmentSummary.summary}</Text>
+                <Text size="sm" c="dimmed">{reassessmentSummary.conductorMessage}</Text>
+              </Alert>
               <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
                 <Paper withBorder p="md" radius="md">
                   <Stack gap="xs">

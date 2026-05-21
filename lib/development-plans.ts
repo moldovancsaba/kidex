@@ -29,6 +29,9 @@ export interface DevelopmentPlan {
   standardsVersionUsed?: string;
   status: "draft" | "active" | "completed";
   summary: string;
+  reviewCadenceDays: number;
+  nextAssessmentDueDate?: string;
+  reassessmentNotes: string;
   assignments: DevelopmentPlanAssignment[];
   checkpoints: DevelopmentPlanCheckpoint[];
   progressNotes: string;
@@ -61,6 +64,13 @@ function moduleAssignmentNotes(audience: PlanAssignmentAudience, moduleTitle: st
   return `Model ${moduleTitle.toLowerCase()} in the next session and record what support level was needed.`;
 }
 
+function defaultReviewCadenceDays(input: RecommendationSummary): number {
+  if (input.mentalWellbeing.riskLevel === "high" || input.readinessStatus === "below_min") return 14;
+  if (input.mentalWellbeing.riskLevel === "medium") return 21;
+  if (input.confidenceContext.lowConfidenceCount > 0) return 21;
+  return 30;
+}
+
 export function buildSuggestedDevelopmentPlan(input: {
   childId: string;
   assessmentId?: string;
@@ -69,6 +79,8 @@ export function buildSuggestedDevelopmentPlan(input: {
   recommendationSummary: RecommendationSummary;
 }): DevelopmentPlan {
   const createdAt = new Date().toISOString();
+  const reviewCadenceDays = defaultReviewCadenceDays(input.recommendationSummary);
+  const nextAssessmentDueDate = plusDays(reviewCadenceDays);
   const recommendationTargets = input.recommendationSummary.recommendations.slice(0, 3);
   const assignments = recommendationTargets.map((recommendation, index) => {
     const audience = audienceForIndex(index);
@@ -111,7 +123,7 @@ export function buildSuggestedDevelopmentPlan(input: {
     {
       id: "checkpoint-2",
       title: "Next assessment review",
-      dueDate: plusDays(30),
+      dueDate: nextAssessmentDueDate,
       notes: "Review progress against the current plan, including mental-skills growth and wellbeing signals, before or during the next assessment cycle.",
       completed: false,
     },
@@ -128,6 +140,13 @@ export function buildSuggestedDevelopmentPlan(input: {
     summary: focusSummary
       ? `Current plan targets: ${focusSummary}${moduleSummary ? `, with guided practice in ${moduleSummary}` : ""}. Keep family-facing language practical, supportive, and non-diagnostic.`
       : "Use this plan to translate the latest support recommendations into realistic weekly actions.",
+    reviewCadenceDays,
+    nextAssessmentDueDate,
+    reassessmentNotes: input.recommendationSummary.readinessStatus === "below_min"
+      ? "Reassess on a shorter cycle because the current measured profile is still below the minimum benchmark band."
+      : input.recommendationSummary.mentalWellbeing.riskLevel === "medium" || input.recommendationSummary.mentalWellbeing.riskLevel === "high"
+        ? "Reassess early enough to check whether the current wellbeing support steps are helping."
+        : "Use the next assessment cycle to confirm whether the current plan is producing stable progress.",
     assignments: [...assignments, ...wellbeingAssignments].slice(0, 6),
     checkpoints,
     progressNotes: "",

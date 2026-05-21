@@ -115,6 +115,9 @@ const plan: DevelopmentPlan = {
   childId: "child-1",
   status: "active",
   summary: "",
+  reviewCadenceDays: 30,
+  nextAssessmentDueDate: "2026-06-13",
+  reassessmentNotes: "",
   assignments: [
     { id: "a1", title: "Confidence routine", notes: "", audience: "practitioner", status: "done", focusAreaIds: ["confidence"] },
     { id: "a2", title: "Family follow-up", notes: "", audience: "family", status: "in_progress", focusAreaIds: ["confidence"] },

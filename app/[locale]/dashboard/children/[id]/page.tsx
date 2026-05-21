@@ -10,6 +10,7 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { buildChildStateSummary } from "@/lib/child-state-summary";
 import { buildFamilyFriendlyReportSummary } from "@/lib/family-report";
 import { buildProgressComparisonSummary } from "@/lib/progress-comparison";
+import { buildReassessmentSummary } from "@/lib/reassessment";
 import { rapidSections } from "@/lib/kidex-schema";
 import { calculateTrend } from "@/lib/utils/trends";
 import { formatScore } from "@/lib/utils";
@@ -134,7 +135,7 @@ export default function ChildHistoryPage({ params }: { params: Promise<{ id: str
         getStandardForAssessment(settings?.standards, printableRecord.standardsVersionUsed, printableRecord.child.ageGroup),
         ts,
       );
-      await PdfService.generateMapReport(printableRecord, t, tc, ts, tr, data.assessments, recommendationSummary);
+      await PdfService.generateMapReport(printableRecord, t, tc, ts, tr, data.assessments, recommendationSummary, plan);
       await logPdfExportTelemetry({
         status: "success",
         format: "map",
@@ -239,6 +240,10 @@ export default function ChildHistoryPage({ params }: { params: Promise<{ id: str
         supportWorkspace: effectiveSupportWorkspace,
       })
     : [];
+  const reassessmentSummary = buildReassessmentSummary({
+    plan,
+    latestAssessmentAt: latest?.createdAt,
+  });
   const supportSummary = buildSupportWorkspaceSummary(effectiveSupportWorkspace);
 
   if (loading) {
@@ -1039,10 +1044,41 @@ export default function ChildHistoryPage({ params }: { params: Promise<{ id: str
                 />
                 <TextInput
                   label="Progress notes"
-                  value={plan.progressNotes}
+                  value={plan.progressNotes || ""}
                   onChange={(event) => setPlan((current) => current ? { ...current, progressNotes: event.currentTarget.value, updatedAt: new Date().toISOString() } : current)}
                   disabled={!canWritePlans}
                 />
+                <Group grow>
+                  <TextInput
+                    label="Review cadence (days)"
+                    type="number"
+                    value={String(plan.reviewCadenceDays || 30)}
+                    onChange={(event) => setPlan((current) => current ? {
+                      ...current,
+                      reviewCadenceDays: Math.max(7, Math.min(180, Number(event.currentTarget.value) || 30)),
+                      updatedAt: new Date().toISOString(),
+                    } : current)}
+                    disabled={!canWritePlans}
+                  />
+                  <TextInput
+                    label="Next reassessment due"
+                    type="date"
+                    value={plan.nextAssessmentDueDate || ""}
+                    onChange={(event) => setPlan((current) => current ? { ...current, nextAssessmentDueDate: event.currentTarget.value, updatedAt: new Date().toISOString() } : current)}
+                    disabled={!canWritePlans}
+                  />
+                </Group>
+                <TextInput
+                  label="Reassessment notes"
+                  value={plan.reassessmentNotes || ""}
+                  onChange={(event) => setPlan((current) => current ? { ...current, reassessmentNotes: event.currentTarget.value, updatedAt: new Date().toISOString() } : current)}
+                  disabled={!canWritePlans}
+                />
+                <Alert color={reassessmentSummary.status === "overdue" ? "red" : reassessmentSummary.status === "due_soon" ? "yellow" : reassessmentSummary.status === "on_track" ? "teal" : "gray"}>
+                  <Text fw={700}>Follow-up status</Text>
+                  <Text size="sm">{reassessmentSummary.summary}</Text>
+                  <Text size="sm" c="dimmed">{reassessmentSummary.conductorMessage}</Text>
+                </Alert>
               </Stack>
             </Paper>
 

@@ -9,6 +9,7 @@ import { ACCOMMODATION_OPTIONS, COMMUNICATION_SUPPORTS, defaultAccessibilityProf
 import { defaultConsentPolicy, deriveLegacyConsents, getConsentAlerts, type ChildConsentPolicy, type ConsentPolicyKey } from "@/lib/consent-policy";
 import { normalizePreferredLocale } from "@/lib/locales";
 import { canPerformAction } from "@/lib/permissions";
+import { buildReassessmentSummary } from "@/lib/reassessment";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { SectionCard } from "@/components/ui/SectionCard";
 import { createEmptyFamilyCaregiver, FAMILY_ACCESS_LEVELS, FAMILY_CAREGIVER_STATUSES, FAMILY_RELATIONSHIPS, type FamilyCaregiver } from "@/lib/family-access";
@@ -51,6 +52,7 @@ export default function ChildrenListPage() {
   
   const [selectedLocations, setSelectedLocations] = useState<string[]>([]);
   const [selectedAgeGroups, setSelectedAgeGroups] = useState<string[]>([]);
+  const [selectedFollowUpStatuses, setSelectedFollowUpStatuses] = useState<string[]>([]);
   const [skiRange, setSkiRange] = useState<[number, number]>([0, 100]);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<ChildProfile | null>(null);
@@ -153,6 +155,22 @@ export default function ChildrenListPage() {
     const source = showDeleted ? deletedChildren : children;
     return source.filter((child) => {
       const ageGroup = calculateAgeGroup(child.birthDate) || "";
+      const reassessmentSummary = buildReassessmentSummary({
+        latestAssessmentAt: child.latestAssessmentAt,
+        plan: {
+          childId: child._id || "",
+          summary: "",
+          status: child.latestPlanStatus || "draft",
+          reviewCadenceDays: child.reviewCadenceDays ?? 0,
+          nextAssessmentDueDate: child.nextAssessmentDueDate,
+          reassessmentNotes: child.reassessmentNotes || "",
+          assignments: [],
+          checkpoints: [],
+          progressNotes: "",
+          createdAt: child.createdAt,
+          updatedAt: child.updatedAt,
+        },
+      });
       
       const matchesQuery = !q || 
         child.name.toLowerCase().includes(q) ||
@@ -169,14 +187,53 @@ export default function ChildrenListPage() {
         return false;
       }
 
+      if (selectedFollowUpStatuses.length > 0 && !selectedFollowUpStatuses.includes(reassessmentSummary.status)) {
+        return false;
+      }
+
       const ski = child.latestSki ?? 0;
       if (ski < skiRange[0] || ski > skiRange[1]) {
         return false;
       }
 
       return true;
+    }).sort((left, right) => {
+      const leftStatus = buildReassessmentSummary({
+        latestAssessmentAt: left.latestAssessmentAt,
+        plan: {
+          childId: left._id || "",
+          summary: "",
+          status: left.latestPlanStatus || "draft",
+          reviewCadenceDays: left.reviewCadenceDays ?? 0,
+          nextAssessmentDueDate: left.nextAssessmentDueDate,
+          reassessmentNotes: left.reassessmentNotes || "",
+          assignments: [],
+          checkpoints: [],
+          progressNotes: "",
+          createdAt: left.createdAt,
+          updatedAt: left.updatedAt,
+        },
+      }).status;
+      const rightStatus = buildReassessmentSummary({
+        latestAssessmentAt: right.latestAssessmentAt,
+        plan: {
+          childId: right._id || "",
+          summary: "",
+          status: right.latestPlanStatus || "draft",
+          reviewCadenceDays: right.reviewCadenceDays ?? 0,
+          nextAssessmentDueDate: right.nextAssessmentDueDate,
+          reassessmentNotes: right.reassessmentNotes || "",
+          assignments: [],
+          checkpoints: [],
+          progressNotes: "",
+          createdAt: right.createdAt,
+          updatedAt: right.updatedAt,
+        },
+      }).status;
+      const priority = { overdue: 0, due_soon: 1, missing: 2, on_track: 3 } as const;
+      return priority[leftStatus] - priority[rightStatus] || left.name.localeCompare(right.name);
     });
-  }, [children, deletedChildren, query, selectedLocations, selectedAgeGroups, skiRange, showDeleted]);
+  }, [children, deletedChildren, query, selectedLocations, selectedAgeGroups, selectedFollowUpStatuses, skiRange, showDeleted]);
 
   async function restoreChild(child: ChildProfile) {
     if (!child._id) return;
@@ -196,6 +253,12 @@ export default function ChildrenListPage() {
     });
     return Array.from(groups).sort();
   }, [children]);
+  const followUpStatusOptions = [
+    { value: "overdue", label: "Overdue" },
+    { value: "due_soon", label: "Due soon" },
+    { value: "missing", label: "Date missing" },
+    { value: "on_track", label: "On track" },
+  ];
 
   const canWriteChildren = canPerformAction(roles, "children.write");
   const canWriteAssessments = canPerformAction(roles, "assessments.write");
@@ -452,6 +515,14 @@ export default function ChildrenListPage() {
                     onChange={setSelectedAgeGroups}
                     clearable
                   />
+                  <MultiSelect
+                    label="Follow-up status"
+                    placeholder={tc("all")}
+                    data={followUpStatusOptions}
+                    value={selectedFollowUpStatuses}
+                    onChange={setSelectedFollowUpStatuses}
+                    clearable
+                  />
                 </Group>
                 <Box>
                   <Text size="sm" fw={500} mb="xs">SKI Score Range: {skiRange[0]} - {skiRange[1]}</Text>
@@ -469,6 +540,7 @@ export default function ChildrenListPage() {
                   <Button variant="subtle" size="sm" onClick={() => {
                     setSelectedLocations([]);
                     setSelectedAgeGroups([]);
+                    setSelectedFollowUpStatuses([]);
                     setSkiRange([0, 100]);
                   }}>
                     {tc("resetFilters")}
@@ -487,6 +559,22 @@ export default function ChildrenListPage() {
                 const consentAlerts = getConsentAlerts(child.consentPolicy);
                 const expiredAlerts = consentAlerts.filter((alert) => alert.reason === "expired");
                 const expiringAlerts = consentAlerts.filter((alert) => alert.reason === "expiring_soon");
+                const reassessmentSummary = buildReassessmentSummary({
+                  latestAssessmentAt: child.latestAssessmentAt,
+                  plan: {
+                    childId: child._id || "",
+                    summary: "",
+                    status: child.latestPlanStatus || "draft",
+                    reviewCadenceDays: child.reviewCadenceDays ?? 0,
+                    nextAssessmentDueDate: child.nextAssessmentDueDate,
+                    reassessmentNotes: child.reassessmentNotes || "",
+                    assignments: [],
+                    checkpoints: [],
+                    progressNotes: "",
+                    createdAt: child.createdAt,
+                    updatedAt: child.updatedAt,
+                  },
+                });
                 return (
                   <Paper 
                     key={child._id} 
@@ -567,6 +655,23 @@ export default function ChildrenListPage() {
                             )}
                           </Group>
                         )}
+                        {child.latestRecordId ? (
+                          <Group gap="xs" mt={8}>
+                            <Badge color={reassessmentSummary.status === "overdue" ? "red" : reassessmentSummary.status === "due_soon" ? "yellow" : reassessmentSummary.status === "on_track" ? "teal" : "gray"} variant="light" size="sm">
+                              {reassessmentSummary.status === "overdue" ? "FOLLOW-UP OVERDUE" : reassessmentSummary.status === "due_soon" ? "FOLLOW-UP DUE SOON" : reassessmentSummary.status === "on_track" ? "FOLLOW-UP SCHEDULED" : "FOLLOW-UP DATE MISSING"}
+                            </Badge>
+                            {child.nextAssessmentDueDate ? (
+                              <Text size="sm" c="dimmed" fw={500}>
+                                due {new Date(child.nextAssessmentDueDate).toLocaleDateString()}
+                              </Text>
+                            ) : null}
+                          </Group>
+                        ) : null}
+                        {child.latestRecordId ? (
+                          <Text size="sm" c="dimmed" mt={4}>
+                            {reassessmentSummary.summary}
+                          </Text>
+                        ) : null}
                       </Box>
                       <Group gap="sm">
                         {!showDeleted && canWriteAssessments ? <Button component={Link} href={`/dashboard/assessment?childId=${child._id}`} color="kidex" size="sm" onClick={(e) => e.stopPropagation()}>

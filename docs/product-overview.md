@@ -56,6 +56,7 @@ Saved assessments produce:
 - confidence and reliability context
 - parent improvement guidance
 - next-session conductor focus priorities
+- reassessment status and follow-up timing
 
 Primary surfaces:
 
@@ -67,6 +68,7 @@ Primary surfaces:
 Each child can carry operational follow-through data:
 
 - development plan
+- reassessment cadence and next-review due date
 - governed communication history
 - caregiver tools
 - coach tools
@@ -119,6 +121,7 @@ Primary surface:
 - family-linked caregivers
 - consent review links
 - parent improvement guidance
+- reassessment cadence and due-soon / overdue follow-up visibility
 - family-safe reporting
 - support workspace
 
@@ -135,6 +138,7 @@ Primary surface:
 
 - readiness, benchmark, and longitudinal charts
 - progress-comparison summaries
+- reassessment queue and follow-up triage
 - watchlists and risk indicators
 - support follow-through indicators
 - anonymous culture-index and role-comparison analytics

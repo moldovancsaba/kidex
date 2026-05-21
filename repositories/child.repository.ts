@@ -3,6 +3,7 @@ import type { ChildAccessibilityProfile } from "@/lib/accessibility-profile";
 import { defaultAccessibilityProfile, normalizeAccessibilityProfile } from "@/lib/accessibility-profile";
 import type { ChildConsentPolicy, ConsentHistoryEvent } from "@/lib/consent-policy";
 import { normalizeConsentPolicy } from "@/lib/consent-policy";
+import type { DevelopmentPlan } from "@/lib/development-plans";
 import { getDatabase } from "@/lib/mongodb";
 import { toJsonId } from "@/lib/utils";
 import type { FamilyAccessEvent, FamilyCaregiver } from "@/lib/family-access";
@@ -37,11 +38,16 @@ export interface ChildProfile {
   latestSki?: number;
   avgSki?: number;
   latestRecordId?: string;
+  latestAssessmentAt?: string;
   latestScores?: {
     movement: number;
     social: number;
     mental: number;
   };
+  latestPlanStatus?: DevelopmentPlan["status"];
+  nextAssessmentDueDate?: string;
+  reviewCadenceDays?: number;
+  reassessmentNotes?: string;
 }
 
 const collectionName = "children";
@@ -119,8 +125,21 @@ export async function listChildrenWithMetrics(): Promise<ChildProfile[]> {
       }
     },
     {
+      $lookup: {
+        from: "development_plans",
+        let: { childId: { $toString: "$_id" } },
+        pipeline: [
+          { $match: { $expr: { $eq: ["$childId", "$$childId"] } } },
+          { $sort: { updatedAt: -1, createdAt: -1 } as any },
+          { $limit: 1 }
+        ],
+        as: "latestPlan"
+      }
+    },
+    {
       $addFields: {
-        latestAssessment: { $arrayElemAt: ["$latestAssessment", 0] }
+        latestAssessment: { $arrayElemAt: ["$latestAssessment", 0] },
+        latestPlan: { $arrayElemAt: ["$latestPlan", 0] }
       }
     },
     {
@@ -128,12 +147,17 @@ export async function listChildrenWithMetrics(): Promise<ChildProfile[]> {
         latestLocation: "$latestAssessment.session.location",
         latestSki: "$latestAssessment.computed.ski",
         latestRecordId: { $toString: "$latestAssessment._id" },
+        latestAssessmentAt: "$latestAssessment.createdAt",
         latestScores: {
           movement: "$latestAssessment.computed.movementAverage",
           social: "$latestAssessment.computed.socialAverage",
           mental: "$latestAssessment.computed.mentalAverage"
         },
-        avgSki: { $round: [{ $ifNull: [{ $arrayElemAt: ["$aggregateMetrics.avgSki", 0] }, 0] }, 2] }
+        avgSki: { $round: [{ $ifNull: [{ $arrayElemAt: ["$aggregateMetrics.avgSki", 0] }, 0] }, 2] },
+        latestPlanStatus: "$latestPlan.status",
+        nextAssessmentDueDate: "$latestPlan.nextAssessmentDueDate",
+        reviewCadenceDays: "$latestPlan.reviewCadenceDays",
+        reassessmentNotes: "$latestPlan.reassessmentNotes"
       }
     },
     { $sort: { name: 1 } as any }

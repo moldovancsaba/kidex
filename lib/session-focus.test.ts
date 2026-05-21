@@ -148,6 +148,9 @@ const plan: DevelopmentPlan = {
   childId: "child-1",
   status: "active",
   summary: "",
+  reviewCadenceDays: 14,
+  nextAssessmentDueDate: "2026-05-29",
+  reassessmentNotes: "Short review cycle because the mental profile is under strain.",
   assignments: [
     { id: "a1", title: "Mental stabilization: Confidence", notes: "", audience: "practitioner", status: "in_progress", focusAreaIds: ["confidence"] },
   ],

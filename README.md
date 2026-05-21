@@ -14,6 +14,8 @@ KIDEX currently includes:
 - parent improvement guidance linked to measured support areas
 - progress comparison and plan-effectiveness explanation
 - next-session conductor focus priorities
+- reassessment cadence, due dates, and overdue follow-up visibility
+- reassessment queue and child-registry follow-up filters
 - development plans, caregiver tools, coach guidance, and micro-learning
 - family-safe and professional PDF reports
 - consent governance for media, family reports, and data sharing

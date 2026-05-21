@@ -82,6 +82,9 @@ const plan: DevelopmentPlan = {
   assessmentId: "assessment-1",
   status: "draft",
   summary: "Test plan",
+  reviewCadenceDays: 21,
+  nextAssessmentDueDate: "2026-06-03",
+  reassessmentNotes: "Reassess soon because the current support profile still needs close follow-up.",
   assignments: [
     {
       id: "assignment-1",

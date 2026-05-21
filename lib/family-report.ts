@@ -3,6 +3,7 @@ import { buildChildStateSummary, type ChildStateDomainSummary } from "@/lib/chil
 import type { DevelopmentPlan } from "@/lib/development-plans";
 import { buildParentImprovementGuidance, type ParentImprovementGuidance } from "@/lib/parent-guidance";
 import { buildProgressComparisonSummary } from "@/lib/progress-comparison";
+import { buildReassessmentSummary } from "@/lib/reassessment";
 import type { RecommendationSummary } from "@/lib/recommendations";
 import type { ChildSupportWorkspace } from "@/lib/support-workspace";
 import type { AssessmentRecord } from "@/types/assessment";
@@ -82,6 +83,10 @@ export function buildFamilyFriendlyReportSummary(input: {
     recommendationSummary,
     plan,
   });
+  const reassessmentSummary = buildReassessmentSummary({
+    plan,
+    latestAssessmentAt: record.createdAt,
+  });
   const parentGuidance = buildParentImprovementGuidance({ recommendationSummary, plan, supportWorkspace });
   const recommendations = recommendationSummary.recommendations.slice(0, 3).map((recommendation) => ({
     title: recommendation.title,
@@ -95,10 +100,11 @@ export function buildFamilyFriendlyReportSummary(input: {
     evidence: recommendation.sourceEvidence.slice(0, 2).map((entry) => entry.detail),
   }));
 
-  const nextSteps = plan?.assignments.slice(0, 3).map((assignment) => assignment.title)
+  const nextSteps = (plan?.assignments.slice(0, 3).map((assignment) => assignment.title)
     || recommendationSummary.focusAreas.slice(0, 3).map((item) => simplifiedFamilyView
       ? `Practice ${item.label.toLowerCase()} in one short, calm moment each week.`
-      : `Support ${item.label.toLowerCase()} with one short, low-pressure practice each week.`);
+      : `Support ${item.label.toLowerCase()} with one short, low-pressure practice each week.`))
+    .concat(reassessmentSummary.parentMessage);
   const wellbeingSummary = typeof recommendationSummary.mentalWellbeing.recoveryAverage === "number"
     ? ` Current recovery check-in is ${recommendationSummary.mentalWellbeing.recoveryAverage < 3 ? "showing some strain" : "holding reasonably steady"}, and the support plan should stay practical and low-pressure.`
     : "";

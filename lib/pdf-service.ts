@@ -3,6 +3,7 @@ import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import type { DevelopmentPlan } from "@/lib/development-plans";
 import { buildProgressComparisonSummary } from "@/lib/progress-comparison";
+import { buildReassessmentSummary } from "@/lib/reassessment";
 import type { RecommendationSummary } from "@/lib/recommendations";
 import { buildSessionFocusPriorities } from "@/lib/session-focus";
 import type { ChildSupportWorkspace } from "@/lib/support-workspace";
@@ -329,7 +330,8 @@ export const PdfService = {
     ts: TFunction, 
     tr: TFunction,
     history: AssessmentRecord[] = [],
-    recommendationSummary?: RecommendationSummary
+    recommendationSummary?: RecommendationSummary,
+    plan?: DevelopmentPlan | null,
   ): Promise<void> {
     const doc = new jsPDF({ unit: "mm", format: "a4" }) as JsPDFWithAutoTable;
     await this.ensureUnicodeFont(doc);
@@ -553,12 +555,18 @@ export const PdfService = {
           record,
           history: history.length > 0 ? history : [record],
           recommendationSummary,
+          plan,
         })
       : null;
+    const reassessmentSummary = buildReassessmentSummary({
+      plan,
+      latestAssessmentAt: record.createdAt,
+    });
     const sessionFocus = recommendationSummary && progressSummary
       ? buildSessionFocusPriorities({
           recommendationSummary,
           progressSummary,
+          plan,
         })
       : [];
     
@@ -615,7 +623,21 @@ export const PdfService = {
       });
       prioritiesBottomY = focusY;
     }
-    let signatureTitleY = prioritiesBottomY + 12;
+    doc.setFontSize(14);
+    doc.text("REASSESSMENT CADENCE", 20, prioritiesBottomY + 10);
+    doc.setDrawColor(61, 63, 77);
+    doc.setLineWidth(0.4);
+    doc.line(20, prioritiesBottomY + 13, 190, prioritiesBottomY + 13);
+    doc.setFontSize(11);
+    const reassessmentSource = [
+      reassessmentSummary.summary,
+      reassessmentSummary.conductorMessage,
+      plan?.reassessmentNotes || "",
+    ].filter(Boolean).join(" ");
+    const reassessmentLines = doc.splitTextToSize(reassessmentSource || "No reassessment timing has been set yet.", 170);
+    const reassessmentStartY = prioritiesBottomY + 23;
+    doc.text(reassessmentLines, 20, reassessmentStartY);
+    let signatureTitleY = reassessmentStartY + reassessmentLines.length * 5 + 12;
 
     // If content gets too long, move final evaluation block to a clean new page.
     if (signatureTitleY > 175) {

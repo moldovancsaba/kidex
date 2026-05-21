@@ -13,6 +13,7 @@ import { rapidSections } from "@/lib/kidex-schema";
 import { getDomainMainColor, type AssessmentDomain } from "@/lib/domain-colors";
 import { buildDashboardAnalytics } from "@/lib/dashboard-analytics";
 import type { CultureAnalyticsSummary } from "@/lib/culture-surveys";
+import { buildFollowUpQueue } from "@/lib/follow-up-queue";
 import type { ChildProfile } from "@/repositories/child.repository";
 import type { AssessmentRecord } from "@/types/assessment";
 import type { User } from "@/services/user-service";
@@ -264,6 +265,7 @@ export function MainDashboard() {
     assessments: data?.assessments ?? [],
     standards: data?.settings?.standards,
   }), [data]);
+  const followUpQueue = useMemo(() => buildFollowUpQueue(data?.children ?? []), [data]);
 
   if (loading) {
     return (
@@ -409,6 +411,49 @@ export function MainDashboard() {
         </Box>
       </Stack>
 
+      <SectionCard title="Reassessment Queue" subheader="Children who need follow-up attention first based on overdue, due-soon, or missing reassessment timing.">
+        {followUpQueue.length === 0 ? (
+          <Alert color="teal">No reassessment queue items need attention right now.</Alert>
+        ) : (
+          <Stack gap="sm">
+            {followUpQueue.slice(0, 8).map((item) => (
+              <Paper key={`${item.childId || item.childName}-${item.status}`} withBorder p="sm">
+                <Group justify="space-between" align="flex-start" wrap="wrap">
+                  <Stack gap={4} style={{ flex: 1, minWidth: 240 }}>
+                    <Group gap="xs" wrap="wrap">
+                      <Text fw={700}>{item.childName}</Text>
+                      <Badge color={item.status === "overdue" ? "red" : item.status === "due_soon" ? "yellow" : "gray"} variant="light">
+                        {item.status === "overdue" ? "Overdue" : item.status === "due_soon" ? "Due soon" : "Date missing"}
+                      </Badge>
+                      <Badge variant="outline">{item.ageGroup}</Badge>
+                      {item.planStatus ? <Badge variant="light">{item.planStatus}</Badge> : null}
+                    </Group>
+                    <Text size="sm" c="dimmed">
+                      {item.dueDate ? `Due ${new Date(item.dueDate).toLocaleDateString()}` : "No reassessment date set"}
+                      {typeof item.latestSki === "number" ? ` • SKI ${formatScore(item.latestSki)}` : ""}
+                    </Text>
+                    <Text size="sm">{item.summary}</Text>
+                    <Text size="sm" c="dimmed">{item.action}</Text>
+                  </Stack>
+                  <Group>
+                    {item.childId ? (
+                      <Button component={Link} href={`/dashboard/children/${item.childId}`} variant="default" size="sm">
+                        {t("openChild")}
+                      </Button>
+                    ) : null}
+                    {item.latestRecordId ? (
+                      <Button component={Link} href={`/dashboard/records/${item.latestRecordId}`} color="kidex" variant="light" size="sm">
+                        {t("openRecord")}
+                      </Button>
+                    ) : null}
+                  </Group>
+                </Group>
+              </Paper>
+            ))}
+          </Stack>
+        )}
+      </SectionCard>
+
       <SectionCard title={t("watchlistTitle")} subheader={t("watchlistSubtitle")}>
         {analytics.watchlist.length === 0 ? (
           <Alert color="teal">{t("watchlistEmpty")}</Alert>
@@ -465,6 +510,8 @@ export function MainDashboard() {
         <MetricCard label={t("totalUsers")} value={String(data?.users.length ?? 0)} />
         <MetricCard label={t("avgRecordsPerChild")} value={avgRecordsPerChild} />
         <MetricCard label={t("assessmentVelocity")} value={assessmentVelocity} />
+        <MetricCard label="Overdue follow-ups" value={String(analytics.overdueFollowUps)} />
+        <MetricCard label="Due soon" value={String(analytics.dueSoonFollowUps)} />
       </Stack>
       <Text size="sm" c="dimmed">{t("insightUsersRecords", { users: data?.users.length ?? 0, records: data?.assessments.length ?? 0, velocity: assessmentVelocity })}</Text>
 

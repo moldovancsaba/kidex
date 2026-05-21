@@ -75,5 +75,8 @@ describe("buildSuggestedDevelopmentPlan", () => {
     expect(plan.assignments[0].focusAreaIds).toEqual(["balance"]);
     expect(plan.checkpoints).toHaveLength(2);
     expect(plan.summary).toContain("Balance");
+    expect(plan.reviewCadenceDays).toBe(30);
+    expect(plan.nextAssessmentDueDate).toBeTruthy();
+    expect(plan.reassessmentNotes).toContain("next assessment cycle");
   });
 });

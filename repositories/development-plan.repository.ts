@@ -10,6 +10,21 @@ export async function getLatestDevelopmentPlanByChildId(childId: string): Promis
   return plan ? (toJsonId(plan) as unknown as DevelopmentPlan) : null;
 }
 
+export async function listLatestDevelopmentPlans(): Promise<DevelopmentPlan[]> {
+  const db = await getDatabase();
+  const plans = await db.collection(collectionName).aggregate([
+    { $sort: { updatedAt: -1, createdAt: -1 } },
+    {
+      $group: {
+        _id: "$childId",
+        latest: { $first: "$$ROOT" },
+      },
+    },
+    { $replaceRoot: { newRoot: "$latest" } },
+  ]).toArray();
+  return plans.map((plan) => toJsonId(plan) as unknown as DevelopmentPlan);
+}
+
 export async function upsertDevelopmentPlanByChildId(
   childId: string,
   plan: Omit<DevelopmentPlan, "_id" | "createdAt" | "updatedAt"> & Partial<Pick<DevelopmentPlan, "createdAt" | "updatedAt">>,
