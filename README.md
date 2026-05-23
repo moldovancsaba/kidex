@@ -46,11 +46,18 @@ KIDEX currently includes:
 - [API Reference](docs/api.md)
 - [Access Model](docs/access-model.md)
 - [Support Workspace](docs/support-workspace.md)
-- [Design System](docs/design-system.md)
+- [Design System Adapter](docs/design-system.md)
+- [GDS Compliance Checklist](docs/gds-compliance-checklist.md)
 - [Deployment](docs/deployment.md)
 - [Role Taxonomy](docs/role-taxonomy.md)
 - [Definition of Done](docs/dod.md)
 - [Legal and Company Info](docs/legal.md)
+
+Design/UI/UX SSOT:
+
+- [/Users/Shared/Projects/GENERAL_DESIGN_SYSTEM/README.md](/Users/Shared/Projects/GENERAL_DESIGN_SYSTEM/README.md) (aligned version `2.2.0 / 2026-05-23`)
+
+KIDEX-specific design documentation is an adapter only ([docs/design-system.md](docs/design-system.md)). The shared SSOT above is the authority for foundation rules, component and pattern contracts, pattern service, navigation, responsive behavior, governance, portfolio operations, and the Mantine-only product primitive policy.
 
 ## Runtime and package versions
 

@@ -5,6 +5,7 @@ import { Noto_Sans, Noto_Sans_Arabic } from "next/font/google";
 import { ThemeRegistry } from "@/components/theme/ThemeRegistry";
 import { CookieConsentBanner } from "@/components/ui/CookieConsentBanner";
 import "@mantine/core/styles.css";
+import "@mantine/notifications/styles.css";
 import "../globals.css";
 
 const notoSans = Noto_Sans({

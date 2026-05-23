@@ -1,6 +1,8 @@
 "use client";
 
 import { MantineProvider } from "@mantine/core";
+import { ModalsProvider } from "@mantine/modals";
+import { Notifications } from "@mantine/notifications";
 import { useMemo } from "react";
 import { useLocale } from "next-intl";
 import { getKidexMantineTheme } from "@/theme/mantine-theme";
@@ -14,7 +16,10 @@ function ThemedTree({ children }: { children: React.ReactNode }) {
 
   return (
     <MantineProvider theme={mantineTheme} forceColorScheme={mode}>
-      {children}
+      <ModalsProvider>
+        <Notifications position="top-right" />
+        {children}
+      </ModalsProvider>
     </MantineProvider>
   );
 }

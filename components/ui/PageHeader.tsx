@@ -1,6 +1,6 @@
 "use client";
 
-import { Box, Flex, Text, Title } from "@mantine/core";
+import { Box, Flex, Group, Text, Title } from "@mantine/core";
 import type { ReactNode } from "react";
 
 type PageHeaderProps = {
@@ -12,12 +12,12 @@ type PageHeaderProps = {
 export function PageHeader({ title, subtitle, actions }: PageHeaderProps) {
   return (
     <Flex
-      gap="md"
+      gap="sm"
       direction={{ base: "column", md: "row" }}
       justify="space-between"
-      align={{ base: "stretch", md: "center" }}
+      align={{ base: "stretch", md: "flex-start" }}
     >
-      <Box>
+      <Box style={{ minWidth: 0 }}>
         <Title order={1} size="h2" fw={800}>
           {title}
         </Title>
@@ -28,9 +28,9 @@ export function PageHeader({ title, subtitle, actions }: PageHeaderProps) {
         ) : null}
       </Box>
       {actions ? (
-        <Flex gap="sm" wrap={{ base: "wrap", md: "nowrap" }} justify={{ base: "flex-start", md: "flex-end" }}>
+        <Group gap="sm" wrap="wrap" justify="flex-start" align="center">
           {actions}
-        </Flex>
+        </Group>
       ) : null}
     </Flex>
   );

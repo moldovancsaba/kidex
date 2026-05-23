@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Alert, Badge, Box, Button, Checkbox, Divider, Group, Loader, Modal, MultiSelect, Paper, RangeSlider, Select, Stack, Text, TextInput, Textarea } from "@mantine/core";
+import { ActionIcon, Alert, Badge, Box, Button, Checkbox, Divider, Group, Loader, Menu, Modal, MultiSelect, Paper, RangeSlider, Select, Stack, Text, TextInput, Textarea } from "@mantine/core";
+import { IconDotsVertical, IconDownload, IconEdit, IconEye, IconRestore, IconTrash } from "@tabler/icons-react";
 import { useParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
@@ -674,33 +675,87 @@ export default function ChildrenListPage() {
                         ) : null}
                       </Box>
                       <Group gap="sm">
-                        {!showDeleted && canWriteAssessments ? <Button component={Link} href={`/dashboard/assessment?childId=${child._id}`} color="kidex" size="sm" onClick={(e) => e.stopPropagation()}>
-                          {t("newSurveyForChild")}
-                        </Button> : null}
-                        {child.latestRecordId && (
-                          <Button 
-                            variant="outline" 
-                            color="kidex" 
+                        {showDeleted && canWriteChildren ? (
+                          <Button
+                            color="kidex"
+                            variant="light"
                             size="sm"
-                            onClick={(e) => { 
-                              e.stopPropagation(); 
-                              void downloadLatestMap(child._id, child.latestRecordId); 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setRestoreTarget(child);
+                              setRestoreConfirmText("");
                             }}
-                            loading={downloadingId === child._id}
+                            leftSection={<IconRestore size={16} />}
                           >
-                            {t("downloadPdf")}
+                            {t("restoreAction")}
                           </Button>
-                        )}
-                        {!showDeleted ? <Button component={Link} href={`/dashboard/children/${child._id}`} variant="default" size="sm" onClick={(e) => e.stopPropagation()}>
-                          {t("viewHistory")}
-                        </Button> : null}
-                        {!showDeleted && canWriteChildren ? <Button variant="subtle" color="gray" size="sm" onClick={(e) => { e.stopPropagation(); startEdit(child); }}>
-                          {t("editChild")}
-                        </Button> : null}
-                        {!showDeleted && canWriteChildren ? <Button color="red" variant="filled" size="sm" onClick={(e) => { e.stopPropagation(); setDeleteTarget(child); setDeleteConfirmText(""); }}>
-                          {t("deleteChild")}
-                        </Button> : null}
-                        {showDeleted && canWriteChildren ? <Button color="kidex" variant="light" size="sm" onClick={(e) => { e.stopPropagation(); setRestoreTarget(child); setRestoreConfirmText(""); }}>{t("restoreAction")}</Button> : null}
+                        ) : null}
+                        {!showDeleted ? (
+                          <>
+                            {canWriteAssessments ? (
+                              <Button component={Link} href={`/dashboard/assessment?childId=${child._id}`} color="kidex" size="sm" onClick={(e) => e.stopPropagation()}>
+                                {t("newSurveyForChild")}
+                              </Button>
+                            ) : (
+                              <Button component={Link} href={`/dashboard/children/${child._id}`} variant="light" color="kidex" size="sm" onClick={(e) => e.stopPropagation()}>
+                                {t("viewHistory")}
+                              </Button>
+                            )}
+
+                            <Menu shadow="md" width={220} position="bottom-end">
+                              <Menu.Target>
+                                <ActionIcon
+                                  variant="default"
+                                  size="lg"
+                                  aria-label={tc("moreActions")}
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <IconDotsVertical size={18} />
+                                </ActionIcon>
+                              </Menu.Target>
+
+                              <Menu.Dropdown onClick={(e) => e.stopPropagation()}>
+                                <Menu.Item
+                                  component={Link}
+                                  href={`/dashboard/children/${child._id}`}
+                                  leftSection={<IconEye size={16} />}
+                                >
+                                  {t("viewHistory")}
+                                </Menu.Item>
+                                {child.latestRecordId ? (
+                                  <Menu.Item
+                                    leftSection={<IconDownload size={16} />}
+                                    onClick={() => {
+                                      void downloadLatestMap(child._id, child.latestRecordId);
+                                    }}
+                                  >
+                                    {t("downloadPdf")}
+                                  </Menu.Item>
+                                ) : null}
+                                {canWriteChildren ? (
+                                  <Menu.Item
+                                    leftSection={<IconEdit size={16} />}
+                                    onClick={() => startEdit(child)}
+                                  >
+                                    {t("editChild")}
+                                  </Menu.Item>
+                                ) : null}
+                                {canWriteChildren ? (
+                                  <Menu.Item
+                                    color="red"
+                                    leftSection={<IconTrash size={16} />}
+                                    onClick={() => {
+                                      setDeleteTarget(child);
+                                      setDeleteConfirmText("");
+                                    }}
+                                  >
+                                    {t("deleteChild")}
+                                  </Menu.Item>
+                                ) : null}
+                              </Menu.Dropdown>
+                            </Menu>
+                          </>
+                        ) : null}
                       </Group>
                     </Stack>
                   </Paper>

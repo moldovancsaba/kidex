@@ -180,7 +180,9 @@ KIDEX does not currently implement:
 
 ## Source documents
 
+- Design/UI/UX SSOT: [/Users/Shared/Projects/GENERAL_DESIGN_SYSTEM/README.md](/Users/Shared/Projects/GENERAL_DESIGN_SYSTEM/README.md)
 - [API Reference](./api.md)
 - [Access Model](./access-model.md)
 - [Support Workspace](./support-workspace.md)
+- [Design System Adapter](./design-system.md)
 - [Deployment](./deployment.md)

@@ -15,6 +15,9 @@
   "dependencies": {
     "@mantine/core": "^8.3.6",
     "@mantine/hooks": "^8.3.6",
+    "@mantine/modals": "^8.3.18",
+    "@mantine/notifications": "^8.3.18",
+    "@tabler/icons-react": "^3.44.0",
     "html2canvas": "^1.4.1",
     "jose": "^6.2.3",
     "jspdf": "^4.2.1",

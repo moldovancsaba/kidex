@@ -25,6 +25,21 @@ For the fuller current product description, use:
 - [README.md](/Users/Shared/Projects/kidex/README.md)
 - [docs/product-overview.md](/Users/Shared/Projects/kidex/docs/product-overview.md)
 - [docs/api.md](/Users/Shared/Projects/kidex/docs/api.md)
+- [docs/design-system.md](/Users/Shared/Projects/kidex/docs/design-system.md)
+
+Design/UI/UX SSOT:
+
+- [/Users/Shared/Projects/GENERAL_DESIGN_SYSTEM/README.md](/Users/Shared/Projects/GENERAL_DESIGN_SYSTEM/README.md) (aligned version `2.2.0 / 2026-05-23`)
+
+KIDEX local design docs are adapters only. The shared design-system repository above is the authority for design, UI, UX, pattern service, navigation, responsive rules, component contracts, governance, and the Mantine-only product primitive policy. See [docs/design-system.md](/Users/Shared/Projects/kidex/docs/design-system.md) for the pattern contract inventory and migration backlog, and [docs/gds-compliance-checklist.md](/Users/Shared/Projects/kidex/docs/gds-compliance-checklist.md) for the migrating → governed checklist tied to [#50](https://github.com/moldovancsaba/kidex/issues/50).
+
+## Current UI Refactor Track
+
+The next active implementation issue is:
+
+- [#50](https://github.com/moldovancsaba/kidex/issues/50) `KIDEX Platform P1: Mantine-only mobile shell and responsive conductor workflow refactor`
+
+That issue is already on project `9` in `Todo (NEXT)` and is the active roadmap slice for the upcoming conductor-usability refactor.
 
 ## Current Versions
 
@@ -42,9 +57,10 @@ Current resolved local versions at the time of this handover:
 
 ## Latest Delivered Slice
 
-The latest completed feature delivery covered:
+The latest completed code delivery on `origin/main` covered:
 
 - `#48` reassessment cadence and follow-up visibility
+- `#49` reassessment queue and follow-up triage
 
 Main implementation files:
 
@@ -71,9 +87,9 @@ Verification passed for that slice:
 
 Latest pushed commit on `origin/main`:
 
-- `054b287` `Update handover for pending board sync`
+- `7d5f4f1` `Add reassessment follow-up workflow`
 
-Local working tree currently contains the verified `#48` and `#49` implementation slices and related documentation updates, but these changes have not yet been committed or pushed.
+Local working tree currently contains shared design-system SSOT updates, KIDEX adapter documentation updates, and roadmap synchronization for the Mantine-only refactor track. These changes have not yet been committed or pushed.
 
 Branch state at handover:
 
@@ -85,16 +101,21 @@ Branch state at handover:
 The project board and issue tracker are now aligned:
 
 - `#1` -> `In Progress (NOW)`
-- `#48` -> `Done`
+- `#50` -> `Todo (NEXT)`
 
-All earlier roadmap and ideabank child issues now show `Done` on project `9`.
+All earlier roadmap and ideabank child issues through `#49` show `Done` on project `9`.
 
 ## Recommended Next Work
 
-The next product decision is roadmap direction rather than cleanup:
+The next active implementation target is:
 
-- either create the next conductor-parent execution sequence
-- or deliberately expand a new ideabank track from the now-complete baseline
+- [#50](https://github.com/moldovancsaba/kidex/issues/50) Mantine-only mobile shell and responsive conductor workflow refactor
+
+Execution should follow:
+
+- [docs/design-system.md](/Users/Shared/Projects/kidex/docs/design-system.md) (local adapter, pattern inventory, backlog)
+- [/Users/Shared/Projects/GENERAL_DESIGN_SYSTEM/PROJECTS/KIDEX_MANTINE_REFACTOR.md](/Users/Shared/Projects/GENERAL_DESIGN_SYSTEM/PROJECTS/KIDEX_MANTINE_REFACTOR.md)
+- [/Users/Shared/Projects/GENERAL_DESIGN_SYSTEM/PATTERN_SERVICE_MODEL.md](/Users/Shared/Projects/GENERAL_DESIGN_SYSTEM/PATTERN_SERVICE_MODEL.md) (KIDEX section)
 
 ## Environment Notes
 

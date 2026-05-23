@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Alert, Badge, Box, Button, Group, Loader, Paper, Stack, Table, Text, useMantineTheme } from "@mantine/core";
+import { useMediaQuery } from "@mantine/hooks";
 import { useTranslations } from "next-intl";
 import { Bar, BarChart, CartesianGrid, Cell, Legend, Line, LineChart, Pie, PieChart, PolarAngleAxis, PolarGrid, PolarRadiusAxis, Radar, RadarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { LongitudinalChart } from "@/components/analytics/LongitudinalChart";
@@ -53,6 +54,7 @@ export function MainDashboard() {
   const tc = useTranslations("Common");
   const ts = useTranslations("Schema");
   const theme = useMantineTheme();
+  const mobileLayout = useMediaQuery(`(max-width: ${theme.breakpoints.sm})`);
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -267,6 +269,105 @@ export function MainDashboard() {
   }), [data]);
   const followUpQueue = useMemo(() => buildFollowUpQueue(data?.children ?? []), [data]);
 
+  const operationalSections = (
+    <>
+      <SectionCard title="Reassessment Queue" subheader="Children who need follow-up attention first based on overdue, due-soon, or missing reassessment timing.">
+        {followUpQueue.length === 0 ? (
+          <Alert color="teal">No reassessment queue items need attention right now.</Alert>
+        ) : (
+          <Stack gap="sm">
+            {followUpQueue.slice(0, 8).map((item) => (
+              <Paper key={`${item.childId || item.childName}-${item.status}`} withBorder p="sm">
+                <Group justify="space-between" align="flex-start" wrap="wrap">
+                  <Stack gap={4} style={{ flex: 1, minWidth: 240 }}>
+                    <Group gap="xs" wrap="wrap">
+                      <Text fw={700}>{item.childName}</Text>
+                      <Badge color={item.status === "overdue" ? "red" : item.status === "due_soon" ? "yellow" : "gray"} variant="light">
+                        {item.status === "overdue" ? "Overdue" : item.status === "due_soon" ? "Due soon" : "Date missing"}
+                      </Badge>
+                      <Badge variant="outline">{item.ageGroup}</Badge>
+                      {item.planStatus ? <Badge variant="light">{item.planStatus}</Badge> : null}
+                    </Group>
+                    <Text size="sm" c="dimmed">
+                      {item.dueDate ? `Due ${new Date(item.dueDate).toLocaleDateString()}` : "No reassessment date set"}
+                      {typeof item.latestSki === "number" ? ` • SKI ${formatScore(item.latestSki)}` : ""}
+                    </Text>
+                    <Text size="sm">{item.summary}</Text>
+                    <Text size="sm" c="dimmed">{item.action}</Text>
+                  </Stack>
+                  <Group>
+                    {item.childId ? (
+                      <Button component={Link} href={`/dashboard/children/${item.childId}`} variant="default" size="sm">
+                        {t("openChild")}
+                      </Button>
+                    ) : null}
+                    {item.latestRecordId ? (
+                      <Button component={Link} href={`/dashboard/records/${item.latestRecordId}`} color="kidex" variant="light" size="sm">
+                        {t("openRecord")}
+                      </Button>
+                    ) : null}
+                  </Group>
+                </Group>
+              </Paper>
+            ))}
+          </Stack>
+        )}
+      </SectionCard>
+
+      <SectionCard title={t("watchlistTitle")} subheader={t("watchlistSubtitle")}>
+        {analytics.watchlist.length === 0 ? (
+          <Alert color="teal">{t("watchlistEmpty")}</Alert>
+        ) : (
+          <Stack gap="sm">
+            {analytics.watchlist.map((item) => (
+              <Paper key={`${item.childId || item.childName}-${item.latestRecordId || "none"}`} withBorder p="sm">
+                <Group justify="space-between" align="flex-start" wrap="wrap">
+                  <Stack gap={4} style={{ flex: 1, minWidth: 240 }}>
+                    <Group gap="xs" wrap="wrap">
+                      <Text fw={700}>{item.childName}</Text>
+                      <Badge color={item.level === "high" ? "red" : item.level === "medium" ? "yellow" : "blue"} variant="light">
+                        {t(`riskLevel.${item.level}`)}
+                      </Badge>
+                      <Badge color={item.band === "ready" ? "teal" : item.band === "developing" ? "yellow" : "red"} variant="light">
+                        {t(`benchmarkBand.${item.band}`)}
+                      </Badge>
+                      <Badge variant="outline">{item.ageGroup}</Badge>
+                    </Group>
+                    <Text size="sm" c="dimmed">
+                      {t("watchlistMeta", {
+                        ski: formatScore(item.latestSki),
+                        date: item.latestAssessmentAt ? new Date(item.latestAssessmentAt).toLocaleDateString() : "—",
+                        score: item.score,
+                      })}
+                    </Text>
+                    <Stack gap={2}>
+                      {item.reasons.map((reason) => (
+                        <Text key={reason} size="sm">• {reason}</Text>
+                      ))}
+                    </Stack>
+                    <Text size="sm" c="dimmed">{item.action}</Text>
+                  </Stack>
+                  <Group>
+                    {item.childId ? (
+                      <Button component={Link} href={`/dashboard/children/${item.childId}`} variant="default" size="sm">
+                        {t("openChild")}
+                      </Button>
+                    ) : null}
+                    {item.latestRecordId ? (
+                      <Button component={Link} href={`/dashboard/records/${item.latestRecordId}`} color="kidex" variant="light" size="sm">
+                        {t("openRecord")}
+                      </Button>
+                    ) : null}
+                  </Group>
+                </Group>
+              </Paper>
+            ))}
+          </Stack>
+        )}
+      </SectionCard>
+    </>
+  );
+
   if (loading) {
     return (
       <Box style={{ display: "flex", justifyContent: "center", paddingBlock: "2rem" }} role="status">
@@ -293,6 +394,8 @@ export function MainDashboard() {
           consent: analytics.childrenNeedingConsentReview,
         })}
       </Text>
+
+      {mobileLayout ? operationalSections : null}
 
       {data?.cultureAnalytics ? (
         <SectionCard title="Culture and trust pulse" subheader="Anonymous voice launches and culture-index signals across teams and institutions.">
@@ -411,100 +514,7 @@ export function MainDashboard() {
         </Box>
       </Stack>
 
-      <SectionCard title="Reassessment Queue" subheader="Children who need follow-up attention first based on overdue, due-soon, or missing reassessment timing.">
-        {followUpQueue.length === 0 ? (
-          <Alert color="teal">No reassessment queue items need attention right now.</Alert>
-        ) : (
-          <Stack gap="sm">
-            {followUpQueue.slice(0, 8).map((item) => (
-              <Paper key={`${item.childId || item.childName}-${item.status}`} withBorder p="sm">
-                <Group justify="space-between" align="flex-start" wrap="wrap">
-                  <Stack gap={4} style={{ flex: 1, minWidth: 240 }}>
-                    <Group gap="xs" wrap="wrap">
-                      <Text fw={700}>{item.childName}</Text>
-                      <Badge color={item.status === "overdue" ? "red" : item.status === "due_soon" ? "yellow" : "gray"} variant="light">
-                        {item.status === "overdue" ? "Overdue" : item.status === "due_soon" ? "Due soon" : "Date missing"}
-                      </Badge>
-                      <Badge variant="outline">{item.ageGroup}</Badge>
-                      {item.planStatus ? <Badge variant="light">{item.planStatus}</Badge> : null}
-                    </Group>
-                    <Text size="sm" c="dimmed">
-                      {item.dueDate ? `Due ${new Date(item.dueDate).toLocaleDateString()}` : "No reassessment date set"}
-                      {typeof item.latestSki === "number" ? ` • SKI ${formatScore(item.latestSki)}` : ""}
-                    </Text>
-                    <Text size="sm">{item.summary}</Text>
-                    <Text size="sm" c="dimmed">{item.action}</Text>
-                  </Stack>
-                  <Group>
-                    {item.childId ? (
-                      <Button component={Link} href={`/dashboard/children/${item.childId}`} variant="default" size="sm">
-                        {t("openChild")}
-                      </Button>
-                    ) : null}
-                    {item.latestRecordId ? (
-                      <Button component={Link} href={`/dashboard/records/${item.latestRecordId}`} color="kidex" variant="light" size="sm">
-                        {t("openRecord")}
-                      </Button>
-                    ) : null}
-                  </Group>
-                </Group>
-              </Paper>
-            ))}
-          </Stack>
-        )}
-      </SectionCard>
-
-      <SectionCard title={t("watchlistTitle")} subheader={t("watchlistSubtitle")}>
-        {analytics.watchlist.length === 0 ? (
-          <Alert color="teal">{t("watchlistEmpty")}</Alert>
-        ) : (
-          <Stack gap="sm">
-            {analytics.watchlist.map((item) => (
-              <Paper key={`${item.childId || item.childName}-${item.latestRecordId || "none"}`} withBorder p="sm">
-                <Group justify="space-between" align="flex-start" wrap="wrap">
-                  <Stack gap={4} style={{ flex: 1, minWidth: 240 }}>
-                    <Group gap="xs" wrap="wrap">
-                      <Text fw={700}>{item.childName}</Text>
-                      <Badge color={item.level === "high" ? "red" : item.level === "medium" ? "yellow" : "blue"} variant="light">
-                        {t(`riskLevel.${item.level}`)}
-                      </Badge>
-                      <Badge color={item.band === "ready" ? "teal" : item.band === "developing" ? "yellow" : "red"} variant="light">
-                        {t(`benchmarkBand.${item.band}`)}
-                      </Badge>
-                      <Badge variant="outline">{item.ageGroup}</Badge>
-                    </Group>
-                    <Text size="sm" c="dimmed">
-                      {t("watchlistMeta", {
-                        ski: formatScore(item.latestSki),
-                        date: item.latestAssessmentAt ? new Date(item.latestAssessmentAt).toLocaleDateString() : "—",
-                        score: item.score,
-                      })}
-                    </Text>
-                    <Stack gap={2}>
-                      {item.reasons.map((reason) => (
-                        <Text key={reason} size="sm">• {reason}</Text>
-                      ))}
-                    </Stack>
-                    <Text size="sm" c="dimmed">{item.action}</Text>
-                  </Stack>
-                  <Group>
-                    {item.childId ? (
-                      <Button component={Link} href={`/dashboard/children/${item.childId}`} variant="default" size="sm">
-                        {t("openChild")}
-                      </Button>
-                    ) : null}
-                    {item.latestRecordId ? (
-                      <Button component={Link} href={`/dashboard/records/${item.latestRecordId}`} color="kidex" variant="light" size="sm">
-                        {t("openRecord")}
-                      </Button>
-                    ) : null}
-                  </Group>
-                </Group>
-              </Paper>
-            ))}
-          </Stack>
-        )}
-      </SectionCard>
+      {!mobileLayout ? operationalSections : null}
 
       <Stack gap="md" style={{ flexDirection: "row", flexWrap: "wrap" }}>
         <MetricCard label={t("totalUsers")} value={String(data?.users.length ?? 0)} />
