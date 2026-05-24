@@ -1,13 +1,4 @@
-/* Brand tokens for shared non-component styling and future extensions. */
-:root {
-  --brand-navy: #3d3f4d;
-  --brand-teal: #13a59e;
-  --brand-gold: #fdcb58;
-}
-
-[data-theme="dark"] {
-  --brand-navy: #f1f5f9;
-}
+/* Global reset, print helpers, and chart font overrides. Brand tokens live in theme/mantine-theme.ts. */
 
 * {
   box-sizing: border-box;

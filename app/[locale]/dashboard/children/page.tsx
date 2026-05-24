@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { ActionIcon, Alert, Badge, Box, Button, Checkbox, Divider, Group, Loader, Menu, Modal, MultiSelect, Paper, RangeSlider, Select, Stack, Text, TextInput, Textarea } from "@mantine/core";
+import { ActionIcon, Alert, Badge, Box, Button, Checkbox, Divider, Group, Menu, Modal, MultiSelect, Paper, RangeSlider, Select, Stack, Text, TextInput, Textarea } from "@mantine/core";
 import { IconDotsVertical, IconDownload, IconEdit, IconEye, IconRestore, IconTrash } from "@tabler/icons-react";
 import { useParams } from "next/navigation";
 import { useTranslations } from "next-intl";
@@ -12,6 +12,8 @@ import { normalizePreferredLocale } from "@/lib/locales";
 import { canPerformAction } from "@/lib/permissions";
 import { buildReassessmentSummary } from "@/lib/reassessment";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { DataToolbar } from "@/components/ui/DataToolbar";
+import { LoadingState } from "@/components/ui/LoadingState";
 import { SectionCard } from "@/components/ui/SectionCard";
 import { createEmptyFamilyCaregiver, FAMILY_ACCESS_LEVELS, FAMILY_CAREGIVER_STATUSES, FAMILY_RELATIONSHIPS, type FamilyCaregiver } from "@/lib/family-access";
 import { calculateAgeGroup } from "@/lib/utils/age";
@@ -452,11 +454,7 @@ export default function ChildrenListPage() {
   }
 
   if (loading) {
-    return (
-      <Box style={{ display: "flex", justifyContent: "center", paddingBlock: "2rem" }} role="status">
-        <Loader aria-label={tc("loading")} />
-      </Box>
-    );
+    return <LoadingState label={tc("loading")} minHeight="12rem" />;
   }
 
   return (
@@ -482,51 +480,55 @@ export default function ChildrenListPage() {
             </Alert>
           ) : null}
 
-          <Group align="end" gap="xs">
-            <TextInput
-              label={t("searchChildren")}
-              value={query}
-              onChange={(event) => setQuery(event.target.value)}
-              placeholder={t("searchChildrenPlaceholder")}
-              style={{ flex: 1 }}
-            />
-            <Button variant="light" color="gray" onClick={() => setShowAdvanced(!showAdvanced)}>
-              {showAdvanced ? tc("hideFilters") : tc("advancedFilters")}
-            </Button>
-          </Group>
-
-          {showAdvanced && (
-            <Paper withBorder p="md">
-              <Stack gap="md">
-                <Group grow align="start">
-                  <MultiSelect
-                    label={t("location")}
-                    placeholder={tc("all")}
-                    data={locations}
-                    value={selectedLocations}
-                    onChange={setSelectedLocations}
-                    clearable
-                    searchable
-                  />
-                  <MultiSelect
-                    label={ta("ageGroup")}
-                    placeholder={tc("all")}
-                    data={allAgeGroups}
-                    value={selectedAgeGroups}
-                    onChange={setSelectedAgeGroups}
-                    clearable
-                  />
-                  <MultiSelect
-                    label="Follow-up status"
-                    placeholder={tc("all")}
-                    data={followUpStatusOptions}
-                    value={selectedFollowUpStatuses}
-                    onChange={setSelectedFollowUpStatuses}
-                    clearable
-                  />
-                </Group>
-                <Box>
-                  <Text size="sm" fw={500} mb="xs">SKI Score Range: {skiRange[0]} - {skiRange[1]}</Text>
+          <DataToolbar
+            primary={
+              <TextInput
+                label={t("searchChildren")}
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder={t("searchChildrenPlaceholder")}
+              />
+            }
+            secondary={
+              <Button variant="light" color="gray" onClick={() => setShowAdvanced(!showAdvanced)}>
+                {showAdvanced ? tc("hideFilters") : tc("advancedFilters")}
+              </Button>
+            }
+            filters={
+              showAdvanced ? (
+                <Paper withBorder p="md">
+                  <Stack gap="md">
+                    <Group grow align="start">
+                      <MultiSelect
+                        label={t("location")}
+                        placeholder={tc("all")}
+                        data={locations}
+                        value={selectedLocations}
+                        onChange={setSelectedLocations}
+                        clearable
+                        searchable
+                      />
+                      <MultiSelect
+                        label={ta("ageGroup")}
+                        placeholder={tc("all")}
+                        data={allAgeGroups}
+                        value={selectedAgeGroups}
+                        onChange={setSelectedAgeGroups}
+                        clearable
+                      />
+                      <MultiSelect
+                        label="Follow-up status"
+                        placeholder={tc("all")}
+                        data={followUpStatusOptions}
+                        value={selectedFollowUpStatuses}
+                        onChange={setSelectedFollowUpStatuses}
+                        clearable
+                      />
+                    </Group>
+                    <Box>
+                      <Text size="sm" fw={500} mb="xs">
+                        SKI Score Range: {skiRange[0]} - {skiRange[1]}
+                      </Text>
                   <RangeSlider
                     min={0}
                     max={100}
@@ -549,7 +551,9 @@ export default function ChildrenListPage() {
                 </Group>
               </Stack>
             </Paper>
-          )}
+              ) : null
+            }
+          />
 
           {filtered.length === 0 ? (
             <Text c="dimmed" fs="italic">{query ? t("noChildrenMatch") : tc("noChildren")}</Text>
@@ -691,13 +695,26 @@ export default function ChildrenListPage() {
                           </Button>
                         ) : null}
                         {!showDeleted ? (
-                          <>
+                          <Group gap="sm" wrap="nowrap">
                             {canWriteAssessments ? (
-                              <Button component={Link} href={`/dashboard/assessment?childId=${child._id}`} color="kidex" size="sm" onClick={(e) => e.stopPropagation()}>
+                              <Button
+                                component={Link}
+                                href={`/dashboard/assessment?childId=${child._id}`}
+                                color="kidex"
+                                size="sm"
+                                onClick={(e) => e.stopPropagation()}
+                              >
                                 {t("newSurveyForChild")}
                               </Button>
                             ) : (
-                              <Button component={Link} href={`/dashboard/children/${child._id}`} variant="light" color="kidex" size="sm" onClick={(e) => e.stopPropagation()}>
+                              <Button
+                                component={Link}
+                                href={`/dashboard/children/${child._id}`}
+                                variant="light"
+                                color="kidex"
+                                size="sm"
+                                onClick={(e) => e.stopPropagation()}
+                              >
                                 {t("viewHistory")}
                               </Button>
                             )}
@@ -725,6 +742,7 @@ export default function ChildrenListPage() {
                                 {child.latestRecordId ? (
                                   <Menu.Item
                                     leftSection={<IconDownload size={16} />}
+                                    disabled={downloadingId === child._id}
                                     onClick={() => {
                                       void downloadLatestMap(child._id, child.latestRecordId);
                                     }}
@@ -754,7 +772,7 @@ export default function ChildrenListPage() {
                                 ) : null}
                               </Menu.Dropdown>
                             </Menu>
-                          </>
+                          </Group>
                         ) : null}
                       </Group>
                     </Stack>

@@ -1,10 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Badge, Box, Button, Group, Loader, Modal, Paper, Stack, Text, TextInput } from "@mantine/core";
+import { Badge, Box, Button, Group, Modal, Paper, Stack, Text, TextInput } from "@mantine/core";
 import { useParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
+import { DataToolbar } from "@/components/ui/DataToolbar";
+import { LoadingState } from "@/components/ui/LoadingState";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { canPerformAction } from "@/lib/permissions";
 import { formatScore } from "@/lib/utils";
@@ -76,11 +78,7 @@ export default function RecordsPage() {
   }
 
   if (loading) {
-    return (
-      <Box style={{ display: "flex", justifyContent: "center", paddingBlock: "2rem" }}>
-        <Loader />
-      </Box>
-    );
+    return <LoadingState label={tc("loading")} minHeight="12rem" />;
   }
 
   return (
@@ -95,11 +93,15 @@ export default function RecordsPage() {
       />
       <SectionCard>
         <Stack gap="md">
-          <TextInput
-            label={t("searchRecords")}
-            placeholder={t("searchRecordsPlaceholder")}
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
+          <DataToolbar
+            primary={
+              <TextInput
+                label={t("searchRecords")}
+                placeholder={t("searchRecordsPlaceholder")}
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+              />
+            }
           />
 
           {filtered.length === 0 ? (

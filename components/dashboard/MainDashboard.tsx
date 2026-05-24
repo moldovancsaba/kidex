@@ -2,12 +2,14 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Alert, Badge, Box, Button, Group, Loader, Paper, Stack, Table, Text, useMantineTheme } from "@mantine/core";
+import { Alert, Badge, Box, Button, Group, Paper, Stack, Table, Text, useMantineTheme } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 import { useTranslations } from "next-intl";
 import { Bar, BarChart, CartesianGrid, Cell, Legend, Line, LineChart, Pie, PieChart, PolarAngleAxis, PolarGrid, PolarRadiusAxis, Radar, RadarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { LongitudinalChart } from "@/components/analytics/LongitudinalChart";
 import { SymmetryChart } from "@/components/analytics/SymmetryChart";
+import { LoadingState } from "@/components/ui/LoadingState";
+import { MetricCard } from "@/components/ui/MetricCard";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { SectionCard } from "@/components/ui/SectionCard";
 import { rapidSections } from "@/lib/kidex-schema";
@@ -369,21 +371,22 @@ export function MainDashboard() {
   );
 
   if (loading) {
-    return (
-      <Box style={{ display: "flex", justifyContent: "center", paddingBlock: "2rem" }} role="status">
-        <Loader aria-label={tc("loading")} />
-      </Box>
-    );
+    return <LoadingState label={tc("loading")} minHeight="12rem" />;
   }
 
-  return (
-    <Stack gap="lg">
-      <PageHeader title={t("overview")} subtitle={t("overviewSubtitle")} />
+  const followUpMetricStrip = (
+    <Stack gap="md" style={{ flexDirection: "row", flexWrap: "wrap" }}>
+      <MetricCard label="Overdue follow-ups" value={String(analytics.overdueFollowUps)} />
+      <MetricCard label="Due soon" value={String(analytics.dueSoonFollowUps)} />
+      <MetricCard label={t("activeFollowUp")} value={String(analytics.activeChildren)} />
+    </Stack>
+  );
 
+  const overviewMetricStrip = (
+    <>
       <Stack gap="md" style={{ flexDirection: "row", flexWrap: "wrap" }}>
         <MetricCard label={t("totalChildren")} value={String(data?.children.length ?? 0)} />
         <MetricCard label={t("totalRecords")} value={String(data?.assessments.length ?? 0)} />
-        <MetricCard label={t("activeFollowUp")} value={String(analytics.activeChildren)} />
         <MetricCard label={t("staleFollowUp")} value={String(analytics.staleChildren)} />
         <MetricCard label={t("consentReviewNeeded")} value={String(analytics.childrenNeedingConsentReview)} />
       </Stack>
@@ -394,8 +397,17 @@ export function MainDashboard() {
           consent: analytics.childrenNeedingConsentReview,
         })}
       </Text>
+    </>
+  );
 
-      {mobileLayout ? operationalSections : null}
+  return (
+    <Stack gap="lg">
+      <PageHeader title={t("overview")} subtitle={t("overviewSubtitle")} />
+
+      {operationalSections}
+      {followUpMetricStrip}
+
+      {mobileLayout ? null : overviewMetricStrip}
 
       {data?.cultureAnalytics ? (
         <SectionCard title="Culture and trust pulse" subheader="Anonymous voice launches and culture-index signals across teams and institutions.">
@@ -476,14 +488,14 @@ export function MainDashboard() {
             <LongitudinalChart
               title={t("wellbeingTrend")}
               data={analytics.monthlyTrend.map((point) => ({ date: point.label, value: point.wellbeing }))}
-              color="#FF922B"
+              color="var(--mantine-color-orange-5)"
             />
           </Box>
           <Box style={{ flex: "1 1 260px" }}>
             <LongitudinalChart
               title={t("readinessTrend")}
               data={analytics.monthlyTrend.map((point) => ({ date: point.label, value: point.readiness }))}
-              color="#3BC9DB"
+              color="var(--mantine-color-cyan-5)"
             />
           </Box>
         </Stack>
@@ -514,14 +526,12 @@ export function MainDashboard() {
         </Box>
       </Stack>
 
-      {!mobileLayout ? operationalSections : null}
+      {mobileLayout ? overviewMetricStrip : null}
 
       <Stack gap="md" style={{ flexDirection: "row", flexWrap: "wrap" }}>
         <MetricCard label={t("totalUsers")} value={String(data?.users.length ?? 0)} />
         <MetricCard label={t("avgRecordsPerChild")} value={avgRecordsPerChild} />
         <MetricCard label={t("assessmentVelocity")} value={assessmentVelocity} />
-        <MetricCard label="Overdue follow-ups" value={String(analytics.overdueFollowUps)} />
-        <MetricCard label="Due soon" value={String(analytics.dueSoonFollowUps)} />
       </Stack>
       <Text size="sm" c="dimmed">{t("insightUsersRecords", { users: data?.users.length ?? 0, records: data?.assessments.length ?? 0, velocity: assessmentVelocity })}</Text>
 
@@ -640,19 +650,6 @@ export function MainDashboard() {
         </Text>
       </SectionCard>
     </Stack>
-  );
-}
-
-function MetricCard({ label, value }: { label: string; value: string }) {
-  return (
-    <Paper withBorder p="md" style={{ flex: "1 1 180px" }}>
-      <Text size="sm" c="dimmed">
-        {label}
-      </Text>
-      <Text size="xl" fw={800}>
-        {value}
-      </Text>
-    </Paper>
   );
 }
 
