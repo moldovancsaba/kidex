@@ -8,6 +8,12 @@ import { useTranslations } from "next-intl";
 import { Bar, BarChart, CartesianGrid, Cell, Legend, Line, LineChart, Pie, PieChart, PolarAngleAxis, PolarGrid, PolarRadiusAxis, Radar, RadarChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { LongitudinalChart } from "@/components/analytics/LongitudinalChart";
 import { SymmetryChart } from "@/components/analytics/SymmetryChart";
+import {
+  CHART_BENCHMARK_STACK_COLORS,
+  CHART_ORIENTATION_COLORS,
+  CHART_READINESS_STACK_COLORS,
+  CHART_RISK_COLORS,
+} from "@/components/analytics/chart-series-colors";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { MetricCard } from "@/components/ui/MetricCard";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -753,9 +759,9 @@ function ReadinessAgeBandChart({
             <YAxis allowDecimals={false} tick={{ fontSize: 12, fill: "var(--mantine-color-text)", fontFamily: CHART_FONT_FAMILY }} />
             <Tooltip />
             <Legend />
-            <Bar dataKey="ready" stackId="readiness" fill="#40C057" name="Ready" radius={[4, 4, 0, 0]} />
-            <Bar dataKey="developing" stackId="readiness" fill="#FAB005" name="Developing" />
-            <Bar dataKey="watch" stackId="readiness" fill="#FA5252" name="Watchlist" />
+            <Bar dataKey="ready" stackId="readiness" fill={CHART_READINESS_STACK_COLORS.ready} name="Ready" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="developing" stackId="readiness" fill={CHART_READINESS_STACK_COLORS.developing} name="Developing" />
+            <Bar dataKey="watch" stackId="readiness" fill={CHART_READINESS_STACK_COLORS.watch} name="Watchlist" />
           </BarChart>
         </ResponsiveContainer>
       </Box>
@@ -782,9 +788,9 @@ function BenchmarkCoverageChart({
             <YAxis allowDecimals={false} tick={{ fontSize: 12, fill: "var(--mantine-color-text)", fontFamily: CHART_FONT_FAMILY }} />
             <Tooltip />
             <Legend />
-            <Bar dataKey="meetingTarget" stackId="coverage" fill="#2F9E44" name="Meeting target" radius={[4, 4, 0, 0]} />
-            <Bar dataKey="onTrack" stackId="coverage" fill="#4DABF7" name="Between min and target" />
-            <Bar dataKey="belowMinimum" stackId="coverage" fill="#F03E3E" name="Below minimum" />
+            <Bar dataKey="meetingTarget" stackId="coverage" fill={CHART_BENCHMARK_STACK_COLORS.meetingTarget} name="Meeting target" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="onTrack" stackId="coverage" fill={CHART_BENCHMARK_STACK_COLORS.onTrack} name="Between min and target" />
+            <Bar dataKey="belowMinimum" stackId="coverage" fill={CHART_BENCHMARK_STACK_COLORS.belowMinimum} name="Below minimum" />
           </BarChart>
         </ResponsiveContainer>
       </Box>
@@ -801,7 +807,7 @@ function OrientationMixChart({
   title: string;
   subtitle: string;
 }) {
-  const colors = ["#4DABF7", "#FF922B", "#845EF7", "#20C997"];
+  const colors = [...CHART_ORIENTATION_COLORS];
   return (
     <SectionCard title={title} subheader={subtitle} sx={{ mb: 0 }}>
       <Box style={{ width: "100%", height: 240 }}>
@@ -831,9 +837,9 @@ function RiskBucketChart({
   subtitle: string;
 }) {
   const chartData = [
-    { label: "High", value: data.high, color: "#FA5252" },
-    { label: "Medium", value: data.medium, color: "#FAB005" },
-    { label: "Low", value: data.low, color: "#4DABF7" },
+    { label: "High", value: data.high, color: CHART_RISK_COLORS.high },
+    { label: "Medium", value: data.medium, color: CHART_RISK_COLORS.medium },
+    { label: "Low", value: data.low, color: CHART_RISK_COLORS.low },
   ];
 
   return (

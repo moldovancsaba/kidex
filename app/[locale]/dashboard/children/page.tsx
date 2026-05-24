@@ -11,6 +11,7 @@ import { defaultConsentPolicy, deriveLegacyConsents, getConsentAlerts, type Chil
 import { normalizePreferredLocale } from "@/lib/locales";
 import { canPerformAction } from "@/lib/permissions";
 import { buildReassessmentSummary } from "@/lib/reassessment";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { DataToolbar } from "@/components/ui/DataToolbar";
 import { LoadingState } from "@/components/ui/LoadingState";
@@ -556,7 +557,7 @@ export default function ChildrenListPage() {
           />
 
           {filtered.length === 0 ? (
-            <Text c="dimmed" fs="italic">{query ? t("noChildrenMatch") : tc("noChildren")}</Text>
+            <EmptyState message={query ? t("noChildrenMatch") : tc("noChildren")} />
           ) : (
             <Stack gap="md">
               {filtered.map((child) => {

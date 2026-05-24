@@ -1,12 +1,13 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Alert, Badge, Box, Button, Checkbox, Divider, Group, Loader, MultiSelect, NumberInput, Paper, Select, Stack, Table, Tabs, Text, Textarea, TextInput } from "@mantine/core";
+import { Alert, Badge, Box, Button, Checkbox, Divider, Group, MultiSelect, NumberInput, Paper, Select, Stack, Table, Tabs, Text, Textarea, TextInput } from "@mantine/core";
 import { useTranslations } from "next-intl";
 import { useParams } from "next/navigation";
+import { LoadingState } from "@/components/ui/LoadingState";
+import { PageHeader } from "@/components/ui/PageHeader";
 import { DEFAULT_KIDEX_SETTINGS, getSettings, type KidexSettings, saveSettings } from "@/services/settings-service";
 import { getUsers, saveUser, type User } from "@/services/user-service";
-import { PageHeader } from "@/components/ui/PageHeader";
 import { SectionCard } from "@/components/ui/SectionCard";
 import { SearchableSelect } from "@/components/ui/SearchableSelect";
 import type { AuditLogEntry } from "@/repositories/audit.repository";
@@ -784,11 +785,7 @@ export default function SettingsPage() {
   }
 
   if (loading) {
-    return (
-      <Box style={{ display: "flex", justifyContent: "center", paddingBlock: "2rem" }} role="status">
-        <Loader aria-label={tc("loading")} />
-      </Box>
-    );
+    return <LoadingState label={tc("loading")} minHeight="12rem" />;
   }
 
   return (

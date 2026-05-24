@@ -1,11 +1,14 @@
 "use client";
 
 import { useEffect, useState, use } from "react";
-import { Alert, Badge, Box, Button, Checkbox, Group, Loader, Modal, MultiSelect, Paper, Select, SimpleGrid, Stack, Table, Text, TextInput, Textarea, useMantineTheme } from "@mantine/core";
+import { Alert, Badge, Box, Button, Checkbox, Group, Menu, Modal, MultiSelect, Paper, Select, SimpleGrid, Stack, Table, Text, TextInput, Textarea, useMantineTheme } from "@mantine/core";
 import Image from "next/image";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { PolarAngleAxis, PolarGrid, PolarRadiusAxis, Radar, RadarChart, ResponsiveContainer, Tooltip } from "recharts";
+import { DetailActionBar } from "@/components/ui/DetailActionBar";
+import { ErrorState } from "@/components/ui/ErrorState";
+import { LoadingState } from "@/components/ui/LoadingState";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { buildChildStateSummary } from "@/lib/child-state-summary";
 import { buildFamilyFriendlyReportSummary } from "@/lib/family-report";
@@ -247,20 +250,17 @@ export default function ChildHistoryPage({ params }: { params: Promise<{ id: str
   const supportSummary = buildSupportWorkspaceSummary(effectiveSupportWorkspace);
 
   if (loading) {
-    return (
-      <Box style={{ display: "flex", justifyContent: "center", paddingBlock: "2rem" }} role="status">
-        <Loader aria-label={tc("loading")} />
-      </Box>
-    );
+    return <LoadingState label={tc("loading")} minHeight="12rem" />;
   }
 
   if (!data) {
-    return (
-      <Text c="red" py="md">
-        {tc("error")}
-      </Text>
-    );
+    return <ErrorState title={tc("error")} message={t("childHistoryUnavailable")} />;
   }
+
+  const latestAssessmentId = data.assessments[0]?._id;
+  const assessmentHref = latestAssessmentId
+    ? `/dashboard/assessment?id=${latestAssessmentId}`
+    : `/dashboard/assessment?childId=${data.child._id}`;
 
   function ensureDraftPlan() {
     if (!data?.child || !latest || !recommendationSummary) return;
@@ -512,52 +512,123 @@ export default function ChildHistoryPage({ params }: { params: Promise<{ id: str
 
   return (
     <Stack gap="lg">
-      <PageHeader 
-        title={data.child.name} 
-        subtitle={data.child.birthDate} 
+      <PageHeader
+        title={data.child.name}
+        subtitle={data.child.birthDate}
         actions={
-          <Group>
-            {canWriteAssessments ? (
-              <Button
-                component={Link}
-                href={data.assessments[0]?._id ? `/dashboard/assessment?id=${data.assessments[0]._id}` : "/dashboard/assessment"}
-                variant="default"
-                disabled={data.assessments.length === 0}
-              >
-                {tc("update")}
-              </Button>
-            ) : null}
-            <Button 
-              color="kidex" 
-              onClick={() => void downloadPdf()} 
-              loading={downloadingPdf}
-              disabled={data.assessments.length === 0 || !canExportProfessional}
-            >
-              {td("downloadPdf")}
-            </Button>
-            <Button
-              color="kidex"
-              variant="light"
-              onClick={async () => {
-                if (!latest || !recommendationSummary) return;
-                if (!canGenerateFamilyReport) return;
-                setDownloadingPdf(true);
-                try {
-                  const users = await getUsers();
-                  const printableRecord = withDisplayNamesForReport(latest, users);
-                  await PdfService.generateFamilyReport(printableRecord, t, tc, ts, tr, recommendationSummary, plan, data.child, effectiveSupportWorkspace, data.assessments, data.assessments.length);
-                } finally {
-                  setDownloadingPdf(false);
-                }
-              }}
-              disabled={data.assessments.length === 0 || !canGenerateFamilyReport}
-            >
-              {tr("familyReportTitle")}
-            </Button>
-            <Button color="red" onClick={() => setDeleteModalOpen(true)} disabled={data.assessments.length === 0 || !canWriteAssessments}>
-              Delete survey
-            </Button>
-          </Group>
+          <DetailActionBar
+            menuLabel={tc("moreActions")}
+            primary={
+              canWriteAssessments ? (
+                <Button component={Link} href={assessmentHref} color="kidex">
+                  {latestAssessmentId ? t("resumeSurvey") : td("newSurveyForChild")}
+                </Button>
+              ) : (
+                <Button
+                  color="kidex"
+                  onClick={() => void downloadPdf()}
+                  loading={downloadingPdf}
+                  disabled={data.assessments.length === 0 || !canExportProfessional}
+                >
+                  {td("downloadPdf")}
+                </Button>
+              )
+            }
+            secondary={
+              <>
+                {canWriteAssessments && data.assessments.length > 0 ? (
+                  <Button
+                    color="kidex"
+                    variant="light"
+                    onClick={() => void downloadPdf()}
+                    loading={downloadingPdf}
+                    disabled={!canExportProfessional}
+                  >
+                    {td("downloadPdf")}
+                  </Button>
+                ) : null}
+                <Button
+                  color="kidex"
+                  variant="light"
+                  onClick={async () => {
+                    if (!latest || !recommendationSummary) return;
+                    if (!canGenerateFamilyReport) return;
+                    setDownloadingPdf(true);
+                    try {
+                      const users = await getUsers();
+                      const printableRecord = withDisplayNamesForReport(latest, users);
+                      await PdfService.generateFamilyReport(
+                        printableRecord,
+                        t,
+                        tc,
+                        ts,
+                        tr,
+                        recommendationSummary,
+                        plan,
+                        data.child,
+                        effectiveSupportWorkspace,
+                        data.assessments,
+                        data.assessments.length,
+                      );
+                    } finally {
+                      setDownloadingPdf(false);
+                    }
+                  }}
+                  disabled={data.assessments.length === 0 || !canGenerateFamilyReport}
+                >
+                  {tr("familyReportTitle")}
+                </Button>
+                {canWriteAssessments ? (
+                  <Button color="red" variant="light" onClick={() => setDeleteModalOpen(true)} disabled={data.assessments.length === 0}>
+                    {t("deleteSurvey")}
+                  </Button>
+                ) : null}
+              </>
+            }
+            menuItems={
+              <>
+                {canWriteAssessments && data.assessments.length > 0 ? (
+                  <Menu.Item onClick={() => void downloadPdf()} disabled={!canExportProfessional}>
+                    {td("downloadPdf")}
+                  </Menu.Item>
+                ) : null}
+                <Menu.Item
+                  onClick={async () => {
+                    if (!latest || !recommendationSummary) return;
+                    if (!canGenerateFamilyReport) return;
+                    setDownloadingPdf(true);
+                    try {
+                      const users = await getUsers();
+                      const printableRecord = withDisplayNamesForReport(latest, users);
+                      await PdfService.generateFamilyReport(
+                        printableRecord,
+                        t,
+                        tc,
+                        ts,
+                        tr,
+                        recommendationSummary,
+                        plan,
+                        data.child,
+                        effectiveSupportWorkspace,
+                        data.assessments,
+                        data.assessments.length,
+                      );
+                    } finally {
+                      setDownloadingPdf(false);
+                    }
+                  }}
+                  disabled={data.assessments.length === 0 || !canGenerateFamilyReport}
+                >
+                  {tr("familyReportTitle")}
+                </Menu.Item>
+                {canWriteAssessments ? (
+                  <Menu.Item color="red" onClick={() => setDeleteModalOpen(true)} disabled={data.assessments.length === 0}>
+                    {t("deleteSurvey")}
+                  </Menu.Item>
+                ) : null}
+              </>
+            }
+          />
         }
       />
 

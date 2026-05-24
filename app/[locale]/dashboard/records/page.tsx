@@ -5,6 +5,7 @@ import { Badge, Box, Button, Group, Modal, Paper, Stack, Text, TextInput } from 
 import { useParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { DataToolbar } from "@/components/ui/DataToolbar";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -105,7 +106,7 @@ export default function RecordsPage() {
           />
 
           {filtered.length === 0 ? (
-            <Text c="dimmed" fs="italic">{query ? t("noRecordsMatch") : ta("noHistory")}</Text>
+            <EmptyState message={query ? t("noRecordsMatch") : ta("noHistory")} />
           ) : (
             <Stack gap="md">
               {filtered.map((record) => (

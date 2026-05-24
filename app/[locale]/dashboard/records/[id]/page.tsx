@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, use } from "react";
-import { Alert, Badge, Box, Button, Group, Loader, Paper, SimpleGrid, Stack, Table, Text, Title, useMantineTheme } from "@mantine/core";
+import { Alert, Badge, Box, Button, Group, Menu, Paper, SimpleGrid, Stack, Table, Text, Title, useMantineTheme } from "@mantine/core";
 import { useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { useTranslations } from "next-intl";
@@ -17,14 +17,17 @@ import { getConsentAlerts, hasActiveConsent } from "@/lib/consent-policy";
 import { getUsers } from "@/services/user-service";
 import { withDisplayNamesForReport } from "@/lib/report-user-display";
 import { logPdfExportTelemetry, validatePdfExport } from "@/lib/pdf-export-guards";
-import { 
-  PolarAngleAxis, 
-  PolarGrid, 
-  PolarRadiusAxis, 
-  Radar, 
-  RadarChart, 
-  ResponsiveContainer
+import {
+  PolarAngleAxis,
+  PolarGrid,
+  PolarRadiusAxis,
+  Radar,
+  RadarChart,
+  ResponsiveContainer,
 } from "recharts";
+import { DetailActionBar } from "@/components/ui/DetailActionBar";
+import { ErrorState } from "@/components/ui/ErrorState";
+import { LoadingState } from "@/components/ui/LoadingState";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { rapidSections } from "@/lib/kidex-schema";
 import { getDomainMainColor, type AssessmentDomain } from "@/lib/domain-colors";
@@ -167,19 +170,11 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
   }, [record, shouldPrint]);
 
   if (loading) {
-    return (
-      <Box style={{ display: "flex", justifyContent: "center", paddingBlock: "2rem" }} role="status" aria-live="polite">
-        <Loader aria-label={tc("loading")} />
-      </Box>
-    );
+    return <LoadingState label={tc("loading")} minHeight="12rem" />;
   }
 
   if (!record) {
-    return (
-      <Text c="red" py="md">
-        {tc("error")}
-      </Text>
-    );
+    return <ErrorState title={tc("error")} message={t("recordUnavailable")} />;
   }
 
   const radarData = {
@@ -251,34 +246,46 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
               </Box>
             }
             actions={
-              <Group gap="xs">
-                <Button
-                  component={Link}
-                  href={`/dashboard/assessment?id=${record._id}`}
-                  color="kidex"
-                  variant="light"
-                >
-                  {tc("update")}
-                </Button>
-                <Button
-                  color="kidex"
-                  variant="outline"
-                  onClick={() => void downloadPdf()}
-                  loading={downloadingPdf}
-                  disabled={!canExportProfessional}
-                >
-                  {td("downloadPdf")}
-                </Button>
-                <Button
-                  color="kidex"
-                  variant="light"
-                  onClick={() => void downloadPdf("family")}
-                  loading={downloadingPdf}
-                  disabled={!canGenerateFamilyReport}
-                >
-                  {tr("familyReportTitle")}
-                </Button>
-              </Group>
+              <DetailActionBar
+                menuLabel={tc("moreActions")}
+                primary={
+                  <Button component={Link} href={`/dashboard/assessment?id=${record._id}`} color="kidex">
+                    {t("resumeSurvey")}
+                  </Button>
+                }
+                secondary={
+                  <>
+                    <Button
+                      color="kidex"
+                      variant="light"
+                      onClick={() => void downloadPdf()}
+                      loading={downloadingPdf}
+                      disabled={!canExportProfessional}
+                    >
+                      {td("downloadPdf")}
+                    </Button>
+                    <Button
+                      color="kidex"
+                      variant="outline"
+                      onClick={() => void downloadPdf("family")}
+                      loading={downloadingPdf}
+                      disabled={!canGenerateFamilyReport}
+                    >
+                      {tr("familyReportTitle")}
+                    </Button>
+                  </>
+                }
+                menuItems={
+                  <>
+                    <Menu.Item onClick={() => void downloadPdf()} disabled={!canExportProfessional}>
+                      {td("downloadPdf")}
+                    </Menu.Item>
+                    <Menu.Item onClick={() => void downloadPdf("family")} disabled={!canGenerateFamilyReport}>
+                      {tr("familyReportTitle")}
+                    </Menu.Item>
+                  </>
+                }
+              />
             }
           />
         </Box>

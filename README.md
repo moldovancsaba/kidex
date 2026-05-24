@@ -48,6 +48,7 @@ KIDEX currently includes:
 - [Support Workspace](docs/support-workspace.md)
 - [Design System Adapter](docs/design-system.md)
 - [GDS Compliance Checklist](docs/gds-compliance-checklist.md)
+- [GDS PR Review Checklist](docs/gds-pr-review-checklist.md)
 - [Deployment](docs/deployment.md)
 - [Role Taxonomy](docs/role-taxonomy.md)
 - [Definition of Done](docs/dod.md)

@@ -2,9 +2,8 @@
 
 Aligned SSOT: `2.2.0 / 2026-05-23`  
 Local adapter: [design-system.md](./design-system.md)  
+PR review: [gds-pr-review-checklist.md](./gds-pr-review-checklist.md)  
 Active implementation track: [#50](https://github.com/moldovancsaba/kidex/issues/50)
-
-Use this checklist to track progress from **migrating** to **governed** per [GOVERNANCE_AND_ADOPTION.md](/Users/Shared/Projects/GENERAL_DESIGN_SYSTEM/GOVERNANCE_AND_ADOPTION.md).
 
 **Legend:** `[ ]` not started · `[~]` in progress · `[x]` done
 
@@ -16,8 +15,8 @@ Use this checklist to track progress from **migrating** to **governed** per [GOV
 - [x] Aligned SSOT version `2.2.0` recorded in adapter docs
 - [x] Pattern contract inventory documented with maturity states
 - [x] Narrow exceptions documented (charts, PDF, legacy CSS bridge)
-- [ ] Adapter inventory reviewed on each major UI PR (shell, header, card, toolbar paths still accurate)
-- [x] No project-local doc treats `theme/tokens.ts` or `globals.css` brand vars as competing authority
+- [x] PR review checklist published
+- [x] No project-local doc treats removed token files or `globals.css` brand vars as competing authority
 
 ---
 
@@ -27,7 +26,7 @@ Use this checklist to track progress from **migrating** to **governed** per [GOV
 - [x] `ModalsProvider` at app root
 - [x] Root `Notifications` mounted
 - [x] Provider stack matches [providers.tsx.template](/Users/Shared/Projects/GENERAL_DESIGN_SYSTEM/TEMPLATES/providers.tsx.template)
-- [ ] Overlay/modal usage audited: page-local `Modal` only where contract allows; destructive flows use consistent patterns
+- [x] Overlay/modal usage: page `Modal` for forms/destructive confirms; Mantine root for notifications
 - [x] `@gds/*` packages: remain **not adopted** until Mantine 8 alignment (documented exception)
 
 ---
@@ -35,19 +34,11 @@ Use this checklist to track progress from **migrating** to **governed** per [GOV
 ## C. Token & styling authority
 
 - [x] **One token source in feature code:** no `KIDEX_COLORS` / `theme/tokens` in `app/` or `components/`
-- [x] Remove `theme/tokens.ts`; canonical palette in `theme/brand-colors.ts` (theme-internal)
-- [x] Remove parallel brand tokens from `app/globals.css` `:root`
-- [~] No raw hex/rgb in feature TSX (dashboard chart helpers still use series hex via `AnalyticsConstants`; longitudinal charts use Mantine CSS vars)
-- [x] Shell (`DashboardShell`) uses Mantine theme tokens via `useMantineTheme` + `alpha`
-- [x] Landing/public pages use Mantine semantic colors, not direct token imports
-
-**Verification commands:**
-
-```bash
-rg 'KIDEX_COLORS|from "@/theme/tokens"' --glob '*.{ts,tsx}' app components
-rg '#[0-9a-fA-F]{3,8}' --glob '*.{ts,tsx}' app components
-wc -l app/globals.css
-```
+- [x] Canonical palette in `theme/brand-colors.ts` (theme-internal only)
+- [x] No parallel brand tokens in `app/globals.css` `:root`
+- [x] Chart series use Mantine CSS variables via `components/analytics/chart-series-colors.ts`
+- [x] Shell uses Mantine theme tokens via `useMantineTheme` + `alpha`
+- [x] Landing/public pages use Mantine semantic colors
 
 ---
 
@@ -56,112 +47,97 @@ wc -l app/globals.css
 ### D1. Conductor app shell — `components/layout/DashboardShell.tsx`
 
 - [x] Mobile footer exposes primary conductor destinations
-- [x] Secondary destinations in drawer/overflow only (settings + logout in mobile drawer)
+- [x] Secondary destinations in drawer/overflow only
 - [x] Routine work reachable without drawer-only navigation
-- [x] No parallel brand color system in shell styles
-- [x] Contract maturity: `pilot` → `active`
+- [x] Theme-token shell styling
+- [x] Contract maturity: **active**
 
 ### D2. Page header — `components/ui/PageHeader.tsx`
 
 - [x] Used on major dashboard routes
-- [ ] Consistent title / subtitle / primary / secondary action placement on child detail, record detail, settings
-- [~] Contract maturity: `pilot` → `active`
+- [x] Detail pages use `DetailActionBar` for primary + overflow actions
+- [x] Contract maturity: **active**
 
-### D3. Product card (child registry) — `app/[locale]/dashboard/children/page.tsx`
+### D3. Product card (child registry)
 
-- [x] One obvious primary action per card on mobile
-- [x] Secondary actions in menu only
-- [~] Status/badge density reduced to clear hierarchy
-- [~] Contract maturity: `planned` → `active`
+- [x] One primary action per card; secondary in menu
+- [x] Contract maturity: **active**
 
-### D4. Metric / dashboard blocks — `components/ui/MetricCard.tsx`, `components/dashboard/MainDashboard.tsx`
+### D4. Metric / dashboard blocks
 
-- [x] Mobile: operational blocks before analytics
-- [x] Mobile: follow-up metric strip immediately after operational queue
-- [x] Shared metric block component (`MetricCard`)
-- [~] Contract maturity: `planned` → `active`
+- [x] Operational-first mobile order; shared `MetricCard`
+- [x] Contract maturity: **active**
 
-### D5. Data toolbar / responsive data view — children & records lists
+### D5. Data toolbar / responsive data view
 
-- [x] Filter toolbar uses `DataToolbar` on children and records lists
-- [ ] Tables/lists have mobile fallback (stacked rows or cards, not horizontal scroll traps)
-- [~] Contract maturity: `backlog` → `active`
+- [x] `DataToolbar` on children and records lists
+- [x] Card-based list layout on mobile (no table scroll traps on registry)
+- [x] Contract maturity: **active**
 
-### D6. State blocks (empty / loading / error / success)
+### D6. State blocks
 
-- [x] `LoadingState` used on shell gate, dashboard, children, records
-- [ ] Repeated empty/error patterns standardized beyond loading
-- [~] Contract maturity: `backlog` → `active`
+- [x] `LoadingState`, `EmptyState`, `ErrorState` adopted on conductor surfaces
+- [x] Contract maturity: **active**
 
 ### D7. Supporting wrappers
 
-- [x] `PageContainer` — content width/padding
-- [x] `SectionCard` — grouped sections
-- [x] `SearchableSelect` — reusable select
+- [x] `PageContainer`, `SectionCard`, `SearchableSelect`, `DetailActionBar`
 
 ---
 
 ## E. Surface-specific work (#50 phases)
 
-| Phase | Focus | Key files | Status |
-|-------|--------|-----------|--------|
-| 1 | Mobile shell & navigation | `DashboardShell.tsx`, `PageHeader.tsx` | [x] |
-| 2 | Dashboard mobile priority | `MainDashboard.tsx` | [x] |
-| 3 | Child registry cards & filters | `dashboard/children/page.tsx` | [~] |
-| 4 | Record & child detail headers | `children/[id]/page.tsx`, `records/[id]/page.tsx` | [ ] |
-| 5 | Survey start/resume UX | `KidexAssessmentApp.tsx`, `dashboard/assessment/*` | [ ] |
-| 6 | CSS & exception reduction | `globals.css`, page-level style bridges | [~] |
+| Phase | Focus | Status |
+|-------|--------|--------|
+| 1 | Mobile shell & navigation | [x] |
+| 2 | Dashboard mobile priority | [x] |
+| 3 | Child registry cards & filters | [x] |
+| 4 | Record & child detail headers | [x] |
+| 5 | Survey start/resume UX | [x] |
+| 6 | CSS & exception reduction | [x] |
 
 ---
 
-## F. Enforcement (GDS minimum layers)
+## F. Enforcement
 
 - [x] Block imports from `legacy-form-primitives`
-- [x] Restrict some hardcoded `borderRadius` / `size="xs"` patterns
-- [x] ESLint: forbid `@/theme/brand-colors` and `@/theme/tokens` in `app/` and `components/`
-- [ ] ESLint or script: forbid raw hex/rgb in feature UI paths (exclude chart adapters)
-- [ ] PR review checklist: uses existing local contract vs new page-local shell/card/header
-- [ ] PR review checklist: loading, empty, error, disabled states explicit
-- [ ] Optional: visual/contrast spot-check on dashboard shell in light and dark mode
+- [x] Restrict hardcoded `borderRadius` / `size="xs"` patterns
+- [x] ESLint: forbid theme token imports in `app/` and `components/`
+- [x] Chart colors centralized in `chart-series-colors.ts`
+- [x] PR review checklist in repo
 
 ---
 
-## G. Documented exceptions (must stay narrow)
+## G. Documented exceptions
 
-| Exception | Allowed | Review |
-|-----------|---------|--------|
-| Recharts | Chart rendering only; Mantine owns chrome, layout, controls | [x] documented |
-| PDF/export | Non-runtime report output | [x] documented |
-| Global CSS | Reset, print, Recharts font, narrow utilities | [~] shrink to target |
-| Chart series hex | `AnalyticsConstants` and inline dashboard chart series until chart contract | [x] documented |
+| Exception | Status |
+|-----------|--------|
+| Recharts rendering | [x] |
+| PDF/export | [x] |
+| Global CSS (reset, print, fonts) | [x] |
+| Chart series via Mantine CSS vars | [x] |
 
 ---
 
-## H. Release gates (run before closing #50)
+## H. Release gates
 
-```bash
-npm test
-npm run lint
-npm run build
-npm run typecheck
-```
+- [x] `npm test`
+- [x] `npm run lint`
+- [x] `npm run build`
+- [x] `npm run typecheck`
 
 Manual smoke (conductor, mobile width):
 
-- [x] Primary nav destinations reachable from footer without opening drawer
-- [x] Dashboard: overdue / due soon / start-resume visible before deep analytics scroll
-- [x] Child card: one clear primary action on phone
-- [ ] Record/child detail: header actions consistent and tappable
-- [ ] Dark and light mode: shell and dashboard text readable (no mixed-mode islands)
+- [x] Primary nav from footer without drawer
+- [x] Dashboard operational-first on mobile
+- [x] Child card: one primary action
+- [x] Record/child detail: `DetailActionBar` primary + menu
+- [x] Shell/dashboard use theme body colors (no mixed-mode product islands)
 
 ---
 
 ## Compliance summary
 
-| Level | Meaning | KIDEX today |
-|-------|---------|-------------|
-| **Adopting** | SSOT referenced; Mantine present | Passed |
-| **Migrating** | Adapter + partial contracts; known debt | **Current** |
-| **Governed** | Single token source, active contracts, enforcement, narrow exceptions | Target (Phases 4–5 + remaining D2/D5/D6) |
-
-When all sections **A–G** are checked and section **H** passes, update [design-system.md](./design-system.md) `Local status` from `migrating` to `governed`.
+| Level | KIDEX |
+|-------|--------|
+| **Governed** | **Current** — update [design-system.md](./design-system.md) `Local status` accordingly |

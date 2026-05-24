@@ -1,3 +1,5 @@
+import { CHART_SERIES_COLORS } from "@/components/analytics/chart-series-colors";
+
 export const ANALYTICS_CONFIG = {
   chartHeight: 240,
   gaugeHeight: 180,
@@ -10,12 +12,12 @@ export const ANALYTICS_CONFIG = {
   fontFamily: 'var(--font-noto-sans), "Noto Sans", Helvetica, Arial, sans-serif',
   margins: { top: 10, right: 10, left: -20, bottom: 5 },
   colors: {
-    primary: "var(--mantine-color-kidex-6)",
-    grid: "var(--mantine-color-gray-4)",
-    text: "var(--mantine-color-text)",
-    dimmed: "var(--mantine-color-gray-6)",
-    success: "#40C057",
-    warning: "#FAB005",
-    error: "#FA5252"
-  }
+    primary: CHART_SERIES_COLORS.primary,
+    grid: CHART_SERIES_COLORS.grid,
+    text: CHART_SERIES_COLORS.text,
+    dimmed: CHART_SERIES_COLORS.dimmed,
+    success: CHART_SERIES_COLORS.success,
+    warning: CHART_SERIES_COLORS.warning,
+    error: CHART_SERIES_COLORS.error,
+  },
 } as const;

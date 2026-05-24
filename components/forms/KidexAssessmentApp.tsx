@@ -30,6 +30,8 @@ import { getStandardForAgeGroup } from "@/lib/standards";
 import { formatScore } from "@/lib/utils";
 
 import { PageHeader } from "@/components/ui/PageHeader";
+import { LoadingState } from "@/components/ui/LoadingState";
+import { MetricCard } from "@/components/ui/MetricCard";
 import { SearchableSelect } from "@/components/ui/SearchableSelect";
 import { SectionCard } from "@/components/ui/SectionCard";
 import { getSettings, saveSettings } from "@/services/settings-service";
@@ -145,6 +147,7 @@ export function KidexAssessmentApp() {
   const [observers, setObservers] = useState<string[]>([]);
   const [locations, setLocations] = useState<string[]>([]);
   const [children, setChildren] = useState<ChildProfile[]>([]);
+  const [hydratingRecord, setHydratingRecord] = useState(Boolean(idParam));
 
   const sections = sectionsForMode(assessment.mode);
   const computed = useMemo(() => computeAssessment(assessment), [assessment]);
@@ -174,10 +177,14 @@ export function KidexAssessmentApp() {
     if (!idParam) return;
     void (async () => {
       const response = await fetch(`/api/assessments/${idParam}`).catch(() => null);
-      if (!response?.ok) return;
+      if (!response?.ok) {
+        setHydratingRecord(false);
+        return;
+      }
       const data = (await response.json()) as { assessment: AssessmentRecord };
       setAssessment(data.assessment);
       setRecordId(data.assessment._id || "");
+      setHydratingRecord(false);
     })();
   }, [idParam]);
 
@@ -522,6 +529,10 @@ export function KidexAssessmentApp() {
     .filter(([, entry]) => typeof entry.score === "number" && entry.score <= 2)
     .slice(0, 3);
 
+  if (hydratingRecord) {
+    return <LoadingState label={tc("loading")} minHeight="12rem" />;
+  }
+
   return (
     <Stack gap="xl">
       <PageHeader
@@ -529,15 +540,32 @@ export function KidexAssessmentApp() {
         subtitle={t("appSubtitle")}
         actions={
           <Group gap="sm">
-            <Button variant="default" onClick={newAssessment} style={{ minWidth: 112, fontWeight: 600 }}>
+            <Button variant="default" onClick={newAssessment}>
               {tc("new")}
             </Button>
-            <Button color="kidex" onClick={() => void saveAssessment()} disabled={saveState === "saving"} style={{ minWidth: 112, fontWeight: 700 }}>
+            <Button color="kidex" onClick={() => void saveAssessment()} disabled={saveState === "saving"}>
               {saveState === "saving" ? tc("saving") : recordId ? tc("update") : tc("save")}
             </Button>
           </Group>
         }
       />
+
+      {recordId ? (
+        <Alert color="kidex" variant="light" title={t("resumeSurveyTitle")}>
+          <Group justify="space-between" align="center" wrap="wrap" gap="sm">
+            <Text size="sm">{t("resumeSurveyBody")}</Text>
+            <Button variant="light" color="kidex" component="a" href="#setup">
+              {t("continueSetup")}
+            </Button>
+          </Group>
+        </Alert>
+      ) : null}
+
+      {!recordId && !assessment.childId ? (
+        <Alert color="blue" variant="light" title={t("surveyQuickStartTitle")}>
+          <Text size="sm">{t("surveyQuickStartBody")}</Text>
+        </Alert>
+      ) : null}
 
       {message ? (
         <Alert
@@ -1082,24 +1110,6 @@ export function KidexAssessmentApp() {
         </Group>
       </Paper>
     </Stack>
-  );
-}
-
-function MetricCard({ label, value, target }: { label: string; value: string; target?: number }) {
-  return (
-    <Paper withBorder p="md" radius="md" style={{ flex: 1 }}>
-      <Text size="sm" c="dimmed" fw={500} style={{ textTransform: "uppercase", letterSpacing: "0.05em" }}>
-        {label}
-      </Text>
-      <Text size="xl" mt={4} fw={800} color="kidex">
-        {value}
-      </Text>
-      {target ? (
-        <Text size="sm" c="dimmed" mt={4}>
-          TARGET: {target.toFixed(1)}
-        </Text>
-      ) : null}
-    </Paper>
   );
 }
 

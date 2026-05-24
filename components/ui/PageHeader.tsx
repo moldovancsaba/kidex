@@ -17,18 +17,22 @@ export function PageHeader({ title, subtitle, actions }: PageHeaderProps) {
       justify="space-between"
       align={{ base: "stretch", md: "flex-start" }}
     >
-      <Box style={{ minWidth: 0 }}>
+      <Box style={{ minWidth: 0, flex: 1 }}>
         <Title order={1} size="h2" fw={800}>
           {title}
         </Title>
         {subtitle ? (
-          <Text c="dimmed" size="sm">
-            {subtitle}
-          </Text>
+          typeof subtitle === "string" ? (
+            <Text c="dimmed" size="sm">
+              {subtitle}
+            </Text>
+          ) : (
+            <Box mt={4}>{subtitle}</Box>
+          )
         ) : null}
       </Box>
       {actions ? (
-        <Group gap="sm" wrap="wrap" justify="flex-start" align="center">
+        <Group gap="sm" wrap="wrap" justify="flex-end" align="center" style={{ flexShrink: 0 }}>
           {actions}
         </Group>
       ) : null}
