@@ -31,15 +31,13 @@ Design/UI/UX SSOT:
 
 - [/Users/Shared/Projects/GENERAL_DESIGN_SYSTEM/README.md](/Users/Shared/Projects/GENERAL_DESIGN_SYSTEM/README.md) (aligned version `2.2.0 / 2026-05-23`)
 
-KIDEX local design docs are adapters only. The shared design-system repository above is the authority for design, UI, UX, pattern service, navigation, responsive rules, component contracts, governance, and the Mantine-only product primitive policy. See [docs/design-system.md](/Users/Shared/Projects/kidex/docs/design-system.md) for the pattern contract inventory and migration backlog, and [docs/gds-compliance-checklist.md](/Users/Shared/Projects/kidex/docs/gds-compliance-checklist.md) for the migrating → governed checklist tied to [#50](https://github.com/moldovancsaba/kidex/issues/50).
+KIDEX local design docs are adapters only. The shared design-system repository above is the authority for design, UI, UX, pattern service, navigation, responsive rules, component contracts, governance, and the Mantine-only product primitive policy. Local status is **governed** — see [docs/design-system.md](/Users/Shared/Projects/kidex/docs/design-system.md), [docs/gds-compliance-checklist.md](/Users/Shared/Projects/kidex/docs/gds-compliance-checklist.md), and [docs/gds-pr-review-checklist.md](/Users/Shared/Projects/kidex/docs/gds-pr-review-checklist.md).
 
-## Current UI Refactor Track
+## UI / GDS track (closed)
 
-The next active implementation issue is:
+- [#50](https://github.com/moldovancsaba/kidex/issues/50) `KIDEX Platform P1: Mantine-only mobile shell and responsive conductor workflow refactor` — **closed** (GDS 2.2.0 governed on `main`, commit `5a73d51`)
 
-- [#50](https://github.com/moldovancsaba/kidex/issues/50) `KIDEX Platform P1: Mantine-only mobile shell and responsive conductor workflow refactor`
-
-That issue is already on project `9` in `Todo (NEXT)` and is the active roadmap slice for the upcoming conductor-usability refactor.
+Delivered: mobile shell, operational-first dashboard, child registry cards, detail `DetailActionBar`, survey resume UX, shared state/metric contracts, theme consolidation, ESLint token guards.
 
 ## Current Versions
 
@@ -59,22 +57,20 @@ Current resolved local versions at the time of this handover:
 
 The latest completed code delivery on `origin/main` covered:
 
-- `#48` reassessment cadence and follow-up visibility
-- `#49` reassessment queue and follow-up triage
+- `#50` GDS 2.2.0 governance and Mantine conductor UX refactor (closed)
+- Prior: `#48` reassessment cadence, `#49` reassessment queue
 
-Main implementation files:
+Main implementation files for `#50`:
 
-- [lib/reassessment.ts](/Users/Shared/Projects/kidex/lib/reassessment.ts)
-- [lib/development-plans.ts](/Users/Shared/Projects/kidex/lib/development-plans.ts)
-- [repositories/development-plan.repository.ts](/Users/Shared/Projects/kidex/repositories/development-plan.repository.ts)
-- [repositories/child.repository.ts](/Users/Shared/Projects/kidex/repositories/child.repository.ts)
-- [app/api/children/[id]/plan/route.ts](/Users/Shared/Projects/kidex/app/api/children/%5Bid%5D/plan/route.ts)
-- [app/[locale]/dashboard/children/[id]/page.tsx](/Users/Shared/Projects/kidex/app/%5Blocale%5D/dashboard/children/%5Bid%5D/page.tsx)
-- [app/[locale]/dashboard/children/page.tsx](/Users/Shared/Projects/kidex/app/%5Blocale%5D/dashboard/children/page.tsx)
-- [app/[locale]/dashboard/records/[id]/page.tsx](/Users/Shared/Projects/kidex/app/%5Blocale%5D/dashboard/records/%5Bid%5D/page.tsx)
+- [components/layout/DashboardShell.tsx](/Users/Shared/Projects/kidex/components/layout/DashboardShell.tsx)
+- [components/ui/DetailActionBar.tsx](/Users/Shared/Projects/kidex/components/ui/DetailActionBar.tsx)
+- [components/ui/MetricCard.tsx](/Users/Shared/Projects/kidex/components/ui/MetricCard.tsx)
+- [components/ui/LoadingState.tsx](/Users/Shared/Projects/kidex/components/ui/LoadingState.tsx)
 - [components/dashboard/MainDashboard.tsx](/Users/Shared/Projects/kidex/components/dashboard/MainDashboard.tsx)
-- [lib/family-report.ts](/Users/Shared/Projects/kidex/lib/family-report.ts)
-- [lib/pdf-service.ts](/Users/Shared/Projects/kidex/lib/pdf-service.ts)
+- [app/[locale]/dashboard/children/page.tsx](/Users/Shared/Projects/kidex/app/%5Blocale%5D/dashboard/children/page.tsx)
+- [components/forms/KidexAssessmentApp.tsx](/Users/Shared/Projects/kidex/components/forms/KidexAssessmentApp.tsx)
+- [docs/design-system.md](/Users/Shared/Projects/kidex/docs/design-system.md)
+- [docs/gds-compliance-checklist.md](/Users/Shared/Projects/kidex/docs/gds-compliance-checklist.md)
 
 Verification passed for that slice:
 
@@ -87,35 +83,27 @@ Verification passed for that slice:
 
 Latest pushed commit on `origin/main`:
 
-- `7d5f4f1` `Add reassessment follow-up workflow`
+- `5a73d51` `Complete GDS governance: detail headers, survey UX, and governed status`
 
-Local working tree currently contains shared design-system SSOT updates, KIDEX adapter documentation updates, and roadmap synchronization for the Mantine-only refactor track. These changes have not yet been committed or pushed.
-
-Branch state at handover:
+Branch state:
 
 - local branch: `main`
 - remote target: `origin/main`
 
 ## GitHub Board State
 
-The project board and issue tracker are now aligned:
+- `#50` — closed (GDS / conductor UX)
+- `#1` — check project `9` for current `In Progress (NOW)` item
 
-- `#1` -> `In Progress (NOW)`
-- `#50` -> `Todo (NEXT)`
-
-All earlier roadmap and ideabank child issues through `#49` show `Done` on project `9`.
+Roadmap issues through `#50` on the Mantine/GDS track are complete.
 
 ## Recommended Next Work
 
-The next active implementation target is:
+Pick the next open product issue from the GitHub board (project `9`). For UI work, continue using:
 
-- [#50](https://github.com/moldovancsaba/kidex/issues/50) Mantine-only mobile shell and responsive conductor workflow refactor
-
-Execution should follow:
-
-- [docs/design-system.md](/Users/Shared/Projects/kidex/docs/design-system.md) (local adapter, pattern inventory, backlog)
-- [/Users/Shared/Projects/GENERAL_DESIGN_SYSTEM/PROJECTS/KIDEX_MANTINE_REFACTOR.md](/Users/Shared/Projects/GENERAL_DESIGN_SYSTEM/PROJECTS/KIDEX_MANTINE_REFACTOR.md)
-- [/Users/Shared/Projects/GENERAL_DESIGN_SYSTEM/PATTERN_SERVICE_MODEL.md](/Users/Shared/Projects/GENERAL_DESIGN_SYSTEM/PATTERN_SERVICE_MODEL.md) (KIDEX section)
+- [docs/design-system.md](/Users/Shared/Projects/kidex/docs/design-system.md) (governed adapter)
+- [docs/gds-pr-review-checklist.md](/Users/Shared/Projects/kidex/docs/gds-pr-review-checklist.md)
+- [/Users/Shared/Projects/GENERAL_DESIGN_SYSTEM/PROJECTS/PORTFOLIO_ADOPTION_MATRIX.md](/Users/Shared/Projects/GENERAL_DESIGN_SYSTEM/PROJECTS/PORTFOLIO_ADOPTION_MATRIX.md)
 
 ## Environment Notes
 
