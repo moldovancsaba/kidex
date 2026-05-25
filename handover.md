@@ -29,15 +29,37 @@ For the fuller current product description, use:
 
 Design/UI/UX SSOT:
 
-- [/Users/Shared/Projects/GENERAL_DESIGN_SYSTEM/README.md](/Users/Shared/Projects/GENERAL_DESIGN_SYSTEM/README.md) (aligned version `2.2.0 / 2026-05-23`)
+- [/Users/Shared/Projects/GENERAL_DESIGN_SYSTEM/README.md](/Users/Shared/Projects/GENERAL_DESIGN_SYSTEM/README.md) (aligned version `2.4.3 / 2026-05-25`)
 
 KIDEX local design docs are adapters only. The shared design-system repository above is the authority for design, UI, UX, pattern service, navigation, responsive rules, component contracts, governance, and the Mantine-only product primitive policy. Local status is **governed** — see [docs/design-system.md](/Users/Shared/Projects/kidex/docs/design-system.md), [docs/gds-compliance-checklist.md](/Users/Shared/Projects/kidex/docs/gds-compliance-checklist.md), and [docs/gds-pr-review-checklist.md](/Users/Shared/Projects/kidex/docs/gds-pr-review-checklist.md).
 
-## UI / GDS track (closed)
+## UI / GDS track
 
-- [#50](https://github.com/moldovancsaba/kidex/issues/50) `KIDEX Platform P1: Mantine-only mobile shell and responsive conductor workflow refactor` — **closed** (GDS 2.2.0 governed on `main`, commit `5a73d51`)
+Delivered local Mantine workflow slices:
 
-Delivered: mobile shell, operational-first dashboard, child registry cards, detail `DetailActionBar`, survey resume UX, shared state/metric contracts, theme consolidation, ESLint token guards.
+- [#50](https://github.com/moldovancsaba/kidex/issues/50) `Done`
+- [#51](https://github.com/moldovancsaba/kidex/issues/51) `Done`
+- [#52](https://github.com/moldovancsaba/kidex/issues/52) `Done`
+- [#53](https://github.com/moldovancsaba/kidex/issues/53) `Done`
+
+Current open GDS dependency sequence:
+
+- [#54](https://github.com/moldovancsaba/kidex/issues/54) `Todo (NEXT)` adopt shared GDS packages after Mantine 8 compatibility release
+- [#55](https://github.com/moldovancsaba/kidex/issues/55) `Backlog (SOONER)` replace local responsive shell and data-view adapters with shared GDS components
+
+Latest public GDS note:
+
+- GDS SSOT is now `2.4.3`
+- package-consumer guidance is stronger and now includes explicit App Router consumer paths
+- direct KIDEX package adoption is still blocked because the public compatibility matrix and package peer dependencies remain on Mantine `^7.9.0`
+
+Delivered locally:
+
+- mobile shell and operational-first dashboard
+- child registry mobile filter drawer, active-filter badges, and follow-up shortcuts
+- survey mobile save/setup bar and clearer selected-child resume context
+- child and record detail headers with reassessment, consent, and family-report visibility
+- shared state/metric contracts, theme consolidation, and ESLint token guards
 
 ## Current Versions
 
@@ -57,10 +79,11 @@ Current resolved local versions at the time of this handover:
 
 The latest completed code delivery on `origin/main` covered:
 
-- `#50` GDS 2.2.0 governance and Mantine conductor UX refactor (closed)
-- Prior: `#48` reassessment cadence, `#49` reassessment queue
+- `#51` child registry mobile filter drawer and triage controls
+- `#52` survey mobile save bar and faster resume context
+- `#53` child and record detail header normalization for mobile follow-up context
 
-Main implementation files for `#50`:
+Main implementation files for the latest UI slice:
 
 - [components/layout/DashboardShell.tsx](/Users/Shared/Projects/kidex/components/layout/DashboardShell.tsx)
 - [components/ui/DetailActionBar.tsx](/Users/Shared/Projects/kidex/components/ui/DetailActionBar.tsx)
@@ -68,6 +91,8 @@ Main implementation files for `#50`:
 - [components/ui/LoadingState.tsx](/Users/Shared/Projects/kidex/components/ui/LoadingState.tsx)
 - [components/dashboard/MainDashboard.tsx](/Users/Shared/Projects/kidex/components/dashboard/MainDashboard.tsx)
 - [app/[locale]/dashboard/children/page.tsx](/Users/Shared/Projects/kidex/app/%5Blocale%5D/dashboard/children/page.tsx)
+- [app/[locale]/dashboard/children/[id]/page.tsx](/Users/Shared/Projects/kidex/app/%5Blocale%5D/dashboard/children/%5Bid%5D/page.tsx)
+- [app/[locale]/dashboard/records/[id]/page.tsx](/Users/Shared/Projects/kidex/app/%5Blocale%5D/dashboard/records/%5Bid%5D/page.tsx)
 - [components/forms/KidexAssessmentApp.tsx](/Users/Shared/Projects/kidex/components/forms/KidexAssessmentApp.tsx)
 - [docs/design-system.md](/Users/Shared/Projects/kidex/docs/design-system.md)
 - [docs/gds-compliance-checklist.md](/Users/Shared/Projects/kidex/docs/gds-compliance-checklist.md)
@@ -83,7 +108,7 @@ Verification passed for that slice:
 
 Latest pushed commit on `origin/main`:
 
-- `5a73d51` `Complete GDS governance: detail headers, survey UX, and governed status`
+- `7a86ab2` `Improve mobile conductor workflow surfaces`
 
 Branch state:
 
@@ -92,14 +117,22 @@ Branch state:
 
 ## GitHub Board State
 
-- `#50` — closed (GDS / conductor UX)
-- `#1` — check project `9` for current `In Progress (NOW)` item
-
-Roadmap issues through `#50` on the Mantine/GDS track are complete.
+- `#1` — `In Progress (NOW)`
+- `#50` — `Done`
+- `#51` — `Done`
+- `#52` — `Done`
+- `#53` — `Done`
+- `#54` — `Todo (NEXT)`
+- `#55` — `Backlog (SOONER)`
 
 ## Recommended Next Work
 
-Pick the next open product issue from the GitHub board (project `9`). For UI work, continue using:
+Current next execution order:
+
+1. [#54](https://github.com/moldovancsaba/kidex/issues/54)
+2. [#55](https://github.com/moldovancsaba/kidex/issues/55)
+
+For UI work, continue using:
 
 - [docs/design-system.md](/Users/Shared/Projects/kidex/docs/design-system.md) (governed adapter)
 - [docs/gds-pr-review-checklist.md](/Users/Shared/Projects/kidex/docs/gds-pr-review-checklist.md)

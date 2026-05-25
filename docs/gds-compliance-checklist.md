@@ -1,9 +1,9 @@
 # KIDEX GDS Compliance Checklist
 
-Aligned SSOT: `2.2.0 / 2026-05-23`  
+Aligned SSOT: `2.4.3 / 2026-05-25`  
 Local adapter: [design-system.md](./design-system.md)  
 PR review: [gds-pr-review-checklist.md](./gds-pr-review-checklist.md)  
-Active implementation track: [#50](https://github.com/moldovancsaba/kidex/issues/50)
+Active implementation track: local delivery complete through [#53](https://github.com/moldovancsaba/kidex/issues/53); current open dependency [#54](https://github.com/moldovancsaba/kidex/issues/54)
 
 **Legend:** `[ ]` not started · `[~]` in progress · `[x]` done
 
@@ -12,7 +12,7 @@ Active implementation track: [#50](https://github.com/moldovancsaba/kidex/issues
 ## A. Governance & documentation
 
 - [x] Shared SSOT path documented; local file is adapter-only
-- [x] Aligned SSOT version `2.2.0` recorded in adapter docs
+- [x] Aligned SSOT version `2.4.3` recorded in adapter docs
 - [x] Pattern contract inventory documented with maturity states
 - [x] Narrow exceptions documented (charts, PDF, legacy CSS bridge)
 - [x] PR review checklist published
@@ -27,7 +27,7 @@ Active implementation track: [#50](https://github.com/moldovancsaba/kidex/issues
 - [x] Root `Notifications` mounted
 - [x] Provider stack matches [providers.tsx.template](/Users/Shared/Projects/GENERAL_DESIGN_SYSTEM/TEMPLATES/providers.tsx.template)
 - [x] Overlay/modal usage: page `Modal` for forms/destructive confirms; Mantine root for notifications
-- [x] `@gds/*` packages: remain **not adopted** until Mantine 8 alignment (documented exception)
+- [x] `@gds/*` packages: remain **not adopted** while the public GDS package line still targets Mantine `^7.9.0` (documented exception)
 
 ---
 
@@ -85,7 +85,7 @@ Active implementation track: [#50](https://github.com/moldovancsaba/kidex/issues
 
 ---
 
-## E. Surface-specific work (#50 phases)
+## E. Surface-specific work
 
 | Phase | Focus | Status |
 |-------|--------|--------|
@@ -95,6 +95,14 @@ Active implementation track: [#50](https://github.com/moldovancsaba/kidex/issues
 | 4 | Record & child detail headers | [x] |
 | 5 | Survey start/resume UX | [x] |
 | 6 | CSS & exception reduction | [x] |
+
+Delivered issue mapping:
+
+- `#50` mobile shell, dashboard priority, and Mantine runtime completion
+- `#51` child registry mobile filters and triage controls
+- `#52` survey mobile save bar and faster resume context
+- `#53` child and record detail header normalization
+- `#54` package adoption remains blocked on GDS Mantine 8 compatibility even after the `2.4.3` SSOT update
 
 ---
 
@@ -141,3 +149,8 @@ Manual smoke (conductor, mobile width):
 | Level | KIDEX |
 |-------|--------|
 | **Governed** | **Current** — update [design-system.md](./design-system.md) `Local status` accordingly |
+
+Interpretation:
+
+- **Yes**: KIDEX is GDS-only for design authority, behavior contracts, responsive rules, and primitive policy.
+- **Not yet**: KIDEX is not GDS-package-only until the public `@gds/*` release line supports Mantine `8.x`.

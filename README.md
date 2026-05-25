@@ -16,6 +16,9 @@ KIDEX currently includes:
 - next-session conductor focus priorities
 - reassessment cadence, due dates, and overdue follow-up visibility
 - reassessment queue and child-registry follow-up filters
+- mobile child-registry filter drawer and follow-up triage shortcuts
+- mobile survey save bar and faster resume context
+- detail-page reassessment and consent status headers
 - development plans, caregiver tools, coach guidance, and micro-learning
 - family-safe and professional PDF reports
 - consent governance for media, family reports, and data sharing
@@ -56,7 +59,7 @@ KIDEX currently includes:
 
 Design/UI/UX SSOT:
 
-- [/Users/Shared/Projects/GENERAL_DESIGN_SYSTEM/README.md](/Users/Shared/Projects/GENERAL_DESIGN_SYSTEM/README.md) (aligned version `2.2.0 / 2026-05-23`)
+- [/Users/Shared/Projects/GENERAL_DESIGN_SYSTEM/README.md](/Users/Shared/Projects/GENERAL_DESIGN_SYSTEM/README.md) (current KIDEX alignment `2.4.3 / 2026-05-25`)
 
 KIDEX-specific design documentation is an adapter only ([docs/design-system.md](docs/design-system.md)). The shared SSOT above is the authority for foundation rules, component and pattern contracts, pattern service, navigation, responsive behavior, governance, portfolio operations, and the Mantine-only product primitive policy.
 

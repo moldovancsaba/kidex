@@ -23,6 +23,7 @@ Practitioners work from centralized child profiles that include:
 - accessibility profile
 - consent policy
 - institution ownership and visibility
+- mobile filter-drawer triage, active-filter badges, and quick follow-up shortcuts
 
 Primary surface:
 
@@ -39,6 +40,8 @@ The assessment flow supports:
 - physical, mental, and social scoring
 - mental wellbeing baseline or follow-up capture
 - evidence attachments
+- mobile sticky save/setup actions
+- clearer selected-child resume context
 
 Primary surface:
 
@@ -57,6 +60,7 @@ Saved assessments produce:
 - parent improvement guidance
 - next-session conductor focus priorities
 - reassessment status and follow-up timing
+- detail-page header status for follow-up, consent risk, and family-report availability
 
 Primary surfaces:
 
@@ -124,6 +128,7 @@ Primary surface:
 - reassessment cadence and due-soon / overdue follow-up visibility
 - family-safe reporting
 - support workspace
+- mobile-first child and record detail orientation
 
 ### Safety and oversight
 
