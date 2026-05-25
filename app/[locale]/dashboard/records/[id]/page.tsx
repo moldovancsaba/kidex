@@ -219,6 +219,9 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
   });
   const canGenerateFamilyReport = hasActiveConsent(child?.consentPolicy, "familyReport");
   const canExportProfessional = hasActiveConsent(child?.consentPolicy, "dataSharing");
+  const consentAlerts = getConsentAlerts(child?.consentPolicy);
+  const expiredConsentCount = consentAlerts.filter((alert) => alert.reason === "expired").length;
+  const expiringConsentCount = consentAlerts.filter((alert) => alert.reason === "expiring_soon").length;
   const deltaRadarData = [
     { subject: ts("movement"), A: record.computed.movementAverage || 0, B: baseline?.computed.movementAverage || 0, fullMark: 6 },
     { subject: ts("social"), A: record.computed.socialAverage || 0, B: baseline?.computed.socialAverage || 0, fullMark: 6 },
@@ -232,18 +235,40 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
           <PageHeader
             title={t("recordTitle")}
             subtitle={
-              <Box>
-                <Text component="span">{record.session.date} · </Text>
-                <Text
-                  component={Link}
-                  href={`/dashboard/children/${record.childId}`}
-                  fw={700}
-                  color="kidex"
-                  style={{ textDecoration: "none" }}
-                >
-                  {record.child.name}
-                </Text>
-              </Box>
+              <Stack gap={6}>
+                <Box>
+                  <Text component="span">{record.session.date} · </Text>
+                  <Text
+                    component={Link}
+                    href={`/dashboard/children/${record.childId}`}
+                    fw={700}
+                    color="kidex"
+                    style={{ textDecoration: "none" }}
+                  >
+                    {record.child.name}
+                  </Text>
+                </Box>
+                <Group gap="xs" wrap="wrap">
+                  <Badge color={reassessmentSummary.status === "overdue" ? "red" : reassessmentSummary.status === "due_soon" ? "yellow" : reassessmentSummary.status === "on_track" ? "teal" : "gray"} variant="light">
+                    {reassessmentSummary.status.replace("_", " ")}
+                  </Badge>
+                  {expiredConsentCount > 0 ? (
+                    <Badge color="red" variant="light">
+                      {t("consentExpiredBadge", { count: expiredConsentCount })}
+                    </Badge>
+                  ) : null}
+                  {expiredConsentCount === 0 && expiringConsentCount > 0 ? (
+                    <Badge color="yellow" variant="light">
+                      {t("consentExpiringBadge", { count: expiringConsentCount })}
+                    </Badge>
+                  ) : null}
+                  {canGenerateFamilyReport ? (
+                    <Badge color="teal" variant="outline">
+                      {tr("familyReportTitle")}
+                    </Badge>
+                  ) : null}
+                </Group>
+              </Stack>
             }
             actions={
               <DetailActionBar
@@ -292,7 +317,7 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
       </Stack>
       <SectionCard title={t("reportPreview")}>
         <Stack gap="xl">
-          <ConsentAlertPanel alerts={getConsentAlerts(child?.consentPolicy)} title={t("consentAlertTitle")} t={t} />
+          <ConsentAlertPanel alerts={consentAlerts} title={t("consentAlertTitle")} t={t} />
           {child?.accessibilityProfile ? (
             <Paper withBorder p="md" radius="md">
               <Stack gap="xs">

@@ -1,7 +1,7 @@
 # KIDEX Design System Adapter
 
 Design/UI/UX SSOT: `/Users/Shared/Projects/GENERAL_DESIGN_SYSTEM`
-Aligned SSOT version/date: `2.2.0 / 2026-05-23`
+Aligned SSOT version/date: `2.3.0 / 2026-05-24`
 Local status: `governed`
 Portfolio archetype: Mantine-rooted (governed)
 
@@ -29,7 +29,11 @@ Portfolio archetype: Mantine-rooted (governed)
 - Support CSS: [app/globals.css](/Users/Shared/Projects/kidex/app/globals.css) (reset, print, chart fonts, narrow utilities)
 - Validation: `npm test`, `npm run lint`, `npm run build`, `npm run typecheck`
 - Compliance: [gds-compliance-checklist.md](./gds-compliance-checklist.md), PR review: [gds-pr-review-checklist.md](./gds-pr-review-checklist.md)
-- `@gds/*` npm packages: not adopted until Mantine 8 alignment (documented)
+- Shared package consumption:
+  - GDS package line: `@gds/theme`, `@gds/core`, `@gds/admin` at `2.3.0`
+  - KIDEX runtime line: Mantine `8.3.x`, React `19`, Next `15`
+  - Direct package adoption: blocked until the shared package compatibility matrix includes Mantine `8.x`
+  - Current use mode: SSOT contracts and behavior rules are authoritative now; package imports remain deferred
 
 ## Pattern Contract Inventory
 
@@ -50,7 +54,7 @@ Portfolio archetype: Mantine-rooted (governed)
 | Recharts | Chart rendering only; Mantine owns chrome and layout |
 | PDF/export | Non-runtime report output |
 | Global CSS | Reset, print, Recharts fonts, narrow utilities |
-| `@gds/*` packages | Deferred until Mantine 8 |
+| `@gds/*` packages | Deferred until the shared release line supports Mantine 8 / current KIDEX stack |
 
 ## Shared SSOT Reading Order
 
@@ -60,7 +64,10 @@ Portfolio archetype: Mantine-rooted (governed)
 4. [PATTERN_SERVICE_MODEL.md](/Users/Shared/Projects/GENERAL_DESIGN_SYSTEM/PATTERN_SERVICE_MODEL.md)
 5. [GOVERNANCE_AND_ADOPTION.md](/Users/Shared/Projects/GENERAL_DESIGN_SYSTEM/GOVERNANCE_AND_ADOPTION.md)
 6. [SERVICE_BACKBONE_IMPLEMENTATION_PLAN.md](/Users/Shared/Projects/GENERAL_DESIGN_SYSTEM/SERVICE_BACKBONE_IMPLEMENTATION_PLAN.md)
-7. [PROJECTS/PORTFOLIO_ADOPTION_MATRIX.md](/Users/Shared/Projects/GENERAL_DESIGN_SYSTEM/PROJECTS/PORTFOLIO_ADOPTION_MATRIX.md)
-8. [PROJECTS/KIDEX_MANTINE_REFACTOR.md](/Users/Shared/Projects/GENERAL_DESIGN_SYSTEM/PROJECTS/KIDEX_MANTINE_REFACTOR.md)
+7. [COMPATIBILITY_AND_RELEASES.md](/Users/Shared/Projects/GENERAL_DESIGN_SYSTEM/COMPATIBILITY_AND_RELEASES.md)
+8. [THEME_GOVERNANCE.md](/Users/Shared/Projects/GENERAL_DESIGN_SYSTEM/THEME_GOVERNANCE.md)
+9. [EXCEPTION_SURFACES.md](/Users/Shared/Projects/GENERAL_DESIGN_SYSTEM/EXCEPTION_SURFACES.md)
+10. [PROJECTS/PORTFOLIO_ADOPTION_MATRIX.md](/Users/Shared/Projects/GENERAL_DESIGN_SYSTEM/PROJECTS/PORTFOLIO_ADOPTION_MATRIX.md)
+11. [PROJECTS/KIDEX_MANTINE_REFACTOR.md](/Users/Shared/Projects/GENERAL_DESIGN_SYSTEM/PROJECTS/KIDEX_MANTINE_REFACTOR.md)
 
 KIDEX refactor plan: [#50](https://github.com/moldovancsaba/kidex/issues/50)

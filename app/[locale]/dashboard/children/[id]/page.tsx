@@ -248,6 +248,9 @@ export default function ChildHistoryPage({ params }: { params: Promise<{ id: str
     latestAssessmentAt: latest?.createdAt,
   });
   const supportSummary = buildSupportWorkspaceSummary(effectiveSupportWorkspace);
+  const consentAlerts = getConsentAlerts(data?.child?.consentPolicy);
+  const expiredConsentCount = consentAlerts.filter((alert) => alert.reason === "expired").length;
+  const expiringConsentCount = consentAlerts.filter((alert) => alert.reason === "expiring_soon").length;
 
   if (loading) {
     return <LoadingState label={tc("loading")} minHeight="12rem" />;
@@ -514,7 +517,33 @@ export default function ChildHistoryPage({ params }: { params: Promise<{ id: str
     <Stack gap="lg">
       <PageHeader
         title={data.child.name}
-        subtitle={data.child.birthDate}
+        subtitle={
+          <Stack gap={6}>
+            <Text size="sm" c="dimmed">
+              {data.child.birthDate}
+            </Text>
+            <Group gap="xs" wrap="wrap">
+              <Badge color={reassessmentSummary.status === "overdue" ? "red" : reassessmentSummary.status === "due_soon" ? "yellow" : reassessmentSummary.status === "on_track" ? "teal" : "gray"} variant="light">
+                {reassessmentSummary.status.replace("_", " ")}
+              </Badge>
+              {expiredConsentCount > 0 ? (
+                <Badge color="red" variant="light">
+                  {t("consentExpiredBadge", { count: expiredConsentCount })}
+                </Badge>
+              ) : null}
+              {expiredConsentCount === 0 && expiringConsentCount > 0 ? (
+                <Badge color="yellow" variant="light">
+                  {t("consentExpiringBadge", { count: expiringConsentCount })}
+                </Badge>
+              ) : null}
+              {canGenerateFamilyReport ? (
+                <Badge color="teal" variant="outline">
+                  {tr("familyReportTitle")}
+                </Badge>
+              ) : null}
+            </Group>
+          </Stack>
+        }
         actions={
           <DetailActionBar
             menuLabel={tc("moreActions")}
@@ -632,7 +661,7 @@ export default function ChildHistoryPage({ params }: { params: Promise<{ id: str
         }
       />
 
-      <ConsentAlertPanel alerts={getConsentAlerts(data.child.consentPolicy)} title={t("consentAlertTitle")} t={t} />
+      <ConsentAlertPanel alerts={consentAlerts} title={t("consentAlertTitle")} t={t} />
 
       {data.child.caregivers?.length ? (
         <SectionCard title={t("familyConsentLinksTitle")}>

@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { ActionIcon, Alert, Badge, Box, Button, Checkbox, Divider, Group, Menu, Modal, MultiSelect, Paper, RangeSlider, Select, Stack, Text, TextInput, Textarea } from "@mantine/core";
+import { ActionIcon, Alert, Badge, Box, Button, Checkbox, Divider, Drawer, Group, Menu, Modal, MultiSelect, Paper, RangeSlider, Select, Stack, Text, TextInput, Textarea, useMantineTheme } from "@mantine/core";
+import { useMediaQuery } from "@mantine/hooks";
 import { IconDotsVertical, IconDownload, IconEdit, IconEye, IconRestore, IconTrash } from "@tabler/icons-react";
 import { useParams } from "next/navigation";
 import { useTranslations } from "next-intl";
@@ -59,6 +60,7 @@ export default function ChildrenListPage() {
   const [selectedFollowUpStatuses, setSelectedFollowUpStatuses] = useState<string[]>([]);
   const [skiRange, setSkiRange] = useState<[number, number]>([0, 100]);
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<ChildProfile | null>(null);
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
   const [deletedChildren, setDeletedChildren] = useState<ChildProfile[]>([]);
@@ -66,6 +68,8 @@ export default function ChildrenListPage() {
   const [restoreTarget, setRestoreTarget] = useState<ChildProfile | null>(null);
   const [restoreConfirmText, setRestoreConfirmText] = useState("");
   const [roles, setRoles] = useState<SupportedRuntimeRole[]>([]);
+  const theme = useMantineTheme();
+  const mobileLayout = useMediaQuery(`(max-width: ${theme.breakpoints.sm})`);
 
   useEffect(() => {
     let active = true;
@@ -266,6 +270,74 @@ export default function ChildrenListPage() {
 
   const canWriteChildren = canPerformAction(roles, "children.write");
   const canWriteAssessments = canPerformAction(roles, "assessments.write");
+  const activeFilterCount =
+    selectedLocations.length +
+    selectedAgeGroups.length +
+    selectedFollowUpStatuses.length +
+    (skiRange[0] !== 0 || skiRange[1] !== 100 ? 1 : 0);
+
+  function resetFilters() {
+    setSelectedLocations([]);
+    setSelectedAgeGroups([]);
+    setSelectedFollowUpStatuses([]);
+    setSkiRange([0, 100]);
+  }
+
+  const filterPanel = (
+    <Paper withBorder p="md">
+      <Stack gap="md">
+        <Group grow align="start">
+          <MultiSelect
+            label={t("location")}
+            placeholder={tc("all")}
+            data={locations}
+            value={selectedLocations}
+            onChange={setSelectedLocations}
+            clearable
+            searchable
+          />
+          <MultiSelect
+            label={ta("ageGroup")}
+            placeholder={tc("all")}
+            data={allAgeGroups}
+            value={selectedAgeGroups}
+            onChange={setSelectedAgeGroups}
+            clearable
+          />
+          <MultiSelect
+            label="Follow-up status"
+            placeholder={tc("all")}
+            data={followUpStatusOptions}
+            value={selectedFollowUpStatuses}
+            onChange={setSelectedFollowUpStatuses}
+            clearable
+          />
+        </Group>
+        <Box>
+          <Text size="sm" fw={500} mb="xs">
+            SKI Score Range: {skiRange[0]} - {skiRange[1]}
+          </Text>
+          <RangeSlider
+            min={0}
+            max={100}
+            step={1}
+            value={skiRange}
+            onChange={setSkiRange}
+            label={null}
+            color="kidex"
+          />
+        </Box>
+        <Group justify="space-between" align="center">
+          <Text size="sm" c="dimmed">
+            Keep the registry focused on the children who need attention now.
+          </Text>
+          <Button variant="subtle" size="sm" onClick={resetFilters}>
+            {tc("resetFilters")}
+          </Button>
+        </Group>
+      </Stack>
+    </Paper>
+  );
 
   function startEdit(child: ChildProfile) {
     setEditing(child);
@@ -491,70 +563,77 @@ export default function ChildrenListPage() {
               />
             }
             secondary={
-              <Button variant="light" color="gray" onClick={() => setShowAdvanced(!showAdvanced)}>
-                {showAdvanced ? tc("hideFilters") : tc("advancedFilters")}
+              <Button
+                variant="light"
+                color="gray"
+                onClick={() => (mobileLayout ? setMobileFiltersOpen(true) : setShowAdvanced(!showAdvanced))}
+              >
+                {mobileLayout
+                  ? `${tc("advancedFilters")}${activeFilterCount ? ` (${activeFilterCount})` : ""}`
+                  : showAdvanced
+                    ? tc("hideFilters")
+                    : tc("advancedFilters")}
               </Button>
             }
-            filters={
-              showAdvanced ? (
-                <Paper withBorder p="md">
-                  <Stack gap="md">
-                    <Group grow align="start">
-                      <MultiSelect
-                        label={t("location")}
-                        placeholder={tc("all")}
-                        data={locations}
-                        value={selectedLocations}
-                        onChange={setSelectedLocations}
-                        clearable
-                        searchable
-                      />
-                      <MultiSelect
-                        label={ta("ageGroup")}
-                        placeholder={tc("all")}
-                        data={allAgeGroups}
-                        value={selectedAgeGroups}
-                        onChange={setSelectedAgeGroups}
-                        clearable
-                      />
-                      <MultiSelect
-                        label="Follow-up status"
-                        placeholder={tc("all")}
-                        data={followUpStatusOptions}
-                        value={selectedFollowUpStatuses}
-                        onChange={setSelectedFollowUpStatuses}
-                        clearable
-                      />
-                    </Group>
-                    <Box>
-                      <Text size="sm" fw={500} mb="xs">
-                        SKI Score Range: {skiRange[0]} - {skiRange[1]}
-                      </Text>
-                  <RangeSlider
-                    min={0}
-                    max={100}
-                    step={1}
-                    value={skiRange}
-                    onChange={setSkiRange}
-                    label={null}
-                    color="kidex"
-                  />
-                </Box>
-                <Group justify="flex-end">
-                  <Button variant="subtle" size="sm" onClick={() => {
-                    setSelectedLocations([]);
-                    setSelectedAgeGroups([]);
-                    setSelectedFollowUpStatuses([]);
-                    setSkiRange([0, 100]);
-                  }}>
-                    {tc("resetFilters")}
-                  </Button>
-                </Group>
-              </Stack>
-            </Paper>
-              ) : null
-            }
+            filters={!mobileLayout && showAdvanced ? filterPanel : null}
           />
+
+          <Group gap="xs" wrap="wrap">
+            <Button
+              size="sm"
+              variant={selectedFollowUpStatuses.includes("overdue") ? "filled" : "light"}
+              color={selectedFollowUpStatuses.includes("overdue") ? "red" : "gray"}
+              onClick={() => setSelectedFollowUpStatuses((current) => current.includes("overdue") ? current.filter((value) => value !== "overdue") : ["overdue"])}
+            >
+              Overdue
+            </Button>
+            <Button
+              size="sm"
+              variant={selectedFollowUpStatuses.includes("due_soon") ? "filled" : "light"}
+              color={selectedFollowUpStatuses.includes("due_soon") ? "yellow" : "gray"}
+              onClick={() => setSelectedFollowUpStatuses((current) => current.includes("due_soon") ? current.filter((value) => value !== "due_soon") : ["due_soon"])}
+            >
+              Due soon
+            </Button>
+            <Button
+              size="sm"
+              variant={selectedFollowUpStatuses.includes("missing") ? "filled" : "light"}
+              color={selectedFollowUpStatuses.includes("missing") ? "grape" : "gray"}
+              onClick={() => setSelectedFollowUpStatuses((current) => current.includes("missing") ? current.filter((value) => value !== "missing") : ["missing"])}
+            >
+              Missing date
+            </Button>
+            {activeFilterCount > 0 ? (
+              <Button size="sm" variant="subtle" onClick={resetFilters}>
+                {tc("resetFilters")}
+              </Button>
+            ) : null}
+          </Group>
+
+          {activeFilterCount > 0 ? (
+            <Group gap="xs" wrap="wrap">
+              {selectedLocations.map((value) => (
+                <Badge key={`location-${value}`} variant="light" color="kidex">
+                  {t("location")}: {value}
+                </Badge>
+              ))}
+              {selectedAgeGroups.map((value) => (
+                <Badge key={`age-${value}`} variant="light" color="blue">
+                  {ta("ageGroup")}: {value}
+                </Badge>
+              ))}
+              {selectedFollowUpStatuses.map((value) => (
+                <Badge key={`followup-${value}`} variant="light" color="orange">
+                  {value.replace("_", " ")}
+                </Badge>
+              ))}
+              {skiRange[0] !== 0 || skiRange[1] !== 100 ? (
+                <Badge variant="light" color="grape">
+                  SKI: {skiRange[0]}-{skiRange[1]}
+                </Badge>
+              ) : null}
+            </Group>
+          ) : null}
 
           {filtered.length === 0 ? (
             <EmptyState message={query ? t("noChildrenMatch") : tc("noChildren")} />
@@ -784,6 +863,21 @@ export default function ChildrenListPage() {
           )}
         </Stack>
       </SectionCard>
+      <Drawer
+        opened={mobileFiltersOpen}
+        onClose={() => setMobileFiltersOpen(false)}
+        title={tc("advancedFilters")}
+        position="bottom"
+        size="85%"
+        hiddenFrom="sm"
+      >
+        <Stack gap="md">
+          {filterPanel}
+          <Button color="kidex" onClick={() => setMobileFiltersOpen(false)}>
+            {tc("view")}
+          </Button>
+        </Stack>
+      </Drawer>
       <Modal opened={canWriteChildren && Boolean(editing)} onClose={() => (saving ? null : setEditing(null))} title={t("editChild")} centered>
           <Stack gap="md" mt="xs">
             <TextInput

@@ -16,8 +16,10 @@ import {
   Stack,
   Text,
   TextInput,
-  Textarea
+  Textarea,
+  useMantineTheme
 } from "@mantine/core";
+import { useMediaQuery } from "@mantine/hooks";
 import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
@@ -127,6 +129,7 @@ export function KidexAssessmentApp() {
   const t = useTranslations("Assessment");
   const tc = useTranslations("Common");
   const ts = useTranslations("Schema");
+  const td = useTranslations("Dashboard");
   const searchParams = useSearchParams();
   const childIdParam = searchParams.get("childId");
   const idParam = searchParams.get("id");
@@ -156,6 +159,9 @@ export function KidexAssessmentApp() {
   const conductorOptions = useMemo(() => conductors.map((name) => ({ id: name, name })), [conductors]);
   const observerOptions = useMemo(() => observers.map((name) => ({ id: name, name })), [observers]);
   const locationOptions = useMemo(() => locations.map((name) => ({ id: name, name })), [locations]);
+  const selectedChild = useMemo(() => children.find((child) => child._id === assessment.childId) || null, [assessment.childId, children]);
+  const theme = useMantineTheme();
+  const mobileLayout = useMediaQuery(`(max-width: ${theme.breakpoints.sm})`);
 
   useEffect(() => {
     void Promise.all([getSettings(), getConductors(), getObservers()]).then(([settingsData, conductorUsers, observerUsers]) => {
@@ -564,6 +570,14 @@ export function KidexAssessmentApp() {
       {!recordId && !assessment.childId ? (
         <Alert color="blue" variant="light" title={t("surveyQuickStartTitle")}>
           <Text size="sm">{t("surveyQuickStartBody")}</Text>
+        </Alert>
+      ) : null}
+
+      {selectedChild ? (
+        <Alert color="teal" variant="light" title={selectedChild.name}>
+          <Text size="sm">
+            {selectedChild.birthDate} · {td("newSurveyForChild")}
+          </Text>
         </Alert>
       ) : null}
 
@@ -1109,6 +1123,29 @@ export function KidexAssessmentApp() {
           </Button>
         </Group>
       </Paper>
+
+      {mobileLayout ? (
+        <Paper
+          withBorder
+          p="sm"
+          radius="md"
+          style={{
+            position: "sticky",
+            bottom: 76,
+            zIndex: 10,
+            background: "var(--mantine-color-body)",
+          }}
+        >
+          <Group gap="sm" grow wrap="nowrap">
+            <Button variant="light" color="gray" component="a" href="#setup">
+              {t("continueSetup")}
+            </Button>
+            <Button color="kidex" onClick={() => void saveAssessment()} disabled={saveState === "saving"}>
+              {saveState === "saving" ? tc("saving") : recordId ? tc("update") : tc("save")}
+            </Button>
+          </Group>
+        </Paper>
+      ) : null}
     </Stack>
   );
 }
