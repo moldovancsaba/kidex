@@ -52,6 +52,12 @@ Delivered local pre-adoption canonicalization track:
 
 Current open GDS dependency sequence:
 
+- Deliverable local waiting-track before upstream GDS unblock:
+  - [#61](https://github.com/moldovancsaba/kidex/issues/61) assessment draft persistence and resume recovery
+  - [#62](https://github.com/moldovancsaba/kidex/issues/62) global child search and quick-switch workflow
+  - [#63](https://github.com/moldovancsaba/kidex/issues/63) reassessment queue and follow-up action center
+  - [#64](https://github.com/moldovancsaba/kidex/issues/64) report and export delivery workflow hardening
+  - [#65](https://github.com/moldovancsaba/kidex/issues/65) offline-safe conductor workflow protection and sync recovery
 - [#54](https://github.com/moldovancsaba/kidex/issues/54) `Roadmap (LATER)` adopt shared GDS packages after Mantine 8 compatibility release
 - [#55](https://github.com/moldovancsaba/kidex/issues/55) `Roadmap (LATER)` replace local responsive shell and data-view adapters with shared GDS components
 
@@ -161,8 +167,13 @@ Branch state:
 
 Current next execution order:
 
-1. [#54](https://github.com/moldovancsaba/kidex/issues/54)
-2. [#55](https://github.com/moldovancsaba/kidex/issues/55)
+1. [#61](https://github.com/moldovancsaba/kidex/issues/61)
+2. [#62](https://github.com/moldovancsaba/kidex/issues/62)
+3. [#63](https://github.com/moldovancsaba/kidex/issues/63)
+4. [#64](https://github.com/moldovancsaba/kidex/issues/64)
+5. [#65](https://github.com/moldovancsaba/kidex/issues/65)
+6. [#54](https://github.com/moldovancsaba/kidex/issues/54)
+7. [#55](https://github.com/moldovancsaba/kidex/issues/55)
 
 Practical dependency interpretation:
 
