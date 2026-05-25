@@ -55,6 +55,22 @@ Current open GDS dependency sequence:
 - [#54](https://github.com/moldovancsaba/kidex/issues/54) `Roadmap (LATER)` adopt shared GDS packages after Mantine 8 compatibility release
 - [#55](https://github.com/moldovancsaba/kidex/issues/55) `Roadmap (LATER)` replace local responsive shell and data-view adapters with shared GDS components
 
+Upstream GDS unblock map:
+
+- Runtime / package line:
+  - `general-design-system#98` distribution and install contract
+  - `general-design-system#101` App Router server-safe entrypoints
+  - `general-design-system#102` canonical bootstrap contract
+  - `general-design-system#119` Mantine 8 / React 19 / Next 15 compatibility line
+- Shared surfaces needed before `#55` can execute honestly:
+  - `general-design-system#121` authenticated AppShell parity
+  - `general-design-system#122` PageHeader action-contract parity
+  - `general-design-system#123` ResponsiveDataView registry parity
+  - `general-design-system#124` FilterDrawer hardening
+  - `general-design-system#125` EditorScaffold parity
+  - `general-design-system#129` section panel primitive
+  - `general-design-system#130` searchable selection contract decision
+
 Latest public GDS note:
 
 - GDS SSOT is now `2.4.3`
@@ -147,6 +163,11 @@ Current next execution order:
 
 1. [#54](https://github.com/moldovancsaba/kidex/issues/54)
 2. [#55](https://github.com/moldovancsaba/kidex/issues/55)
+
+Practical dependency interpretation:
+
+1. Wait for upstream runtime/package unblock: `#98`, `#101`, `#102`, `#119`
+2. Move to shared surface adoption only when upstream parity issues are released: `#121`, `#122`, `#123`, `#124`, `#125`, `#129`, `#130`
 
 For UI work, continue using:
 
