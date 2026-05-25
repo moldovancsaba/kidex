@@ -1,17 +1,15 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Badge, Box, Button, Group, Modal, Paper, Stack, Text, TextInput } from "@mantine/core";
+import { Badge, Box, Button, Group, Modal, Stack, Text, TextInput } from "@mantine/core";
 import { useParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
-import { EmptyState } from "@/components/ui/EmptyState";
-import { DataToolbar } from "@/components/ui/DataToolbar";
 import { LoadingState } from "@/components/ui/LoadingState";
-import { PageHeader } from "@/components/ui/PageHeader";
 import { canPerformAction } from "@/lib/permissions";
 import { formatScore } from "@/lib/utils";
-import { SectionCard } from "@/components/ui/SectionCard";
+import { DataToolbar, ProductCard, SectionCard } from "@/components/gds-local/core";
+import { PageHeader, ResponsiveDataView } from "@/components/gds-local/admin";
 import type { AssessmentRecord } from "@/types/assessment";
 import type { SupportedRuntimeRole } from "@/lib/roles";
 
@@ -86,87 +84,130 @@ export default function RecordsPage() {
     <Stack gap="md">
       <PageHeader
         title={t("records")}
-        actions={
+        primaryAction={
           canWriteAssessments ? (
-            <Button variant={showDeleted ? "filled" : "default"} color={showDeleted ? "red" : "gray"} onClick={() => setShowDeleted((v) => !v)}>{showDeleted ? t("showingDeleted") : t("showDeleted")}</Button>
+            <Button variant={showDeleted ? "filled" : "default"} color={showDeleted ? "red" : "gray"} onClick={() => setShowDeleted((v) => !v)}>
+              {showDeleted ? t("showingDeleted") : t("showDeleted")}
+            </Button>
           ) : null
         }
       />
       <SectionCard>
-        <Stack gap="md">
-          <DataToolbar
-            primary={
-              <TextInput
-                label={t("searchRecords")}
-                placeholder={t("searchRecordsPlaceholder")}
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-              />
-            }
-          />
-
-          {filtered.length === 0 ? (
-            <EmptyState message={query ? t("noRecordsMatch") : ta("noHistory")} />
-          ) : (
-            <Stack gap="md">
-              {filtered.map((record) => (
-                <Paper 
-                  key={record._id} 
-                  withBorder 
-                  p="md" 
-                  radius="md"
-                  onClick={() => window.location.href = `/${locale}/dashboard/records/${record._id}`}
-                  style={{ cursor: "pointer" }}
-                >
-                  <Stack gap="md">
-                    <Box>
-                      <Group justify="space-between" align="flex-start">
-                        <Box>
-                          <Text
-                            component={Link}
-                            href={`/dashboard/records/${record._id}`}
-                            fw={800}
-                            size="lg"
-                            color="kidex"
-                            style={{ textDecoration: "none" }}
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            {record.child.name || "---"}
-                          </Text>
-                          <Text size="sm" c="dimmed">
-                            {record.session.date} {record.session.location ? `· ${record.session.location}` : ""}
-                          </Text>
-                        </Box>
-                        <Badge color="kidex" variant="filled" size="lg">
-                          SKI: {formatScore(record.computed.ski)}
-                        </Badge>
-                      </Group>
-                    </Box>
-
+        <ResponsiveDataView
+          data={filtered}
+          emptyTitle={query ? t("noRecordsMatch") : ta("noHistory")}
+          emptyDescription={query ? t("searchRecordsPlaceholder") : ta("noHistory")}
+          toolbar={
+            <DataToolbar
+              searchSlot={
+                <TextInput
+                  label={t("searchRecords")}
+                  placeholder={t("searchRecordsPlaceholder")}
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                />
+              }
+            />
+          }
+          renderCard={(item) => {
+            const record = item as unknown as AssessmentRecord;
+            return (
+              <ProductCard
+                title={record.child.name || "---"}
+                description={`${record.session.date}${record.session.location ? ` · ${record.session.location}` : ""}`}
+                status={
+                  <Badge color="kidex" variant="filled" size="lg">
+                    SKI: {formatScore(record.computed.ski)}
+                  </Badge>
+                }
+                metadata={[
+                  { label: tc("date"), value: record.session.date },
+                  { label: t("location"), value: record.session.location || "—" },
+                ]}
+                onClick={!showDeleted ? () => (window.location.href = `/${locale}/dashboard/records/${record._id}`) : undefined}
+                primaryAction={
+                  !showDeleted ? (
                     <Group gap="sm">
-                      {!showDeleted ? (
-                        <>
-                          <Button component={Link} href={`/dashboard/records/${record._id}`} variant="default" size="sm" onClick={(e) => e.stopPropagation()}>
-                            {tc("view")}
-                          </Button>
-                          {canWriteAssessments ? (
-                            <Button component={Link} href={`/dashboard/assessment?id=${record._id}`} color="kidex" variant="light" size="sm" onClick={(e) => e.stopPropagation()}>
-                              {tc("update")}
-                            </Button>
-                          ) : null}
-                        </>
-                      ) : (
-                        <Button color="kidex" variant="light" size="sm" onClick={(e) => { e.stopPropagation(); setRestoreTargetId(record._id || null); setRestoreConfirmText(""); }}>
-                          {t("restoreAction")}
+                      <Button component={Link} href={`/dashboard/records/${record._id}`} variant="default" size="sm" onClick={(e) => e.stopPropagation()}>
+                        {tc("view")}
+                      </Button>
+                      {canWriteAssessments ? (
+                        <Button component={Link} href={`/dashboard/assessment?id=${record._id}`} color="kidex" variant="light" size="sm" onClick={(e) => e.stopPropagation()}>
+                          {tc("update")}
                         </Button>
-                      )}
+                      ) : null}
                     </Group>
-                  </Stack>
-                </Paper>
+                  ) : (
+                    <Button
+                      color="kidex"
+                      variant="light"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setRestoreTargetId(record._id || null);
+                        setRestoreConfirmText("");
+                      }}
+                    >
+                      {t("restoreAction")}
+                    </Button>
+                  )
+                }
+              />
+            );
+          }}
+          renderDesktop={(items) => (
+            <Stack gap="md">
+              {items.map((item) => (
+                <Box key={(item as unknown as AssessmentRecord)._id}>
+                  {(
+                    <ProductCard
+                      title={(item as unknown as AssessmentRecord).child.name || "---"}
+                      description={`${(item as unknown as AssessmentRecord).session.date}${(item as unknown as AssessmentRecord).session.location ? ` · ${(item as unknown as AssessmentRecord).session.location}` : ""}`}
+                      status={
+                        <Badge color="kidex" variant="filled" size="lg">
+                          SKI: {formatScore((item as unknown as AssessmentRecord).computed.ski)}
+                        </Badge>
+                      }
+                      metadata={[
+                        { label: tc("date"), value: (item as unknown as AssessmentRecord).session.date },
+                        { label: t("location"), value: (item as unknown as AssessmentRecord).session.location || "—" },
+                      ]}
+                      onClick={!showDeleted ? () => (window.location.href = `/${locale}/dashboard/records/${(item as unknown as AssessmentRecord)._id}`) : undefined}
+                      primaryAction={
+                        !showDeleted ? (
+                          <Group gap="sm">
+                            <Button component={Link} href={`/dashboard/records/${(item as unknown as AssessmentRecord)._id}`} variant="default" size="sm" onClick={(e) => e.stopPropagation()}>
+                              {tc("view")}
+                            </Button>
+                            {canWriteAssessments ? (
+                              <Button component={Link} href={`/dashboard/assessment?id=${(item as unknown as AssessmentRecord)._id}`} color="kidex" variant="light" size="sm" onClick={(e) => e.stopPropagation()}>
+                                {tc("update")}
+                              </Button>
+                            ) : null}
+                          </Group>
+                        ) : (
+                          <Button
+                            color="kidex"
+                            variant="light"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setRestoreTargetId((item as unknown as AssessmentRecord)._id || null);
+                              setRestoreConfirmText("");
+                            }}
+                          >
+                            {t("restoreAction")}
+                          </Button>
+                        )
+                      }
+                    />
+                  )}
+                </Box>
               ))}
             </Stack>
           )}
-        </Stack>
+          getRowKey={(item) => (item as unknown as AssessmentRecord)._id || `${(item as unknown as AssessmentRecord).child.name}-${(item as unknown as AssessmentRecord).session.date}`}
+        />
       </SectionCard>
       <Modal opened={canWriteAssessments && Boolean(restoreTargetId)} onClose={() => setRestoreTargetId(null)} title={t("restoreAssessment")} centered>
         <Stack gap="md">

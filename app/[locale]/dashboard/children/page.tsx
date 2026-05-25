@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { ActionIcon, Alert, Badge, Box, Button, Checkbox, Divider, Drawer, Group, Menu, Modal, MultiSelect, Paper, RangeSlider, Select, Stack, Text, TextInput, Textarea, useMantineTheme } from "@mantine/core";
+import { Alert, Badge, Box, Button, Checkbox, Divider, Group, Modal, MultiSelect, Paper, RangeSlider, Select, Stack, Text, TextInput, Textarea, useMantineTheme } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
-import { IconDotsVertical, IconDownload, IconEdit, IconEye, IconRestore, IconTrash } from "@tabler/icons-react";
+import { IconDownload, IconEdit, IconEye, IconRestore, IconTrash } from "@tabler/icons-react";
 import { useParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
@@ -12,11 +12,9 @@ import { defaultConsentPolicy, deriveLegacyConsents, getConsentAlerts, type Chil
 import { normalizePreferredLocale } from "@/lib/locales";
 import { canPerformAction } from "@/lib/permissions";
 import { buildReassessmentSummary } from "@/lib/reassessment";
-import { EmptyState } from "@/components/ui/EmptyState";
-import { PageHeader } from "@/components/ui/PageHeader";
-import { DataToolbar } from "@/components/ui/DataToolbar";
 import { LoadingState } from "@/components/ui/LoadingState";
-import { SectionCard } from "@/components/ui/SectionCard";
+import { DataToolbar, FilterDrawer, ProductCard, SectionCard } from "@/components/gds-local/core";
+import { PageHeader, ResponsiveDataView } from "@/components/gds-local/admin";
 import { createEmptyFamilyCaregiver, FAMILY_ACCESS_LEVELS, FAMILY_CAREGIVER_STATUSES, FAMILY_RELATIONSHIPS, type FamilyCaregiver } from "@/lib/family-access";
 import { calculateAgeGroup } from "@/lib/utils/age";
 import { formatScore } from "@/lib/utils";
@@ -52,7 +50,6 @@ export default function ChildrenListPage() {
   const [draftCaregivers, setDraftCaregivers] = useState<FamilyCaregiver[]>([]);
   const [saving, setSaving] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
-  const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [locations, setLocations] = useState<string[]>([]);
   
   const [selectedLocations, setSelectedLocations] = useState<string[]>([]);
@@ -113,7 +110,6 @@ export default function ChildrenListPage() {
   const downloadLatestMap = async (childId?: string, latestRecordId?: string) => {
     if (!childId || !latestRecordId) return;
     const startedAt = new Date().getTime();
-    setDownloadingId(childId);
     try {
       const [aRes, hRes] = await Promise.all([
         fetch(`/api/assessments/${latestRecordId}`),
@@ -153,7 +149,6 @@ export default function ChildrenListPage() {
       setMessage(tc("error"));
       setError(true);
     } finally {
-      setDownloadingId(null);
     }
   };
 
@@ -534,15 +529,13 @@ export default function ChildrenListPage() {
     <Stack gap="md">
       <PageHeader
         title={t("children")}
-        actions={
-          <Group>
-            {canWriteChildren ? (
-              <Button variant={showDeleted ? "filled" : "default"} color={showDeleted ? "red" : "gray"} onClick={() => setShowDeleted((v) => !v)}>
-                {showDeleted ? t("showingDeleted") : t("showDeleted")}
-              </Button>
-            ) : null}
-            {canWriteChildren ? <Button color="kidex" onClick={startCreate}>{t("addChild")}</Button> : null}
-          </Group>
+        primaryAction={canWriteChildren ? <Button color="kidex" onClick={startCreate}>{t("addChild")}</Button> : null}
+        secondaryActions={
+          canWriteChildren ? (
+            <Button variant={showDeleted ? "filled" : "default"} color={showDeleted ? "red" : "gray"} onClick={() => setShowDeleted((v) => !v)}>
+              {showDeleted ? t("showingDeleted") : t("showDeleted")}
+            </Button>
+          ) : null
         }
       />
       <SectionCard>
@@ -554,7 +547,7 @@ export default function ChildrenListPage() {
           ) : null}
 
           <DataToolbar
-            primary={
+            searchSlot={
               <TextInput
                 label={t("searchChildren")}
                 value={query}
@@ -562,7 +555,7 @@ export default function ChildrenListPage() {
                 placeholder={t("searchChildrenPlaceholder")}
               />
             }
-            secondary={
+            createAction={
               <Button
                 variant="light"
                 color="gray"
@@ -573,9 +566,15 @@ export default function ChildrenListPage() {
                   : showAdvanced
                     ? tc("hideFilters")
                     : tc("advancedFilters")}
-              </Button>
+                </Button>
             }
-            filters={!mobileLayout && showAdvanced ? filterPanel : null}
+            filterSlot={!mobileLayout && showAdvanced ? filterPanel : null}
+            activeFilters={[
+              ...selectedLocations.map((value) => ({ label: `${t("location")}: ${value}`, color: "kidex", onRemove: () => setSelectedLocations((current) => current.filter((item) => item !== value)) })),
+              ...selectedAgeGroups.map((value) => ({ label: `${ta("ageGroup")}: ${value}`, color: "blue", onRemove: () => setSelectedAgeGroups((current) => current.filter((item) => item !== value)) })),
+              ...selectedFollowUpStatuses.map((value) => ({ label: value.replace("_", " "), color: "orange", onRemove: () => setSelectedFollowUpStatuses((current) => current.filter((item) => item !== value)) })),
+              ...(skiRange[0] !== 0 || skiRange[1] !== 100 ? [{ label: `SKI: ${skiRange[0]}-${skiRange[1]}`, color: "grape", onRemove: () => setSkiRange([0, 100]) }] : []),
+            ]}
           />
 
           <Group gap="xs" wrap="wrap">
@@ -610,274 +609,126 @@ export default function ChildrenListPage() {
             ) : null}
           </Group>
 
-          {activeFilterCount > 0 ? (
-            <Group gap="xs" wrap="wrap">
-              {selectedLocations.map((value) => (
-                <Badge key={`location-${value}`} variant="light" color="kidex">
-                  {t("location")}: {value}
+          <ResponsiveDataView
+            data={filtered}
+            emptyTitle={query ? t("noChildrenMatch") : tc("noChildren")}
+            emptyDescription={query ? t("searchChildrenPlaceholder") : tc("noChildren")}
+            renderCard={(item) => {
+              const child = item as unknown as ChildProfile;
+              const ageGroup = calculateAgeGroup(child.birthDate) || "-";
+              const consentAlerts = getConsentAlerts(child.consentPolicy);
+              const expiredAlerts = consentAlerts.filter((alert) => alert.reason === "expired");
+              const expiringAlerts = consentAlerts.filter((alert) => alert.reason === "expiring_soon");
+              const reassessmentSummary = buildReassessmentSummary({
+                latestAssessmentAt: child.latestAssessmentAt,
+                plan: {
+                  childId: child._id || "",
+                  summary: "",
+                  status: child.latestPlanStatus || "draft",
+                  reviewCadenceDays: child.reviewCadenceDays ?? 0,
+                  nextAssessmentDueDate: child.nextAssessmentDueDate,
+                  reassessmentNotes: child.reassessmentNotes || "",
+                  assignments: [],
+                  checkpoints: [],
+                  progressNotes: "",
+                  createdAt: child.createdAt,
+                  updatedAt: child.updatedAt,
+                },
+              });
+              const status = child.latestSki !== undefined ? (
+                <Badge color="kidex" variant="filled" size="sm">
+                  LATEST SKI: {formatScore(child.latestSki)}
                 </Badge>
-              ))}
-              {selectedAgeGroups.map((value) => (
-                <Badge key={`age-${value}`} variant="light" color="blue">
-                  {ta("ageGroup")}: {value}
-                </Badge>
-              ))}
-              {selectedFollowUpStatuses.map((value) => (
-                <Badge key={`followup-${value}`} variant="light" color="orange">
-                  {value.replace("_", " ")}
-                </Badge>
-              ))}
-              {skiRange[0] !== 0 || skiRange[1] !== 100 ? (
-                <Badge variant="light" color="grape">
-                  SKI: {skiRange[0]}-{skiRange[1]}
-                </Badge>
-              ) : null}
-            </Group>
-          ) : null}
-
-          {filtered.length === 0 ? (
-            <EmptyState message={query ? t("noChildrenMatch") : tc("noChildren")} />
-          ) : (
-            <Stack gap="md">
-              {filtered.map((child) => {
-                const ageGroup = calculateAgeGroup(child.birthDate) || "-";
-                const consentAlerts = getConsentAlerts(child.consentPolicy);
-                const expiredAlerts = consentAlerts.filter((alert) => alert.reason === "expired");
-                const expiringAlerts = consentAlerts.filter((alert) => alert.reason === "expiring_soon");
-                const reassessmentSummary = buildReassessmentSummary({
-                  latestAssessmentAt: child.latestAssessmentAt,
-                  plan: {
-                    childId: child._id || "",
-                    summary: "",
-                    status: child.latestPlanStatus || "draft",
-                    reviewCadenceDays: child.reviewCadenceDays ?? 0,
-                    nextAssessmentDueDate: child.nextAssessmentDueDate,
-                    reassessmentNotes: child.reassessmentNotes || "",
-                    assignments: [],
-                    checkpoints: [],
-                    progressNotes: "",
-                    createdAt: child.createdAt,
-                    updatedAt: child.updatedAt,
-                  },
-                });
-                return (
-                  <Paper 
-                    key={child._id} 
-                    withBorder 
-                    p="md"
-                    radius="md"
-                    onClick={() => !showDeleted && (window.location.href = `/${locale}/dashboard/children/${child._id}`)}
-                    style={{ cursor: "pointer" }}
-                  >
-                    <Stack gap="md">
-                      <Box>
-                        <Text
-                          component={Link}
-                          href={`/dashboard/children/${child._id}`}
-                          fw={800}
-                          size="lg"
-                          color="kidex"
-                          style={{ textDecoration: "none" }}
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          {child.name}
-                        </Text>
-                        <Text size="sm" c="dimmed">
-                          {ta("birthDate")}: {child.birthDate} · {ta("ageGroup")}: {ageGroup}
-                        </Text>
-                        {(child.caregivers?.length || 0) > 0 ? (
-                          <Group gap="xs" mt={8}>
-                            <Badge color="grape" variant="light" size="sm">
-                              {t("caregiverCountBadge", { count: child.caregivers?.length || 0 })}
+              ) : undefined;
+              const secondaryActions = !showDeleted
+                ? [
+                    { label: t("viewHistory"), href: `/${locale}/dashboard/children/${child._id}`, leftSection: <IconEye size={16} /> },
+                    ...(child.latestRecordId ? [{
+                      label: t("downloadPdf"),
+                      onClick: () => { void downloadLatestMap(child._id, child.latestRecordId); },
+                      leftSection: <IconDownload size={16} />,
+                    }] : []),
+                    ...(canWriteChildren ? [{ label: t("editChild"), onClick: () => startEdit(child), leftSection: <IconEdit size={16} /> }] : []),
+                    ...(canWriteChildren ? [{ label: t("deleteChild"), color: "red", onClick: () => { setDeleteTarget(child); setDeleteConfirmText(""); }, leftSection: <IconTrash size={16} /> }] : []),
+                  ]
+                : [];
+              return (
+                <ProductCard
+                  title={child.name}
+                  description={`${ta("birthDate")}: ${child.birthDate} · ${ta("ageGroup")}: ${ageGroup}`}
+                  status={status}
+                  onClick={() => !showDeleted && (window.location.href = `/${locale}/dashboard/children/${child._id}`)}
+                  metadata={[
+                    { label: "Average SKI", value: child.avgSki !== undefined ? formatScore(child.avgSki) : "—" },
+                    { label: t("location"), value: child.latestLocation || "—" },
+                    { label: "Follow-up", value: reassessmentSummary.status.replace("_", " ") },
+                  ]}
+                  footer={
+                    <Stack gap="xs">
+                      {(child.caregivers?.length || 0) > 0 ? (
+                        <Group gap="xs" wrap="wrap">
+                          <Badge color="grape" variant="light" size="sm">
+                            {t("caregiverCountBadge", { count: child.caregivers?.length || 0 })}
+                          </Badge>
+                          {child.caregivers?.some((caregiver) => caregiver.canReceiveReports && caregiver.status === "active") ? (
+                            <Badge color="teal" variant="light" size="sm">
+                              {t("familyReportsEnabled")}
                             </Badge>
-                            {child.caregivers?.some((caregiver) => caregiver.canReceiveReports && caregiver.status === "active") ? (
-                              <Badge color="teal" variant="light" size="sm">
-                                {t("familyReportsEnabled")}
-                              </Badge>
-                            ) : null}
-                          </Group>
-                        ) : null}
-                        {consentAlerts.length > 0 ? (
-                          <Group gap="xs" mt={8}>
-                            {expiredAlerts.length > 0 ? (
-                              <Badge color="red" variant="light" size="sm">
-                                {t("consentExpiredBadge", { count: expiredAlerts.length })}
-                              </Badge>
-                            ) : null}
-                            {expiredAlerts.length === 0 && expiringAlerts.length > 0 ? (
-                              <Badge color="yellow" variant="light" size="sm">
-                                {t("consentExpiringBadge", { count: expiringAlerts.length })}
-                              </Badge>
-                            ) : null}
-                          </Group>
-                        ) : null}
-                        {child.accessibilityProfile?.familyViewMode === "simplified" || (child.accessibilityProfile?.accommodations?.length || 0) > 0 ? (
-                          <Group gap="xs" mt={8}>
-                            {child.accessibilityProfile?.familyViewMode === "simplified" ? (
-                              <Badge color="cyan" variant="light" size="sm">
-                                {t("simplifiedFamilyViewBadge")}
-                              </Badge>
-                            ) : null}
-                            {(child.accessibilityProfile?.accommodations?.length || 0) > 0 ? (
-                              <Badge color="indigo" variant="light" size="sm">
-                                {t("accommodationsBadge", { count: child.accessibilityProfile?.accommodations?.length || 0 })}
-                              </Badge>
-                            ) : null}
-                          </Group>
-                        ) : null}
-                        {child.latestSki !== undefined && (
-                          <Group gap="xs" mt={8}>
-                            <Badge color="kidex" variant="filled" size="sm">
-                              LATEST SKI: {formatScore(child.latestSki)}
-                            </Badge>
-                            <Badge color="blue" variant="light" size="sm">
-                              AVG SKI: {formatScore(child.avgSki)}
-                            </Badge>
-                            {child.latestLocation && (
-                              <Text size="sm" c="dimmed" fw={500}>
-                                @{child.latestLocation}
-                              </Text>
-                            )}
-                          </Group>
-                        )}
-                        {child.latestRecordId ? (
-                          <Group gap="xs" mt={8}>
-                            <Badge color={reassessmentSummary.status === "overdue" ? "red" : reassessmentSummary.status === "due_soon" ? "yellow" : reassessmentSummary.status === "on_track" ? "teal" : "gray"} variant="light" size="sm">
-                              {reassessmentSummary.status === "overdue" ? "FOLLOW-UP OVERDUE" : reassessmentSummary.status === "due_soon" ? "FOLLOW-UP DUE SOON" : reassessmentSummary.status === "on_track" ? "FOLLOW-UP SCHEDULED" : "FOLLOW-UP DATE MISSING"}
-                            </Badge>
-                            {child.nextAssessmentDueDate ? (
-                              <Text size="sm" c="dimmed" fw={500}>
-                                due {new Date(child.nextAssessmentDueDate).toLocaleDateString()}
-                              </Text>
-                            ) : null}
-                          </Group>
-                        ) : null}
-                        {child.latestRecordId ? (
-                          <Text size="sm" c="dimmed" mt={4}>
-                            {reassessmentSummary.summary}
-                          </Text>
-                        ) : null}
-                      </Box>
-                      <Group gap="sm">
-                        {showDeleted && canWriteChildren ? (
-                          <Button
-                            color="kidex"
-                            variant="light"
-                            size="sm"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setRestoreTarget(child);
-                              setRestoreConfirmText("");
-                            }}
-                            leftSection={<IconRestore size={16} />}
-                          >
-                            {t("restoreAction")}
-                          </Button>
-                        ) : null}
-                        {!showDeleted ? (
-                          <Group gap="sm" wrap="nowrap">
-                            {canWriteAssessments ? (
-                              <Button
-                                component={Link}
-                                href={`/dashboard/assessment?childId=${child._id}`}
-                                color="kidex"
-                                size="sm"
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                {t("newSurveyForChild")}
-                              </Button>
-                            ) : (
-                              <Button
-                                component={Link}
-                                href={`/dashboard/children/${child._id}`}
-                                variant="light"
-                                color="kidex"
-                                size="sm"
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                {t("viewHistory")}
-                              </Button>
-                            )}
-
-                            <Menu shadow="md" width={220} position="bottom-end">
-                              <Menu.Target>
-                                <ActionIcon
-                                  variant="default"
-                                  size="lg"
-                                  aria-label={tc("moreActions")}
-                                  onClick={(e) => e.stopPropagation()}
-                                >
-                                  <IconDotsVertical size={18} />
-                                </ActionIcon>
-                              </Menu.Target>
-
-                              <Menu.Dropdown onClick={(e) => e.stopPropagation()}>
-                                <Menu.Item
-                                  component={Link}
-                                  href={`/dashboard/children/${child._id}`}
-                                  leftSection={<IconEye size={16} />}
-                                >
-                                  {t("viewHistory")}
-                                </Menu.Item>
-                                {child.latestRecordId ? (
-                                  <Menu.Item
-                                    leftSection={<IconDownload size={16} />}
-                                    disabled={downloadingId === child._id}
-                                    onClick={() => {
-                                      void downloadLatestMap(child._id, child.latestRecordId);
-                                    }}
-                                  >
-                                    {t("downloadPdf")}
-                                  </Menu.Item>
-                                ) : null}
-                                {canWriteChildren ? (
-                                  <Menu.Item
-                                    leftSection={<IconEdit size={16} />}
-                                    onClick={() => startEdit(child)}
-                                  >
-                                    {t("editChild")}
-                                  </Menu.Item>
-                                ) : null}
-                                {canWriteChildren ? (
-                                  <Menu.Item
-                                    color="red"
-                                    leftSection={<IconTrash size={16} />}
-                                    onClick={() => {
-                                      setDeleteTarget(child);
-                                      setDeleteConfirmText("");
-                                    }}
-                                  >
-                                    {t("deleteChild")}
-                                  </Menu.Item>
-                                ) : null}
-                              </Menu.Dropdown>
-                            </Menu>
-                          </Group>
-                        ) : null}
-                      </Group>
+                          ) : null}
+                        </Group>
+                      ) : null}
+                      {consentAlerts.length > 0 ? (
+                        <Group gap="xs" wrap="wrap">
+                          {expiredAlerts.length > 0 ? <Badge color="red" variant="light" size="sm">{t("consentExpiredBadge", { count: expiredAlerts.length })}</Badge> : null}
+                          {expiredAlerts.length === 0 && expiringAlerts.length > 0 ? <Badge color="yellow" variant="light" size="sm">{t("consentExpiringBadge", { count: expiringAlerts.length })}</Badge> : null}
+                        </Group>
+                      ) : null}
+                      {child.latestRecordId ? <Text size="sm" c="dimmed">{reassessmentSummary.summary}</Text> : null}
                     </Stack>
-                  </Paper>
-                );
-              })}
-            </Stack>
-          )}
+                  }
+                  primaryAction={
+                    showDeleted && canWriteChildren ? (
+                      <Button
+                        color="kidex"
+                        variant="light"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setRestoreTarget(child);
+                          setRestoreConfirmText("");
+                        }}
+                        leftSection={<IconRestore size={16} />}
+                      >
+                        {t("restoreAction")}
+                      </Button>
+                    ) : canWriteAssessments ? (
+                      <Button component={Link} href={`/dashboard/assessment?childId=${child._id}`} color="kidex" size="sm" onClick={(e) => e.stopPropagation()}>
+                        {t("newSurveyForChild")}
+                      </Button>
+                    ) : (
+                      <Button component={Link} href={`/dashboard/children/${child._id}`} variant="light" color="kidex" size="sm" onClick={(e) => e.stopPropagation()}>
+                        {t("viewHistory")}
+                      </Button>
+                    )
+                  }
+                  secondaryActions={secondaryActions}
+                />
+              );
+            }}
+            getRowKey={(item) => (item as unknown as ChildProfile)._id || (item as unknown as ChildProfile).name}
+          />
         </Stack>
       </SectionCard>
-      <Drawer
+      <FilterDrawer
         opened={mobileFiltersOpen}
         onClose={() => setMobileFiltersOpen(false)}
         title={tc("advancedFilters")}
         position="bottom"
         size="85%"
-        hiddenFrom="sm"
+        primaryAction={<Button color="kidex" onClick={() => setMobileFiltersOpen(false)}>{tc("view")}</Button>}
       >
-        <Stack gap="md">
-          {filterPanel}
-          <Button color="kidex" onClick={() => setMobileFiltersOpen(false)}>
-            {tc("view")}
-          </Button>
-        </Stack>
-      </Drawer>
+        {filterPanel}
+      </FilterDrawer>
       <Modal opened={canWriteChildren && Boolean(editing)} onClose={() => (saving ? null : setEditing(null))} title={t("editChild")} centered>
           <Stack gap="md" mt="xs">
             <TextInput

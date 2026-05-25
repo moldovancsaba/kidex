@@ -42,10 +42,18 @@ Delivered local Mantine workflow slices:
 - [#52](https://github.com/moldovancsaba/kidex/issues/52) `Done`
 - [#53](https://github.com/moldovancsaba/kidex/issues/53) `Done`
 
+Delivered local pre-adoption canonicalization track:
+
+- [#56](https://github.com/moldovancsaba/kidex/issues/56) `Done`
+- [#57](https://github.com/moldovancsaba/kidex/issues/57) `Done`
+- [#58](https://github.com/moldovancsaba/kidex/issues/58) `Done`
+- [#59](https://github.com/moldovancsaba/kidex/issues/59) `Done`
+- [#60](https://github.com/moldovancsaba/kidex/issues/60) `Done`
+
 Current open GDS dependency sequence:
 
-- [#54](https://github.com/moldovancsaba/kidex/issues/54) `Todo (NEXT)` adopt shared GDS packages after Mantine 8 compatibility release
-- [#55](https://github.com/moldovancsaba/kidex/issues/55) `Backlog (SOONER)` replace local responsive shell and data-view adapters with shared GDS components
+- [#54](https://github.com/moldovancsaba/kidex/issues/54) `Roadmap (LATER)` adopt shared GDS packages after Mantine 8 compatibility release
+- [#55](https://github.com/moldovancsaba/kidex/issues/55) `Roadmap (LATER)` replace local responsive shell and data-view adapters with shared GDS components
 
 Latest public GDS note:
 
@@ -56,9 +64,10 @@ Latest public GDS note:
 Delivered locally:
 
 - mobile shell and operational-first dashboard
-- child registry mobile filter drawer, active-filter badges, and follow-up shortcuts
-- survey mobile save/setup bar and clearer selected-child resume context
-- child and record detail headers with reassessment, consent, and family-report visibility
+- child registry mobile filter drawer, active-filter badges, follow-up shortcuts, and local `ResponsiveDataView` / `ProductCard` parity
+- survey mobile save/setup bar, clearer selected-child resume context, and local `EditorScaffold` / `FormSection` parity
+- child and record detail headers with reassessment, consent, family-report visibility, and unified `PageHeader` action contract
+- local `gds-local` compatibility boundary for admin/core contracts
 - shared state/metric contracts, theme consolidation, and ESLint token guards
 
 ## Current Versions
@@ -79,20 +88,22 @@ Current resolved local versions at the time of this handover:
 
 The latest completed code delivery on `origin/main` covered:
 
-- `#51` child registry mobile filter drawer and triage controls
-- `#52` survey mobile save bar and faster resume context
-- `#53` child and record detail header normalization for mobile follow-up context
+- `#56` local GDS compatibility layer and contract mirroring
+- `#57` authenticated shell and page-header parity
+- `#58` registry workflows parity
+- `#59` assessment editor scaffold parity
+- `#60` shared primitive and exception-surface normalization
 
 Main implementation files for the latest UI slice:
 
+- [components/gds-local/core/index.ts](/Users/Shared/Projects/kidex/components/gds-local/core/index.ts)
+- [components/gds-local/admin/index.ts](/Users/Shared/Projects/kidex/components/gds-local/admin/index.ts)
 - [components/layout/DashboardShell.tsx](/Users/Shared/Projects/kidex/components/layout/DashboardShell.tsx)
-- [components/ui/DetailActionBar.tsx](/Users/Shared/Projects/kidex/components/ui/DetailActionBar.tsx)
-- [components/ui/MetricCard.tsx](/Users/Shared/Projects/kidex/components/ui/MetricCard.tsx)
-- [components/ui/LoadingState.tsx](/Users/Shared/Projects/kidex/components/ui/LoadingState.tsx)
 - [components/dashboard/MainDashboard.tsx](/Users/Shared/Projects/kidex/components/dashboard/MainDashboard.tsx)
 - [app/[locale]/dashboard/children/page.tsx](/Users/Shared/Projects/kidex/app/%5Blocale%5D/dashboard/children/page.tsx)
 - [app/[locale]/dashboard/children/[id]/page.tsx](/Users/Shared/Projects/kidex/app/%5Blocale%5D/dashboard/children/%5Bid%5D/page.tsx)
 - [app/[locale]/dashboard/records/[id]/page.tsx](/Users/Shared/Projects/kidex/app/%5Blocale%5D/dashboard/records/%5Bid%5D/page.tsx)
+- [app/[locale]/dashboard/records/page.tsx](/Users/Shared/Projects/kidex/app/%5Blocale%5D/dashboard/records/page.tsx)
 - [components/forms/KidexAssessmentApp.tsx](/Users/Shared/Projects/kidex/components/forms/KidexAssessmentApp.tsx)
 - [docs/design-system.md](/Users/Shared/Projects/kidex/docs/design-system.md)
 - [docs/gds-compliance-checklist.md](/Users/Shared/Projects/kidex/docs/gds-compliance-checklist.md)
@@ -106,9 +117,9 @@ Verification passed for that slice:
 
 ## Git State
 
-Latest pushed commit on `origin/main`:
+Latest pushed commit on `origin/main` before the current local work:
 
-- `7a86ab2` `Improve mobile conductor workflow surfaces`
+- `536c3a5` `Align KIDEX to GDS 2.4.3`
 
 Branch state:
 
@@ -122,8 +133,13 @@ Branch state:
 - `#51` — `Done`
 - `#52` — `Done`
 - `#53` — `Done`
-- `#54` — `Todo (NEXT)`
-- `#55` — `Backlog (SOONER)`
+- `#56` — `Done` after current sync
+- `#57` — `Done` after current sync
+- `#58` — `Done` after current sync
+- `#59` — `Done` after current sync
+- `#60` — `Done` after current sync
+- `#54` — `Roadmap (LATER)`
+- `#55` — `Roadmap (LATER)`
 
 ## Recommended Next Work
 

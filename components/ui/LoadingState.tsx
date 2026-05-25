@@ -1,6 +1,4 @@
-"use client";
-
-import { Box, Loader } from "@mantine/core";
+import { StateBlock } from "@/components/gds-local/core";
 
 type LoadingStateProps = {
   label: string;
@@ -8,9 +6,5 @@ type LoadingStateProps = {
 };
 
 export function LoadingState({ label, minHeight = "50vh" }: LoadingStateProps) {
-  return (
-    <Box style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight }} role="status">
-      <Loader aria-label={label} />
-    </Box>
-  );
+  return <StateBlock variant="loading" title={label} compact minHeight={minHeight} />;
 }

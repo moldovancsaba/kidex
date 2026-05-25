@@ -3,7 +3,6 @@
 import {
   ActionIcon,
   alpha,
-  AppShell,
   Box,
   Button,
   Divider,
@@ -24,6 +23,7 @@ import { LoadingState } from "@/components/ui/LoadingState";
 import { AppFooter } from "@/components/layout/AppFooter";
 import { LocaleSwitcher } from "@/components/ui/LocaleSwitcher";
 import { ThemeSwitcher } from "@/components/ui/ThemeSwitcher";
+import { AppShell } from "@/components/gds-local/admin";
 import { requiredActionForDashboardPath } from "@/lib/dashboard-access";
 import { canPerformAction } from "@/lib/permissions";
 import type { SupportedRuntimeRole } from "@/lib/roles";
@@ -238,29 +238,10 @@ export default function DashboardShell({ children }: { children: React.ReactNode
       </Drawer>
 
       <AppShell
-        header={{ height: 60 }}
-        footer={{ height: mobilePrimaryNav.length > 0 ? 72 : 0 }}
-        navbar={{ width: KIDEX_SHELL_LAYOUT.navbarWidth, breakpoint: "md" }}
-        padding={0}
-        styles={{
-          header: {
-            borderBottom: "1px solid var(--mantine-color-default-border)",
-            backgroundColor: "var(--mantine-color-body)",
-          },
-          footer: {
-            borderTop: "1px solid var(--mantine-color-default-border)",
-            backgroundColor: "var(--mantine-color-body)",
-          },
-          navbar: {
-            borderInlineEnd: "none",
-            backgroundColor: shellBg,
-          },
-          main: {
-            backgroundColor: "var(--mantine-color-body)",
-          },
-        }}
-      >
-        <AppShell.Header className="no-print">
+        headerHeight={60}
+        footerHeight={72}
+        navbarWidth={KIDEX_SHELL_LAYOUT.navbarWidth}
+        header={
           <Group h="100%" px="md" justify="space-between" wrap="nowrap">
             <Stack gap={0}>
               <Text size="sm" c="dimmed" tt="uppercase" fw={700} hiddenFrom="sm">
@@ -288,44 +269,45 @@ export default function DashboardShell({ children }: { children: React.ReactNode
               </ActionIcon>
             </Group>
           </Group>
-        </AppShell.Header>
+        }
+        navbar={
+          <Box visibleFrom="md" className="no-print" h="100%">
+            {desktopNavContent}
+          </Box>
+        }
+        footer={
+          mobilePrimaryNav.length > 0 ? (
+            <Box hiddenFrom="md" className="no-print" h="100%" w="100%">
+              <Group grow gap={0} h="100%" wrap="nowrap">
+                {mobilePrimaryNav.map((item) => {
+                  const active =
+                    item.href === "/dashboard" ? pathname === "/dashboard" : pathname === item.href || pathname.startsWith(`${item.href}/`);
+                  const Icon = item.icon;
 
-        <AppShell.Navbar visibleFrom="md" p={0} className="no-print">
-          {desktopNavContent}
-        </AppShell.Navbar>
-
-        {mobilePrimaryNav.length > 0 ? (
-          <AppShell.Footer hiddenFrom="md" className="no-print">
-            <Group grow gap={0} h="100%" wrap="nowrap">
-              {mobilePrimaryNav.map((item) => {
-                const active =
-                  item.href === "/dashboard" ? pathname === "/dashboard" : pathname === item.href || pathname.startsWith(`${item.href}/`);
-                const Icon = item.icon;
-
-                return (
-                  <Button
-                    key={item.href}
-                    component={Link}
-                    href={item.href}
-                    variant="subtle"
-                    color={active ? "kidex" : "gray"}
-                    radius={0}
-                    h="100%"
-                    fullWidth
-                    style={{ flexDirection: "column", gap: 2 }}
-                  >
-                    <Icon size={18} />
-                    <Text size="sm" fw={active ? 700 : 500} lh={1.1}>
-                      {item.label}
-                    </Text>
-                  </Button>
-                );
-              })}
-            </Group>
-          </AppShell.Footer>
-        ) : null}
-
-        <AppShell.Main>
+                  return (
+                    <Button
+                      key={item.href}
+                      component={Link}
+                      href={item.href}
+                      variant="subtle"
+                      color={active ? "kidex" : "gray"}
+                      radius={0}
+                      h="100%"
+                      fullWidth
+                      style={{ flexDirection: "column", gap: 2 }}
+                    >
+                      <Icon size={18} />
+                      <Text size="sm" fw={active ? 700 : 500} lh={1.1}>
+                        {item.label}
+                      </Text>
+                    </Button>
+                  );
+                })}
+              </Group>
+            </Box>
+          ) : null
+        }
+      >
           <Box
             className="dashboard-main"
             style={{
@@ -342,7 +324,6 @@ export default function DashboardShell({ children }: { children: React.ReactNode
             </Box>
             <AppFooter />
           </Box>
-        </AppShell.Main>
       </AppShell>
     </>
   );

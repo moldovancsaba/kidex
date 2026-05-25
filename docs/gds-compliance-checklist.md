@@ -3,7 +3,7 @@
 Aligned SSOT: `2.4.3 / 2026-05-25`  
 Local adapter: [design-system.md](./design-system.md)  
 PR review: [gds-pr-review-checklist.md](./gds-pr-review-checklist.md)  
-Active implementation track: local delivery complete through [#53](https://github.com/moldovancsaba/kidex/issues/53); current open dependency [#54](https://github.com/moldovancsaba/kidex/issues/54)
+Active implementation track: local delivery complete through [#60](https://github.com/moldovancsaba/kidex/issues/60); current external dependency [#54](https://github.com/moldovancsaba/kidex/issues/54)
 
 **Legend:** `[ ]` not started · `[~]` in progress · `[x]` done
 
@@ -50,17 +50,19 @@ Active implementation track: local delivery complete through [#53](https://githu
 - [x] Secondary destinations in drawer/overflow only
 - [x] Routine work reachable without drawer-only navigation
 - [x] Theme-token shell styling
+- [x] Local admin `AppShell` compatibility boundary is active
 - [x] Contract maturity: **active**
 
-### D2. Page header — `components/ui/PageHeader.tsx`
+### D2. Page header — `components/gds-local/admin/PageHeader.tsx`
 
 - [x] Used on major dashboard routes
-- [x] Detail pages use `DetailActionBar` for primary + overflow actions
+- [x] Detail pages now use `PageHeader` primary/secondary/overflow action slots directly
 - [x] Contract maturity: **active**
 
 ### D3. Product card (child registry)
 
 - [x] One primary action per card; secondary in menu
+- [x] Child and record registries use local `ProductCard` parity surface
 - [x] Contract maturity: **active**
 
 ### D4. Metric / dashboard blocks
@@ -72,16 +74,19 @@ Active implementation track: local delivery complete through [#53](https://githu
 
 - [x] `DataToolbar` on children and records lists
 - [x] Card-based list layout on mobile (no table scroll traps on registry)
+- [x] Local `ResponsiveDataView` compatibility boundary is active
 - [x] Contract maturity: **active**
 
 ### D6. State blocks
 
 - [x] `LoadingState`, `EmptyState`, `ErrorState` adopted on conductor surfaces
+- [x] Local `StateBlock` compatibility boundary is active
 - [x] Contract maturity: **active**
 
 ### D7. Supporting wrappers
 
 - [x] `PageContainer`, `SectionCard`, `SearchableSelect`, `DetailActionBar`
+- [x] Local `EditorScaffold` and `FormSection` parity surfaces are active in assessment flow
 
 ---
 
@@ -95,6 +100,8 @@ Active implementation track: local delivery complete through [#53](https://githu
 | 4 | Record & child detail headers | [x] |
 | 5 | Survey start/resume UX | [x] |
 | 6 | CSS & exception reduction | [x] |
+| 7 | Local GDS compatibility boundary | [x] |
+| 8 | Local editor scaffold parity | [x] |
 
 Delivered issue mapping:
 
@@ -102,6 +109,11 @@ Delivered issue mapping:
 - `#51` child registry mobile filters and triage controls
 - `#52` survey mobile save bar and faster resume context
 - `#53` child and record detail header normalization
+- `#56` local GDS compatibility boundary
+- `#57` authenticated shell and page-header parity
+- `#58` registry responsive-data-view and product-card parity
+- `#59` assessment editor scaffold and form-section parity
+- `#60` shared primitive normalization and exception-surface parity
 - `#54` package adoption remains blocked on GDS Mantine 8 compatibility even after the `2.4.3` SSOT update
 
 ---
@@ -138,8 +150,9 @@ Manual smoke (conductor, mobile width):
 
 - [x] Primary nav from footer without drawer
 - [x] Dashboard operational-first on mobile
-- [x] Child card: one primary action
-- [x] Record/child detail: `DetailActionBar` primary + menu
+- [x] Child and record registries route through local responsive-data-view parity contracts
+- [x] Record/child detail headers use the local `PageHeader` action contract directly
+- [x] Assessment workflow uses the local editor-scaffold parity contract
 - [x] Shell/dashboard use theme body colors (no mixed-mode product islands)
 
 ---

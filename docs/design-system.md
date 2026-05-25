@@ -11,7 +11,7 @@ KIDEX is now **GDS-only in authority and contract governance**. It is **not yet 
 
 ## Local Adapter
 
-- UI foundation: Mantine-only product primitives with thin KIDEX wrappers for repeated composition
+- UI foundation: Mantine-only product primitives with a local `components/gds-local/*` compatibility layer for shared-contract parity
 - Mantine-only primitive policy: enforced; no new non-Mantine product primitives
 - Theme/provider:
   - root layout: [app/[locale]/layout.tsx](/Users/Shared/Projects/kidex/app/[locale]/layout.tsx)
@@ -20,13 +20,20 @@ KIDEX is now **GDS-only in authority and contract governance**. It is **not yet 
   - [components/theme/ThemeModeContext.tsx](/Users/Shared/Projects/kidex/components/theme/ThemeModeContext.tsx)
 - Root provider: `MantineProvider`, `ModalsProvider`, root `Notifications` per [TEMPLATES/providers.tsx.template](/Users/Shared/Projects/GENERAL_DESIGN_SYSTEM/TEMPLATES/providers.tsx.template)
 - Pattern contracts (local paths):
-  - Shell: [components/layout/DashboardShell.tsx](/Users/Shared/Projects/kidex/components/layout/DashboardShell.tsx)
-  - Page header: [components/ui/PageHeader.tsx](/Users/Shared/Projects/kidex/components/ui/PageHeader.tsx)
-  - Detail actions: [components/ui/DetailActionBar.tsx](/Users/Shared/Projects/kidex/components/ui/DetailActionBar.tsx)
-  - Metric card: [components/ui/MetricCard.tsx](/Users/Shared/Projects/kidex/components/ui/MetricCard.tsx)
-  - Data toolbar: [components/ui/DataToolbar.tsx](/Users/Shared/Projects/kidex/components/ui/DataToolbar.tsx)
-  - States: [LoadingState](/Users/Shared/Projects/kidex/components/ui/LoadingState.tsx), [EmptyState](/Users/Shared/Projects/kidex/components/ui/EmptyState.tsx), [ErrorState](/Users/Shared/Projects/kidex/components/ui/ErrorState.tsx)
-  - Layout/content: [PageContainer](/Users/Shared/Projects/kidex/components/ui/PageContainer.tsx), [SectionCard](/Users/Shared/Projects/kidex/components/ui/SectionCard.tsx), [SearchableSelect](/Users/Shared/Projects/kidex/components/ui/SearchableSelect.tsx)
+  - Compatibility boundary:
+    - [components/gds-local/core/index.ts](/Users/Shared/Projects/kidex/components/gds-local/core/index.ts)
+    - [components/gds-local/admin/index.ts](/Users/Shared/Projects/kidex/components/gds-local/admin/index.ts)
+  - Shell: [components/layout/DashboardShell.tsx](/Users/Shared/Projects/kidex/components/layout/DashboardShell.tsx) via local admin `AppShell`
+  - Page header: [components/gds-local/admin/PageHeader.tsx](/Users/Shared/Projects/kidex/components/gds-local/admin/PageHeader.tsx)
+  - Responsive data view: [components/gds-local/admin/ResponsiveDataView.tsx](/Users/Shared/Projects/kidex/components/gds-local/admin/ResponsiveDataView.tsx)
+  - Editor scaffold: [components/gds-local/admin/EditorScaffold.tsx](/Users/Shared/Projects/kidex/components/gds-local/admin/EditorScaffold.tsx)
+  - Form section: [components/gds-local/admin/FormSection.tsx](/Users/Shared/Projects/kidex/components/gds-local/admin/FormSection.tsx)
+  - Metric card: [components/gds-local/core/MetricCard.tsx](/Users/Shared/Projects/kidex/components/gds-local/core/MetricCard.tsx)
+  - Data toolbar: [components/gds-local/core/DataToolbar.tsx](/Users/Shared/Projects/kidex/components/gds-local/core/DataToolbar.tsx)
+  - Product card: [components/gds-local/core/ProductCard.tsx](/Users/Shared/Projects/kidex/components/gds-local/core/ProductCard.tsx)
+  - Filter drawer: [components/gds-local/core/FilterDrawer.tsx](/Users/Shared/Projects/kidex/components/gds-local/core/FilterDrawer.tsx)
+  - State blocks: [components/gds-local/core/StateBlock.tsx](/Users/Shared/Projects/kidex/components/gds-local/core/StateBlock.tsx)
+  - Layout/content: [components/gds-local/core/PageContainer.tsx](/Users/Shared/Projects/kidex/components/gds-local/core/PageContainer.tsx), [components/gds-local/core/SectionCard.tsx](/Users/Shared/Projects/kidex/components/gds-local/core/SectionCard.tsx), [components/gds-local/core/SearchableSelect.tsx](/Users/Shared/Projects/kidex/components/gds-local/core/SearchableSelect.tsx)
 - Token authority: [theme/brand-colors.ts](/Users/Shared/Projects/kidex/theme/brand-colors.ts) (theme-internal); chart series via [components/analytics/chart-series-colors.ts](/Users/Shared/Projects/kidex/components/analytics/chart-series-colors.ts)
 - Support CSS: [app/globals.css](/Users/Shared/Projects/kidex/app/globals.css) (reset, print, chart fonts, narrow utilities)
 - Validation: `npm test`, `npm run lint`, `npm run build`, `npm run typecheck`
@@ -41,13 +48,14 @@ KIDEX is now **GDS-only in authority and contract governance**. It is **not yet 
 
 | Pattern family | Local path | Maturity |
 |----------------|------------|----------|
-| Conductor app shell | `components/layout/DashboardShell.tsx` | active |
-| Page header + detail actions | `PageHeader.tsx`, `DetailActionBar.tsx` | active |
-| Product card (child registry) | `dashboard/children/page.tsx` | active |
-| Metric / dashboard blocks | `MetricCard.tsx`, `MainDashboard.tsx` | active |
-| Data toolbar / list view | `DataToolbar.tsx`, children & records pages | active |
-| State blocks | `LoadingState`, `EmptyState`, `ErrorState` | active |
-| Section / page layout | `SectionCard`, `PageContainer`, `SearchableSelect` | active |
+| Conductor app shell | `components/layout/DashboardShell.tsx` via local admin `AppShell` | active |
+| Page header | `components/gds-local/admin/PageHeader.tsx` | active |
+| Product card (child/record registries) | `components/gds-local/core/ProductCard.tsx` | active |
+| Metric / dashboard blocks | `components/gds-local/core/MetricCard.tsx`, `MainDashboard.tsx` | active |
+| Data toolbar / list view | `components/gds-local/core/DataToolbar.tsx`, `components/gds-local/admin/ResponsiveDataView.tsx` | active |
+| State blocks | `components/gds-local/core/StateBlock.tsx` | active |
+| Section / page layout | `SectionCard`, `PageContainer`, `SearchableSelect` via `components/gds-local/core/*` | active |
+| Long-form workflow | `components/gds-local/admin/EditorScaffold.tsx`, `FormSection.tsx` | active |
 
 ## Local Exceptions
 
@@ -75,5 +83,6 @@ KIDEX is now **GDS-only in authority and contract governance**. It is **not yet 
 Current KIDEX GDS issue sequence:
 
 - Delivered local Mantine workflow slices: [#50](https://github.com/moldovancsaba/kidex/issues/50), [#51](https://github.com/moldovancsaba/kidex/issues/51), [#52](https://github.com/moldovancsaba/kidex/issues/52), [#53](https://github.com/moldovancsaba/kidex/issues/53)
-- Current open dependency: [#54](https://github.com/moldovancsaba/kidex/issues/54)
-- Next shared-component migration slice: [#55](https://github.com/moldovancsaba/kidex/issues/55)
+- Delivered local pre-adoption canonicalization slices: [#56](https://github.com/moldovancsaba/kidex/issues/56), [#57](https://github.com/moldovancsaba/kidex/issues/57), [#58](https://github.com/moldovancsaba/kidex/issues/58), [#59](https://github.com/moldovancsaba/kidex/issues/59), [#60](https://github.com/moldovancsaba/kidex/issues/60)
+- Current external dependency: [#54](https://github.com/moldovancsaba/kidex/issues/54)
+- Post-adoption convergence slice: [#55](https://github.com/moldovancsaba/kidex/issues/55)

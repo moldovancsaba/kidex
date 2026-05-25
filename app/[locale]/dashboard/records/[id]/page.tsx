@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, use } from "react";
-import { Alert, Badge, Box, Button, Group, Menu, Paper, SimpleGrid, Stack, Table, Text, Title, useMantineTheme } from "@mantine/core";
+import { Alert, Badge, Box, Button, Group, Paper, SimpleGrid, Stack, Table, Text, Title, useMantineTheme } from "@mantine/core";
 import { useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { useTranslations } from "next-intl";
@@ -25,10 +25,9 @@ import {
   RadarChart,
   ResponsiveContainer,
 } from "recharts";
-import { DetailActionBar } from "@/components/ui/DetailActionBar";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { LoadingState } from "@/components/ui/LoadingState";
-import { PageHeader } from "@/components/ui/PageHeader";
+import { PageHeader } from "@/components/gds-local/admin";
 import { rapidSections } from "@/lib/kidex-schema";
 import { getDomainMainColor, type AssessmentDomain } from "@/lib/domain-colors";
 import { sectionsForMode } from "@/lib/kidex-schema";
@@ -270,48 +269,33 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
                 </Group>
               </Stack>
             }
-            actions={
-              <DetailActionBar
-                menuLabel={tc("moreActions")}
-                primary={
-                  <Button component={Link} href={`/dashboard/assessment?id=${record._id}`} color="kidex">
-                    {t("resumeSurvey")}
-                  </Button>
-                }
-                secondary={
-                  <>
-                    <Button
-                      color="kidex"
-                      variant="light"
-                      onClick={() => void downloadPdf()}
-                      loading={downloadingPdf}
-                      disabled={!canExportProfessional}
-                    >
-                      {td("downloadPdf")}
-                    </Button>
-                    <Button
-                      color="kidex"
-                      variant="outline"
-                      onClick={() => void downloadPdf("family")}
-                      loading={downloadingPdf}
-                      disabled={!canGenerateFamilyReport}
-                    >
-                      {tr("familyReportTitle")}
-                    </Button>
-                  </>
-                }
-                menuItems={
-                  <>
-                    <Menu.Item onClick={() => void downloadPdf()} disabled={!canExportProfessional}>
-                      {td("downloadPdf")}
-                    </Menu.Item>
-                    <Menu.Item onClick={() => void downloadPdf("family")} disabled={!canGenerateFamilyReport}>
-                      {tr("familyReportTitle")}
-                    </Menu.Item>
-                  </>
-                }
-              />
+            primaryAction={<Button component={Link} href={`/dashboard/assessment?id=${record._id}`} color="kidex">{t("resumeSurvey")}</Button>}
+            secondaryActions={
+              <>
+                <Button
+                  color="kidex"
+                  variant="light"
+                  onClick={() => void downloadPdf()}
+                  loading={downloadingPdf}
+                  disabled={!canExportProfessional}
+                >
+                  {td("downloadPdf")}
+                </Button>
+                <Button
+                  color="kidex"
+                  variant="outline"
+                  onClick={() => void downloadPdf("family")}
+                  loading={downloadingPdf}
+                  disabled={!canGenerateFamilyReport}
+                >
+                  {tr("familyReportTitle")}
+                </Button>
+              </>
             }
+            overflowActions={[
+              { label: td("downloadPdf"), onClick: () => void downloadPdf() },
+              { label: tr("familyReportTitle"), onClick: () => void downloadPdf("family") },
+            ]}
           />
         </Box>
       </Stack>

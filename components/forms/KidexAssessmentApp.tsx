@@ -36,6 +36,7 @@ import { LoadingState } from "@/components/ui/LoadingState";
 import { MetricCard } from "@/components/ui/MetricCard";
 import { SearchableSelect } from "@/components/ui/SearchableSelect";
 import { SectionCard } from "@/components/ui/SectionCard";
+import { EditorScaffold, FormSection } from "@/components/gds-local/admin";
 import { getSettings, saveSettings } from "@/services/settings-service";
 import { getConductors, getObservers } from "@/services/user-service";
 import type { AssessmentPayload, AssessmentRecord, EvidenceAttachment, ScoreEntry } from "@/types/assessment";
@@ -540,88 +541,150 @@ export function KidexAssessmentApp() {
   }
 
   return (
-    <Stack gap="xl">
-      <PageHeader
-        title={t("appTitle")}
-        subtitle={t("appSubtitle")}
-        actions={
-          <Group gap="sm">
-            <Button variant="default" onClick={newAssessment}>
-              {tc("new")}
-            </Button>
-            <Button color="kidex" onClick={() => void saveAssessment()} disabled={saveState === "saving"}>
-              {saveState === "saving" ? tc("saving") : recordId ? tc("update") : tc("save")}
-            </Button>
-          </Group>
-        }
-      />
+    <EditorScaffold
+      header={
+        <Stack gap="xl">
+          <PageHeader
+            title={t("appTitle")}
+            subtitle={t("appSubtitle")}
+            actions={
+              <Group gap="sm">
+                <Button variant="default" onClick={newAssessment}>
+                  {tc("new")}
+                </Button>
+                <Button color="kidex" onClick={() => void saveAssessment()} disabled={saveState === "saving"}>
+                  {saveState === "saving" ? tc("saving") : recordId ? tc("update") : tc("save")}
+                </Button>
+              </Group>
+            }
+          />
 
-      {recordId ? (
-        <Alert color="kidex" variant="light" title={t("resumeSurveyTitle")}>
-          <Group justify="space-between" align="center" wrap="wrap" gap="sm">
-            <Text size="sm">{t("resumeSurveyBody")}</Text>
-            <Button variant="light" color="kidex" component="a" href="#setup">
-              {t("continueSetup")}
-            </Button>
-          </Group>
-        </Alert>
-      ) : null}
+          {recordId ? (
+            <Alert color="kidex" variant="light" title={t("resumeSurveyTitle")}>
+              <Group justify="space-between" align="center" wrap="wrap" gap="sm">
+                <Text size="sm">{t("resumeSurveyBody")}</Text>
+                <Button variant="light" color="kidex" component="a" href="#setup">
+                  {t("continueSetup")}
+                </Button>
+              </Group>
+            </Alert>
+          ) : null}
 
-      {!recordId && !assessment.childId ? (
-        <Alert color="blue" variant="light" title={t("surveyQuickStartTitle")}>
-          <Text size="sm">{t("surveyQuickStartBody")}</Text>
-        </Alert>
-      ) : null}
+          {!recordId && !assessment.childId ? (
+            <Alert color="blue" variant="light" title={t("surveyQuickStartTitle")}>
+              <Text size="sm">{t("surveyQuickStartBody")}</Text>
+            </Alert>
+          ) : null}
 
-      {selectedChild ? (
-        <Alert color="teal" variant="light" title={selectedChild.name}>
-          <Text size="sm">
-            {selectedChild.birthDate} · {td("newSurveyForChild")}
-          </Text>
-        </Alert>
-      ) : null}
-
-      {message ? (
-        <Alert
-          color={saveState === "error" ? "red" : saveState === "saved" ? "kidex" : "blue"}
-          withCloseButton
-          onClose={() => setMessage("")}
-        >
-          {message}
-        </Alert>
-      ) : null}
-
-      <SimpleGrid cols={{ base: 2, sm: 4 }} spacing="md">
-        <MetricCard label={ts("movement")} value={formatScore(computed.movementAverage)} target={standard?.movement.target} />
-        <MetricCard label={ts("social")} value={formatScore(computed.socialAverage)} target={standard?.social.target} />
-        <MetricCard label={ts("mental")} value={formatScore(computed.mentalAverage)} target={standard?.mental.target} />
-        <MetricCard label="SKI" value={formatScore(computed.ski)} target={standard?.ski.target} />
-      </SimpleGrid>
-
-      <SectionCard title="Assessment Consistency">
-        <Stack gap="sm">
-          <SimpleGrid cols={{ base: 2, md: 5 }} spacing="md">
-            <MetricCard label="Scored items" value={`${consistencySummary.scoredCount}`} />
-            <MetricCard label="High confidence" value={`${consistencySummary.highConfidenceCount}`} />
-            <MetricCard label="Medium confidence" value={`${consistencySummary.mediumConfidenceCount}`} />
-            <MetricCard label="Low confidence" value={`${consistencySummary.lowConfidenceCount}`} />
-            <MetricCard label="Missing confidence" value={`${consistencySummary.missingConfidenceCount}`} />
-          </SimpleGrid>
-          <Text size="sm" c="dimmed">
-            Score the most typical repeated pattern, not the best or worst isolated moment. If you are unsure, mark confidence honestly and explain what limited the observation.
-          </Text>
-          {consistencySummary.lowConfidenceCount > 0 ? (
-            <Alert color="yellow" title="Low-confidence scoring is visible downstream">
+          {selectedChild ? (
+            <Alert color="teal" variant="light" title={selectedChild.name}>
               <Text size="sm">
-                {consistencySummary.lowConfidenceItems.join(", ")} {consistencySummary.lowConfidenceItems.length === 1 ? "was" : "were"} marked low-confidence. Current summaries and recommendations will treat those items with caution.
+                {selectedChild.birthDate} · {td("newSurveyForChild")}
               </Text>
             </Alert>
           ) : null}
-        </Stack>
-      </SectionCard>
 
-      <Stack gap="xl" id="setup">
-        <SectionCard title={t("setupTitle")}>
+          {message ? (
+            <Alert
+              color={saveState === "error" ? "red" : saveState === "saved" ? "kidex" : "blue"}
+              withCloseButton
+              onClose={() => setMessage("")}
+            >
+              {message}
+            </Alert>
+          ) : null}
+        </Stack>
+      }
+      preview={
+        <Stack gap="xl">
+          <SectionCard title={t("reportPreview")}>
+            <Stack gap="lg">
+              <SimpleGrid cols={{ base: 2, sm: 2 }} spacing="md">
+                <MetricCard label={ts("movement")} value={formatScore(computed.movementAverage)} target={standard?.movement.target} />
+                <MetricCard label={ts("social")} value={formatScore(computed.socialAverage)} target={standard?.social.target} />
+                <MetricCard label={ts("mental")} value={formatScore(computed.mentalAverage)} target={standard?.mental.target} />
+                <MetricCard label="SKI" value={formatScore(computed.ski)} target={standard?.ski.target} />
+              </SimpleGrid>
+              <ReportList title={t("strengths")} items={strengths.map(([key, entry]) => `${ts(`${key}.title`)} (${entry.score})`)} emptyText={t("noData")} />
+              <ReportList title={t("developmentPriorities")} items={needs.map(([key, entry]) => `${ts(`${key}.title`)} (${entry.score})`)} emptyText={t("noData")} />
+              <Box mt="md">
+                <Text size="sm" c="dimmed">
+                  {t("nextStep")}:
+                </Text>
+                <Text size="lg" mt={4} fw={700} color="kidex">
+                  {computed.ski === null ? t("completeAll") : computed.ski < 3.5 ? t("stabilizing") : t("sportOrientation")}
+                </Text>
+              </Box>
+            </Stack>
+          </SectionCard>
+        </Stack>
+      }
+      settings={
+        mobileLayout ? null : (
+          <SectionCard title="Assessment Consistency">
+            <Stack gap="sm">
+              <SimpleGrid cols={{ base: 2, md: 1 }} spacing="md">
+                <MetricCard label="Scored items" value={`${consistencySummary.scoredCount}`} />
+                <MetricCard label="High confidence" value={`${consistencySummary.highConfidenceCount}`} />
+                <MetricCard label="Medium confidence" value={`${consistencySummary.mediumConfidenceCount}`} />
+                <MetricCard label="Low confidence" value={`${consistencySummary.lowConfidenceCount}`} />
+                <MetricCard label="Missing confidence" value={`${consistencySummary.missingConfidenceCount}`} />
+              </SimpleGrid>
+              <Text size="sm" c="dimmed">
+                Score the most typical repeated pattern, not the best or worst isolated moment. If you are unsure, mark confidence honestly and explain what limited the observation.
+              </Text>
+              {consistencySummary.lowConfidenceCount > 0 ? (
+                <Alert color="yellow" title="Low-confidence scoring is visible downstream">
+                  <Text size="sm">
+                    {consistencySummary.lowConfidenceItems.join(", ")} {consistencySummary.lowConfidenceItems.length === 1 ? "was" : "were"} marked low-confidence. Current summaries and recommendations will treat those items with caution.
+                  </Text>
+                </Alert>
+              ) : null}
+            </Stack>
+          </SectionCard>
+        )
+      }
+      footer={
+        <>
+          <Paper withBorder p="lg" radius="md" mt="xl">
+            <Group justify="flex-end" gap="md">
+              <Button variant="default" onClick={newAssessment} style={{ minWidth: 112, fontWeight: 600 }}>
+                {tc("new")}
+              </Button>
+              <Button color="kidex" onClick={() => void saveAssessment()} disabled={saveState === "saving"} style={{ minWidth: 150, fontWeight: 700 }}>
+                {saveState === "saving" ? tc("saving") : recordId ? tc("update") : tc("save")}
+              </Button>
+            </Group>
+          </Paper>
+
+          {mobileLayout ? (
+            <Paper
+              withBorder
+              p="sm"
+              radius="md"
+              style={{
+                position: "sticky",
+                bottom: 76,
+                zIndex: 10,
+                background: "var(--mantine-color-body)",
+              }}
+            >
+              <Group gap="sm" grow wrap="nowrap">
+                <Button variant="light" color="gray" component="a" href="#setup">
+                  {t("continueSetup")}
+                </Button>
+                <Button color="kidex" onClick={() => void saveAssessment()} disabled={saveState === "saving"}>
+                  {saveState === "saving" ? tc("saving") : recordId ? tc("update") : tc("save")}
+                </Button>
+              </Group>
+            </Paper>
+          ) : null}
+        </>
+      }
+      form={
+        <Stack gap="xl" id="setup">
+          <FormSection title={t("setupTitle")} description={t("appSubtitle")} withDivider={false}>
+            <SectionCard>
           <Stack gap="md">
             <SimpleGrid cols={{ base: 1, sm: 2, md: 3, lg: 4 }} spacing="md">
               <Select
@@ -743,9 +806,11 @@ export function KidexAssessmentApp() {
               />
             </Group>
           </Stack>
-        </SectionCard>
+            </SectionCard>
+          </FormSection>
 
-        <SectionCard title={t("evidenceImages")}>
+          <FormSection title={t("evidenceImages")} withDivider={false}>
+          <SectionCard>
           <Stack gap="md">
             <Text size="sm" c="dimmed">
               {t("uploadSecurityNote")}
@@ -794,8 +859,8 @@ export function KidexAssessmentApp() {
               </Stack>
             )}
           </Stack>
-        </SectionCard>
-      </Stack>
+          </SectionCard>
+          </FormSection>
 
       <Modal opened={cameraOpen} onClose={closeCameraDialog} title={t("takePhoto")} centered size="lg">
         <Stack gap="md">
@@ -834,6 +899,7 @@ export function KidexAssessmentApp() {
         </Stack>
       </Modal>
 
+      <FormSection title={t("mode")} description="Scored observation sections and evidence-linked confidence handling." withDivider={false}>
       <div id="scoring" />
       {sections.map((section, sectionIndex) => (
         <SectionCard
@@ -939,9 +1005,10 @@ export function KidexAssessmentApp() {
           </Stack>
         </SectionCard>
       ))}
+      </FormSection>
 
+      <FormSection title="Mental Growth and Wellbeing" description="Baseline and follow-up mental skills, recovery, readiness, and safe support signals." withDivider={false}>
       <SectionCard
-        title="Mental Growth and Wellbeing"
         action={
           <Badge
             variant="light"
@@ -1072,7 +1139,9 @@ export function KidexAssessmentApp() {
           </Paper>
         </Stack>
       </SectionCard>
+      </FormSection>
 
+      <FormSection title={t("professionalNotes")} description={t("reportPreview")} withDivider={false}>
       <SimpleGrid cols={{ base: 1, lg: 2 }} spacing="xl" id="report">
         <SectionCard title={t("professionalNotes")}>
           <Stack gap="md">
@@ -1096,57 +1165,11 @@ export function KidexAssessmentApp() {
             />
           </Stack>
         </SectionCard>
-        
-        <SectionCard title={t("reportPreview")}>
-          <Stack gap="lg">
-            <ReportList title={t("strengths")} items={strengths.map(([key, entry]) => `${ts(`${key}.title`)} (${entry.score})`)} emptyText={t("noData")} />
-            <ReportList title={t("developmentPriorities")} items={needs.map(([key, entry]) => `${ts(`${key}.title`)} (${entry.score})`)} emptyText={t("noData")} />
-            <Box mt="md">
-              <Text size="sm" c="dimmed">
-                {t("nextStep")}:
-              </Text>
-              <Text size="lg" mt={4} fw={700} color="kidex">
-                {computed.ski === null ? t("completeAll") : computed.ski < 3.5 ? t("stabilizing") : t("sportOrientation")}
-              </Text>
-            </Box>
-          </Stack>
-        </SectionCard>
       </SimpleGrid>
-
-      <Paper withBorder p="lg" radius="md" mt="xl">
-        <Group justify="flex-end" gap="md">
-          <Button variant="default" onClick={newAssessment} style={{ minWidth: 112, fontWeight: 600 }}>
-            {tc("new")}
-          </Button>
-          <Button color="kidex" onClick={() => void saveAssessment()} disabled={saveState === "saving"} style={{ minWidth: 150, fontWeight: 700 }}>
-            {saveState === "saving" ? tc("saving") : recordId ? tc("update") : tc("save")}
-          </Button>
-        </Group>
-      </Paper>
-
-      {mobileLayout ? (
-        <Paper
-          withBorder
-          p="sm"
-          radius="md"
-          style={{
-            position: "sticky",
-            bottom: 76,
-            zIndex: 10,
-            background: "var(--mantine-color-body)",
-          }}
-        >
-          <Group gap="sm" grow wrap="nowrap">
-            <Button variant="light" color="gray" component="a" href="#setup">
-              {t("continueSetup")}
-            </Button>
-            <Button color="kidex" onClick={() => void saveAssessment()} disabled={saveState === "saving"}>
-              {saveState === "saving" ? tc("saving") : recordId ? tc("update") : tc("save")}
-            </Button>
-          </Group>
-        </Paper>
-      ) : null}
-    </Stack>
+      </FormSection>
+        </Stack>
+      }
+    />
   );
 }
 

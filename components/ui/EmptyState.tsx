@@ -1,7 +1,7 @@
 "use client";
 
-import { Alert, Stack, Text } from "@mantine/core";
 import type { ReactNode } from "react";
+import { StateBlock } from "@/components/gds-local/core";
 
 type EmptyStateProps = {
   title?: string;
@@ -10,19 +10,5 @@ type EmptyStateProps = {
 };
 
 export function EmptyState({ title, message, action }: EmptyStateProps) {
-  return (
-    <Alert color="gray" variant="light" radius="md">
-      <Stack gap="sm">
-        {title ? (
-          <Text fw={700} size="sm">
-            {title}
-          </Text>
-        ) : null}
-        <Text size="sm" c="dimmed">
-          {message}
-        </Text>
-        {action}
-      </Stack>
-    </Alert>
-  );
+  return <StateBlock variant="empty" title={title ?? "No results"} description={message} action={action} compact />;
 }

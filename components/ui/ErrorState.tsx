@@ -1,7 +1,7 @@
 "use client";
 
-import { Alert, Stack, Text } from "@mantine/core";
 import type { ReactNode } from "react";
+import { StateBlock } from "@/components/gds-local/core";
 
 type ErrorStateProps = {
   title?: string;
@@ -10,17 +10,5 @@ type ErrorStateProps = {
 };
 
 export function ErrorState({ title, message, action }: ErrorStateProps) {
-  return (
-    <Alert color="red" variant="light" radius="md">
-      <Stack gap="sm">
-        {title ? (
-          <Text fw={700} size="sm">
-            {title}
-          </Text>
-        ) : null}
-        <Text size="sm">{message}</Text>
-        {action}
-      </Stack>
-    </Alert>
-  );
+  return <StateBlock variant="error" title={title ?? "Error"} description={message} action={action} compact />;
 }
