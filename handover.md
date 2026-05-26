@@ -16,6 +16,7 @@ KIDEX is now a conductor-facing child assessment and development-intelligence pl
 - governed communications, audit trail, governance export, and role-based access control
 - progress comparison and plan-effectiveness explanation
 - next-session focus recommendations for conductors
+- local draft persistence and explicit resume/discard recovery for interrupted assessments
 - reassessment cadence, next-review due dates, and overdue follow-up visibility
 - anonymous culture/trust pulse launches with protected aggregation
 - culture-index dashboard analytics across role and scope views
@@ -142,11 +143,10 @@ Branch state:
 
 Current next execution order:
 
-1. [#61](https://github.com/moldovancsaba/kidex/issues/61)
-2. [#62](https://github.com/moldovancsaba/kidex/issues/62)
-3. [#63](https://github.com/moldovancsaba/kidex/issues/63)
-4. [#64](https://github.com/moldovancsaba/kidex/issues/64)
-5. [#65](https://github.com/moldovancsaba/kidex/issues/65)
+1. [#62](https://github.com/moldovancsaba/kidex/issues/62)
+2. [#63](https://github.com/moldovancsaba/kidex/issues/63)
+3. [#64](https://github.com/moldovancsaba/kidex/issues/64)
+4. [#65](https://github.com/moldovancsaba/kidex/issues/65)
 
 For UI work, continue using:
 

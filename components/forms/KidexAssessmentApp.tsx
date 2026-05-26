@@ -1,6 +1,6 @@
 "use client";
 
-import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
+import { ChangeEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Alert,
   Anchor,
@@ -21,9 +21,25 @@ import {
 } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 import Image from "next/image";
-import { useSearchParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { sectionsForMode } from "@/lib/kidex-schema";
+import {
+  ASSESSMENT_DRAFT_STORAGE_KEY,
+  LEGACY_ASSESSMENT_DRAFT_STORAGE_KEY,
+  buildAssessmentDraftRecord,
+  cloneAssessmentPayload,
+  findAssessmentDraftForContext,
+  hasMeaningfulAssessmentDraft,
+  listAssessmentDrafts,
+  removeAssessmentDraftByContext,
+  removeAssessmentDraftById,
+  serializeAssessmentDrafts,
+  type AssessmentDraftLookupStatus,
+  type AssessmentDraftRecord,
+  type AssessmentDraftSyncState,
+  upsertAssessmentDraft,
+} from "@/lib/assessment-drafts";
 import { buildAssessmentConsistencySummary, guidanceForItem } from "@/lib/assessment-consistency";
 import { defaultMentalWellbeingProfile, MENTAL_SKILL_KEYS, WELLBEING_CHECKIN_KEYS, WELLBEING_GOAL_MODULES, WELLBEING_PERSPECTIVES, type MentalSkillKey, type WellbeingCheckInKey, type WellbeingGoalModuleKey, type WellbeingPerspectiveKey } from "@/lib/mental-wellbeing";
 import { computeAssessment } from "@/lib/scoring";
@@ -38,7 +54,7 @@ import { getConductors, getObservers } from "@/services/user-service";
 import type { AssessmentPayload, AssessmentRecord, EvidenceAttachment, ScoreEntry } from "@/types/assessment";
 import type { ChildProfile } from "@/repositories/child.repository";
 
-const DRAFT_STORAGE_KEY = "kidex-draft";
+const DRAFT_AUTOSAVE_DEBOUNCE_MS = 900;
 
 const emptyAssessment: AssessmentPayload = {
   childId: "",
@@ -77,6 +93,12 @@ const emptyAssessment: AssessmentPayload = {
 };
 
 type SaveState = "idle" | "saving" | "saved" | "error";
+type DraftSaveState = "idle" | "saving" | "saved" | "error";
+type DraftPromptState = {
+  checked: boolean;
+  status: AssessmentDraftLookupStatus;
+  draft: AssessmentDraftRecord | null;
+};
 
 function cloneAssessment(source: AssessmentPayload): AssessmentPayload {
   return JSON.parse(JSON.stringify(source)) as AssessmentPayload;
@@ -100,20 +122,38 @@ function wellbeingScoreValue(value: string | null) {
   return parsed >= 1 && parsed <= 5 ? parsed : "";
 }
 
-function loadDraftAssessment(): AssessmentPayload {
+function loadStoredDrafts() {
   if (typeof window === "undefined") {
-    return cloneAssessment(emptyAssessment);
+    return [] as AssessmentDraftRecord[];
   }
 
-  const raw = localStorage.getItem(DRAFT_STORAGE_KEY);
-  if (!raw) {
-    return cloneAssessment(emptyAssessment);
+  const raw = localStorage.getItem(ASSESSMENT_DRAFT_STORAGE_KEY);
+  const drafts = listAssessmentDrafts(raw);
+  if (drafts.length > 0) {
+    return drafts;
   }
 
   try {
-    return { ...cloneAssessment(emptyAssessment), ...JSON.parse(raw) };
+    const legacyRaw = localStorage.getItem(LEGACY_ASSESSMENT_DRAFT_STORAGE_KEY);
+    if (!legacyRaw) {
+      return [] as AssessmentDraftRecord[];
+    }
+
+    const parsed = JSON.parse(legacyRaw) as Partial<AssessmentPayload>;
+    const payload = { ...cloneAssessment(emptyAssessment), ...parsed };
+    const legacyDraft = buildAssessmentDraftRecord({
+      draftId: "legacy-local-draft",
+      payload,
+      conductorId: "anonymous",
+      now: new Date().toISOString(),
+    });
+
+    const migrated = [legacyDraft];
+    localStorage.setItem(ASSESSMENT_DRAFT_STORAGE_KEY, serializeAssessmentDrafts(migrated));
+    localStorage.removeItem(LEGACY_ASSESSMENT_DRAFT_STORAGE_KEY);
+    return migrated;
   } catch {
-    return cloneAssessment(emptyAssessment);
+    return [] as AssessmentDraftRecord[];
   }
 }
 
@@ -127,13 +167,21 @@ export function KidexAssessmentApp() {
   const tc = useTranslations("Common");
   const ts = useTranslations("Schema");
   const td = useTranslations("Dashboard");
+  const params = useParams();
+  const locale = typeof params.locale === "string" ? params.locale : "en";
   const searchParams = useSearchParams();
   const childIdParam = searchParams.get("childId");
   const idParam = searchParams.get("id");
 
-  const [assessment, setAssessment] = useState<AssessmentPayload>(loadDraftAssessment);
+  const [assessment, setAssessment] = useState<AssessmentPayload>(() => cloneAssessmentPayload(emptyAssessment));
   const [recordId, setRecordId] = useState<string>("");
   const [saveState, setSaveState] = useState<SaveState>("idle");
+  const [draftSaveState, setDraftSaveState] = useState<DraftSaveState>("idle");
+  const [draftSaveMessage, setDraftSaveMessage] = useState("");
+  const [draftSavedAt, setDraftSavedAt] = useState<string | null>(null);
+  const [draftPrompt, setDraftPrompt] = useState<DraftPromptState>({ checked: false, status: "none", draft: null });
+  const [discardDraftOpen, setDiscardDraftOpen] = useState(false);
+  const [draftTouched, setDraftTouched] = useState(false);
   const [message, setMessage] = useState("");
   const [uploading, setUploading] = useState(false);
   const [cameraOpen, setCameraOpen] = useState(false);
@@ -148,6 +196,12 @@ export function KidexAssessmentApp() {
   const [locations, setLocations] = useState<string[]>([]);
   const [children, setChildren] = useState<ChildProfile[]>([]);
   const [hydratingRecord, setHydratingRecord] = useState(Boolean(idParam));
+  const [childPrefillResolved, setChildPrefillResolved] = useState(!childIdParam);
+  const [draftOwnerId, setDraftOwnerId] = useState("anonymous");
+  const [draftOwnerReady, setDraftOwnerReady] = useState(false);
+  const [activeDraftId, setActiveDraftId] = useState<string | null>(null);
+  const draftCheckCompleteRef = useRef(false);
+  const assessmentRef = useRef(assessment);
 
   const sections = sectionsForMode(assessment.mode);
   const computed = useMemo(() => computeAssessment(assessment), [assessment]);
@@ -161,6 +215,10 @@ export function KidexAssessmentApp() {
   const mobileLayout = useMediaQuery(`(max-width: ${theme.breakpoints.sm})`);
 
   useEffect(() => {
+    assessmentRef.current = assessment;
+  }, [assessment]);
+
+  useEffect(() => {
     void Promise.all([getSettings(), getConductors(), getObservers()]).then(([settingsData, conductorUsers, observerUsers]) => {
       const allConductors = Array.from(new Set(conductorUsers.map((user) => user.email)));
       const allObservers = Array.from(new Set(observerUsers.map((user) => user.email)));
@@ -170,11 +228,16 @@ export function KidexAssessmentApp() {
       setLocations(settingsData.locations);
     });
     void fetch("/api/children").then((r) => r.json()).then((data: ChildProfile[]) => setChildren(Array.isArray(data) ? data : [])).catch(() => setChildren([]));
+    void fetch("/api/auth/me")
+      .then((response) => response.json())
+      .then((data: { user?: { email?: string } }) => {
+        setDraftOwnerId(data.user?.email || "anonymous");
+      })
+      .catch(() => {
+        setDraftOwnerId("anonymous");
+      })
+      .finally(() => setDraftOwnerReady(true));
   }, []);
-
-  useEffect(() => {
-    localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(assessment));
-  }, [assessment]);
 
   useEffect(() => {
     if (!idParam) return;
@@ -205,7 +268,10 @@ export function KidexAssessmentApp() {
 
     void (async () => {
       const response = await fetch(`/api/children/${childIdParam}`).catch(() => null);
-      if (!response?.ok) return;
+      if (!response?.ok) {
+        setChildPrefillResolved(true);
+        return;
+      }
       const child = (await response.json()) as {
         name: string;
         birthDate: string;
@@ -233,8 +299,170 @@ export function KidexAssessmentApp() {
           }
         };
       });
+      setChildPrefillResolved(true);
     })();
   }, [childIdParam, recordId]);
+
+  const persistDraftSnapshot = useCallback((snapshot: AssessmentPayload, options?: { immediate?: boolean; syncState?: AssessmentDraftSyncState }) => {
+    if (typeof window === "undefined") {
+      return false;
+    }
+
+    if (!hasMeaningfulAssessmentDraft(snapshot)) {
+      if (activeDraftId) {
+        const remaining = removeAssessmentDraftById(loadStoredDrafts(), activeDraftId);
+        window.localStorage.setItem(ASSESSMENT_DRAFT_STORAGE_KEY, serializeAssessmentDrafts(remaining));
+        setActiveDraftId(null);
+        setDraftSavedAt(null);
+        setDraftTouched(false);
+      }
+      setDraftSaveState("idle");
+      setDraftSaveMessage("");
+      return true;
+    }
+
+    try {
+      const stored = loadStoredDrafts();
+      const draft = buildAssessmentDraftRecord({
+        draftId: activeDraftId || crypto.randomUUID(),
+        payload: snapshot,
+        conductorId: draftOwnerId,
+        locale,
+        routeChildId: childIdParam,
+        routeRecordId: idParam || recordId,
+        payloadRecordId: recordId,
+        syncState: options?.syncState || "local_only",
+      });
+      const withoutPreviousScope = activeDraftId
+        ? removeAssessmentDraftById(stored, activeDraftId)
+        : removeAssessmentDraftByContext(stored, {
+            conductorId: draftOwnerId,
+            locale,
+            routeChildId: childIdParam,
+            routeRecordId: idParam || recordId,
+            payloadChildId: snapshot.childId,
+            payloadRecordId: recordId,
+          });
+      const nextDrafts = upsertAssessmentDraft(withoutPreviousScope, draft);
+      window.localStorage.setItem(ASSESSMENT_DRAFT_STORAGE_KEY, serializeAssessmentDrafts(nextDrafts));
+      setActiveDraftId(draft.draftId);
+      setDraftSaveState("saved");
+      setDraftSavedAt(draft.lastEditedAt);
+      setDraftTouched(false);
+      setDraftSaveMessage(options?.immediate ? t("draftSavedNow") : t("draftSaved"));
+      return true;
+    } catch {
+      setDraftSaveState("error");
+      setDraftSaveMessage(t("draftSaveError"));
+      return false;
+    }
+  }, [activeDraftId, childIdParam, draftOwnerId, idParam, locale, recordId, t]);
+
+  function discardDraftRecord(draft: AssessmentDraftRecord | null) {
+    if (typeof window === "undefined" || !draft) {
+      return;
+    }
+
+    const nextDrafts = removeAssessmentDraftById(loadStoredDrafts(), draft.draftId);
+    window.localStorage.setItem(ASSESSMENT_DRAFT_STORAGE_KEY, serializeAssessmentDrafts(nextDrafts));
+    if (activeDraftId === draft.draftId) {
+      setActiveDraftId(null);
+      setDraftSavedAt(null);
+      setDraftTouched(false);
+      setDraftSaveState("idle");
+      setDraftSaveMessage("");
+    }
+  }
+
+  useEffect(() => {
+    if (!draftOwnerReady || hydratingRecord || !childPrefillResolved || draftCheckCompleteRef.current) {
+      return;
+    }
+
+    const storedDrafts = loadStoredDrafts();
+    let draftMatch = findAssessmentDraftForContext(storedDrafts, {
+      conductorId: draftOwnerId,
+      locale,
+      routeChildId: childIdParam,
+      routeRecordId: idParam || recordId,
+      payloadChildId: assessment.childId,
+      payloadRecordId: recordId,
+    });
+    if (draftMatch.status === "none" && draftOwnerId !== "anonymous") {
+      draftMatch = findAssessmentDraftForContext(storedDrafts, {
+        conductorId: "anonymous",
+        locale,
+        routeChildId: childIdParam,
+        routeRecordId: idParam || recordId,
+        payloadChildId: assessment.childId,
+        payloadRecordId: recordId,
+      });
+    }
+
+    draftCheckCompleteRef.current = true;
+    setDraftPrompt({
+      checked: true,
+      status: draftMatch.status,
+      draft: draftMatch.draft || null,
+    });
+  }, [assessment.childId, childIdParam, childPrefillResolved, draftOwnerId, draftOwnerReady, hydratingRecord, idParam, locale, recordId]);
+
+  useEffect(() => {
+    if (!draftPrompt.checked || draftPrompt.draft) {
+      return;
+    }
+
+    const listener = () => {
+      void persistDraftSnapshot(assessmentRef.current, { immediate: true });
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "hidden") {
+        listener();
+      }
+    };
+
+    window.addEventListener("beforeunload", listener);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => {
+      window.removeEventListener("beforeunload", listener);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [draftPrompt.checked, draftPrompt.draft, persistDraftSnapshot]);
+
+  useEffect(() => {
+    if (!draftPrompt.checked || Boolean(draftPrompt.draft) || hydratingRecord || !draftTouched) {
+      return;
+    }
+
+    const timeout = window.setTimeout(() => {
+      setDraftSaveState("saving");
+      persistDraftSnapshot(assessment, { syncState: "local_only" });
+    }, DRAFT_AUTOSAVE_DEBOUNCE_MS);
+
+    return () => window.clearTimeout(timeout);
+  }, [assessment, draftPrompt.checked, draftPrompt.draft, draftTouched, hydratingRecord, persistDraftSnapshot]);
+
+  function resumeDraft(draft: AssessmentDraftRecord) {
+    setAssessment(cloneAssessmentPayload(draft.payload));
+    setRecordId(draft.recordId || "");
+    setActiveDraftId(draft.draftId);
+    setDraftSavedAt(draft.lastEditedAt);
+    setDraftTouched(false);
+    setDraftSaveState("saved");
+    setDraftSaveMessage(t("draftRecovered"));
+    setMessage(t("draftRecovered"));
+    setDraftPrompt({ checked: true, status: "none", draft: null });
+  }
+
+  function discardRecoveredDraft(draft: AssessmentDraftRecord | null) {
+    discardDraftRecord(draft);
+    setDraftPrompt({ checked: true, status: "none", draft: null });
+    setDraftTouched(false);
+    setDraftSaveState("idle");
+    setDraftSaveMessage("");
+    setMessage(t("draftDiscarded"));
+  }
 
   function update<T extends keyof AssessmentPayload>(group: T, key: keyof AssessmentPayload[T], value: unknown) {
     setAssessment((current) => {
@@ -253,6 +481,7 @@ export function KidexAssessmentApp() {
 
       return next;
     });
+    setDraftTouched(true);
     setSaveState("idle");
   }
 
@@ -264,6 +493,7 @@ export function KidexAssessmentApp() {
         [key]: { ...(current.scores[key] || { score: "", note: "" }), ...patch }
       }
     }));
+    setDraftTouched(true);
     setSaveState("idle");
   }
 
@@ -285,6 +515,7 @@ export function KidexAssessmentApp() {
         },
       },
     }));
+    setDraftTouched(true);
     setSaveState("idle");
   }
 
@@ -302,6 +533,7 @@ export function KidexAssessmentApp() {
         },
       },
     }));
+    setDraftTouched(true);
     setSaveState("idle");
   }
 
@@ -316,6 +548,7 @@ export function KidexAssessmentApp() {
         [field]: field === "phase" ? (value === "follow_up" ? "follow_up" : "baseline") : value,
       },
     }));
+    setDraftTouched(true);
     setSaveState("idle");
   }
 
@@ -332,6 +565,7 @@ export function KidexAssessmentApp() {
         },
       };
     });
+    setDraftTouched(true);
     setSaveState("idle");
   }
 
@@ -346,6 +580,7 @@ export function KidexAssessmentApp() {
         },
       },
     }));
+    setDraftTouched(true);
     setSaveState("idle");
   }
 
@@ -377,7 +612,22 @@ export function KidexAssessmentApp() {
     const data = (await response.json()) as { assessment: AssessmentRecord };
     setRecordId(data.assessment._id || "");
     setSaveState("saved");
-    localStorage.removeItem(DRAFT_STORAGE_KEY);
+    if (typeof window !== "undefined") {
+      const nextDrafts = removeAssessmentDraftByContext(loadStoredDrafts(), {
+        conductorId: draftOwnerId,
+        locale,
+        routeChildId: childIdParam,
+        routeRecordId: data.assessment._id || idParam || recordId,
+        payloadChildId: data.assessment.childId,
+        payloadRecordId: data.assessment._id || recordId,
+      });
+      localStorage.setItem(ASSESSMENT_DRAFT_STORAGE_KEY, serializeAssessmentDrafts(nextDrafts));
+    }
+    setActiveDraftId(null);
+    setDraftSavedAt(null);
+    setDraftTouched(false);
+    setDraftSaveState("idle");
+    setDraftSaveMessage("");
 
     const settings = await getSettings();
     await saveSettings({ ...settings, locations });
@@ -386,6 +636,10 @@ export function KidexAssessmentApp() {
   }
 
   function newAssessment() {
+    if (typeof window !== "undefined" && activeDraftId) {
+      const nextDrafts = removeAssessmentDraftById(loadStoredDrafts(), activeDraftId);
+      localStorage.setItem(ASSESSMENT_DRAFT_STORAGE_KEY, serializeAssessmentDrafts(nextDrafts));
+    }
     setRecordId("");
     setAssessment((current) => {
       if (!childIdParam) {
@@ -405,6 +659,11 @@ export function KidexAssessmentApp() {
     });
     setSaveState("idle");
     setMessage("");
+    setDraftSaveState("idle");
+    setDraftSaveMessage("");
+    setDraftSavedAt(null);
+    setDraftTouched(false);
+    setActiveDraftId(null);
   }
 
   function appendLocationIfMissing(value: string) {
@@ -438,6 +697,7 @@ export function KidexAssessmentApp() {
       ...current,
       attachments: [...current.attachments, data.attachment]
     }));
+    setDraftTouched(true);
     setMessage(t("uploadSuccess"));
   }
 
@@ -523,6 +783,7 @@ export function KidexAssessmentApp() {
       ...current,
       attachments: current.attachments.filter((attachment) => attachment.id !== id)
     }));
+    setDraftTouched(true);
   }
 
   const strengths = Object.entries(assessment.scores)
@@ -548,6 +809,11 @@ export function KidexAssessmentApp() {
                 <Button variant="default" onClick={newAssessment}>
                   {tc("new")}
                 </Button>
+                {activeDraftId ? (
+                  <Button variant="light" color="red" onClick={() => setDiscardDraftOpen(true)}>
+                    {t("discardDraft")}
+                  </Button>
+                ) : null}
                 <Button color="kidex" onClick={() => void saveAssessment()} disabled={saveState === "saving"}>
                   {saveState === "saving" ? tc("saving") : recordId ? tc("update") : tc("save")}
                 </Button>
@@ -577,6 +843,33 @@ export function KidexAssessmentApp() {
               <Text size="sm">
                 {selectedChild.birthDate} · {td("newSurveyForChild")}
               </Text>
+            </Alert>
+          ) : null}
+
+          {activeDraftId ? (
+            <Alert
+              color={draftSaveState === "error" ? "red" : draftSaveState === "saving" ? "blue" : "kidex"}
+              variant="light"
+              title={t("draftStatusTitle")}
+            >
+              <Group justify="space-between" align="center" wrap="wrap" gap="sm">
+                <Text size="sm">
+                  {draftSaveState === "saving"
+                    ? t("draftSaving")
+                    : draftSaveState === "error"
+                      ? draftSaveMessage || t("draftSaveError")
+                      : draftSavedAt
+                        ? t("draftSavedAt", { time: new Date(draftSavedAt).toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" }) })
+                        : draftSaveMessage || t("draftSaved")}
+                </Text>
+                <Badge color={draftSaveState === "error" ? "red" : draftSaveState === "saving" ? "blue" : "kidex"} variant="light">
+                  {draftSaveState === "saving"
+                    ? t("draftStateSaving")
+                    : draftSaveState === "error"
+                      ? t("draftStateError")
+                      : t("draftStateLocal")}
+                </Badge>
+              </Group>
             </Alert>
           ) : null}
 
@@ -712,6 +1005,7 @@ export function KidexAssessmentApp() {
                       consentReport: Boolean(child.consentReport)
                     }
                   }));
+                  setDraftTouched(true);
                 }}
               />
               <Select
@@ -733,9 +1027,10 @@ export function KidexAssessmentApp() {
                   { value: "rapid", label: t("modeRapid") },
                   { value: "full", label: t("modeFull") }
                 ]}
-                onChange={(value) =>
-                  setAssessment((current) => ({ ...current, mode: (value as AssessmentPayload["mode"]) ?? "rapid" }))
-                }
+                onChange={(value) => {
+                  setAssessment((current) => ({ ...current, mode: (value as AssessmentPayload["mode"]) ?? "rapid" }));
+                  setDraftTouched(true);
+                }}
               />
               <SearchableSelect 
                 label={t("conductor")} 
@@ -891,6 +1186,89 @@ export function KidexAssessmentApp() {
             ) : (
               <Button onClick={capturePhotoFrame} color="kidex">{t("capturePhoto")}</Button>
             )}
+          </Group>
+        </Stack>
+      </Modal>
+
+      <Modal
+        opened={Boolean(draftPrompt.draft)}
+        onClose={() => {}}
+        title={
+          draftPrompt.status === "stale"
+            ? t("draftStaleTitle")
+            : draftPrompt.status === "incompatible"
+              ? t("draftIncompatibleTitle")
+              : t("draftRestoreTitle")
+        }
+        centered
+        closeOnClickOutside={false}
+        closeOnEscape={false}
+        withCloseButton={false}
+      >
+        <Stack gap="md">
+          <Text size="sm">
+            {draftPrompt.status === "stale"
+              ? t("draftStaleBody")
+              : draftPrompt.status === "incompatible"
+                ? t("draftIncompatibleBody")
+                : t("draftRestoreBody")}
+          </Text>
+          {draftPrompt.draft?.lastEditedAt ? (
+            <Text size="sm" c="dimmed">
+              {t("draftSavedAt", { time: new Date(draftPrompt.draft.lastEditedAt).toLocaleString(locale) })}
+            </Text>
+          ) : null}
+          <Group justify="flex-end">
+            <Button variant="default" onClick={() => discardRecoveredDraft(draftPrompt.draft)}>
+              {draftPrompt.status === "incompatible" ? t("startFresh") : t("discardDraft")}
+            </Button>
+            {draftPrompt.status !== "incompatible" ? (
+              <Button color="kidex" onClick={() => draftPrompt.draft && resumeDraft(draftPrompt.draft)}>
+                {t("resumeSurvey")}
+              </Button>
+            ) : null}
+          </Group>
+        </Stack>
+      </Modal>
+
+      <Modal
+        opened={discardDraftOpen}
+        onClose={() => setDiscardDraftOpen(false)}
+        title={t("discardDraftTitle")}
+        centered
+      >
+        <Stack gap="md">
+          <Text size="sm">{t("discardDraftBody")}</Text>
+          <Group justify="flex-end">
+            <Button variant="default" onClick={() => setDiscardDraftOpen(false)}>
+              {tc("cancel")}
+            </Button>
+            <Button
+              color="red"
+              onClick={() => {
+                setDiscardDraftOpen(false);
+                discardDraftRecord(
+                  activeDraftId
+                    ? {
+                        ...(draftPrompt.draft ||
+                          buildAssessmentDraftRecord({
+                            draftId: activeDraftId,
+                            payload: assessmentRef.current,
+                            conductorId: draftOwnerId,
+                            locale,
+                            routeChildId: childIdParam,
+                            routeRecordId: idParam || recordId,
+                            payloadRecordId: recordId,
+                          })),
+                      }
+                    : null,
+                );
+                newAssessment();
+                setMessage(t("draftDiscarded"));
+              }}
+            >
+              {t("discardDraft")}
+            </Button>
           </Group>
         </Stack>
       </Modal>

@@ -258,6 +258,18 @@ The current downstream interpretation stack includes:
 - reassessment cadence and follow-up status
 - confidence / reliability context
 - development-plan and support-workspace linkage
+
+## Draft persistence behavior
+
+The assessment editor now uses local draft persistence for interruption safety.
+
+- Drafts are stored locally in the browser and scoped to conductor plus assessment context.
+- Recoverable drafts require an explicit resume or discard decision.
+- Drafts are cleared after successful final assessment save.
+- There is no live server draft API yet. If server persistence is added later, it should follow the planned contract:
+  - `GET /api/children/:id/assessment-draft`
+  - `PUT /api/children/:id/assessment-draft`
+  - `DELETE /api/children/:id/assessment-draft`
 - culture and trust pulse aggregation
 
 ## Culture survey routes

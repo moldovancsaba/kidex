@@ -183,6 +183,15 @@ KIDEX does not currently implement:
 - public caregiver self-service editing across the full child record
 - a standalone LMS or parent-content platform
 
+## Assessment draft safety
+
+The assessment workflow now protects interrupted survey work with local draft persistence.
+
+- Drafts autosave locally after meaningful changes.
+- Resume/discard decisions are explicit when a recoverable draft exists.
+- Drafts are version-guarded and stale drafts are flagged before reuse.
+- Final assessment save clears the matching local draft so draft state is not confused with submitted data.
+
 ## Source documents
 
 - Design/UI/UX SSOT: [sovereignsquad/general-design-system README](https://github.com/sovereignsquad/general-design-system/blob/main/README.md)
