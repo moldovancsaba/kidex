@@ -15,9 +15,9 @@
     "db:backfill-standards-version": "node scripts/backfill-standards-version.mjs"
   },
   "dependencies": {
-    "@doneisbetter/gds-admin": "https://github.com/sovereignsquad/general-design-system/releases/download/gds-v2.6.1/doneisbetter-gds-admin-2.6.1.tgz",
-    "@doneisbetter/gds-core": "https://github.com/sovereignsquad/general-design-system/releases/download/gds-v2.6.1/doneisbetter-gds-core-2.6.1.tgz",
-    "@doneisbetter/gds-theme": "https://github.com/sovereignsquad/general-design-system/releases/download/gds-v2.6.1/doneisbetter-gds-theme-2.6.1.tgz",
+    "@doneisbetter/gds-admin": "^2.6.1",
+    "@doneisbetter/gds-core": "^2.6.1",
+    "@doneisbetter/gds-theme": "^2.6.1",
     "@mantine/core": "^8.3.6",
     "@mantine/hooks": "^8.3.6",
     "@mantine/modals": "^8.3.18",
@@ -35,8 +35,8 @@
     "recharts": "^3.8.1"
   },
   "devDependencies": {
-    "@doneisbetter/gds-compliance": "https://github.com/sovereignsquad/general-design-system/releases/download/gds-v2.6.1/doneisbetter-gds-compliance-2.6.1.tgz",
-    "@doneisbetter/gds-eslint-config": "https://github.com/sovereignsquad/general-design-system/releases/download/gds-v2.6.1/doneisbetter-gds-eslint-config-2.6.1.tgz",
+    "@doneisbetter/gds-compliance": "^2.6.1",
+    "@doneisbetter/gds-eslint-config": "^2.6.1",
     "@types/node": "^22.10.7",
     "@types/react": "^19.0.7",
     "@types/react-dom": "^19.0.3",

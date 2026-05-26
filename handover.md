@@ -52,7 +52,7 @@ Delivered GDS migration track:
 Current GDS runtime facts:
 
 - package line: `@doneisbetter/gds-theme`, `@doneisbetter/gds-core`, `@doneisbetter/gds-admin`
-- temporary approved install source: GDS public release assets at `gds-v2.6.1`
+- canonical install source: npm
 - verified consumer baseline: Next `15.5.18`, React `19.2.0`, Mantine `8.3.6`
 - KIDEX now consumes the published package line directly and keeps only reviewed thin adapters
 

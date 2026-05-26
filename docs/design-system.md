@@ -8,7 +8,7 @@ This file is a local adapter only. If it conflicts with the shared GDS repositor
 
 ## Current adoption state
 
-KIDEX now consumes the published GDS package line through the approved release-asset install path:
+KIDEX now consumes the published GDS package line from npm:
 
 - `@doneisbetter/gds-theme`
 - `@doneisbetter/gds-core`
