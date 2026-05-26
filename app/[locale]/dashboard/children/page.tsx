@@ -12,9 +12,9 @@ import { defaultConsentPolicy, deriveLegacyConsents, getConsentAlerts, type Chil
 import { normalizePreferredLocale } from "@/lib/locales";
 import { canPerformAction } from "@/lib/permissions";
 import { buildReassessmentSummary } from "@/lib/reassessment";
-import { LoadingState } from "@/components/ui/LoadingState";
-import { DataToolbar, FilterDrawer, ProductCard, SectionCard } from "@/components/gds-local/core";
-import { PageHeader, ResponsiveDataView } from "@/components/gds-local/admin";
+import { PageHeader, ResponsiveDataView, type ResponsiveDataViewFilterChip } from "@doneisbetter/gds-admin/client";
+import type { DataTableColumn } from "@doneisbetter/gds-admin/client";
+import { DataToolbar, FilterDrawer, LoadingState, ProductCard, SectionCard } from "@/components/gds-local/core";
 import { createEmptyFamilyCaregiver, FAMILY_ACCESS_LEVELS, FAMILY_CAREGIVER_STATUSES, FAMILY_RELATIONSHIPS, type FamilyCaregiver } from "@/lib/family-access";
 import { calculateAgeGroup } from "@/lib/utils/age";
 import { formatScore } from "@/lib/utils";
@@ -25,6 +25,8 @@ import { getUsers } from "@/services/user-service";
 import { withDisplayNamesForReport } from "@/lib/report-user-display";
 import { logPdfExportTelemetry, validatePdfExport } from "@/lib/pdf-export-guards";
 import type { AssessmentRecord } from "@/types/assessment";
+
+type ChildRow = ChildProfile & Record<string, unknown>;
 
 export default function ChildrenListPage() {
   const t = useTranslations("Dashboard");
@@ -238,6 +240,8 @@ export default function ChildrenListPage() {
     });
   }, [children, deletedChildren, query, selectedLocations, selectedAgeGroups, selectedFollowUpStatuses, skiRange, showDeleted]);
 
+  const filteredRows = filtered as ChildRow[];
+
   async function restoreChild(child: ChildProfile) {
     if (!child._id) return;
     const res = await fetch(`/api/children/${child._id}/restore`, { method: "POST" }).catch(() => null);
@@ -332,6 +336,101 @@ export default function ChildrenListPage() {
         </Group>
       </Stack>
     </Paper>
+  );
+
+  const activeFilters = useMemo<ResponsiveDataViewFilterChip[]>(
+    () => [
+      ...selectedLocations.map((value) => ({ label: `${t("location")}: ${value}`, onRemove: () => setSelectedLocations((current) => current.filter((item) => item !== value)) })),
+      ...selectedAgeGroups.map((value) => ({ label: `${ta("ageGroup")}: ${value}`, onRemove: () => setSelectedAgeGroups((current) => current.filter((item) => item !== value)) })),
+      ...selectedFollowUpStatuses.map((value) => ({ label: value.replace("_", " "), onRemove: () => setSelectedFollowUpStatuses((current) => current.filter((item) => item !== value)) })),
+      ...(skiRange[0] !== 0 || skiRange[1] !== 100 ? [{ label: `SKI: ${skiRange[0]}-${skiRange[1]}`, onRemove: () => setSkiRange([0, 100]) }] : []),
+    ],
+    [selectedAgeGroups, selectedFollowUpStatuses, selectedLocations, skiRange, t, ta],
+  );
+
+  const columns = useMemo<DataTableColumn<ChildRow>[]>(
+    () => [
+      {
+        key: "child",
+        label: t("children"),
+        render: (child) => child.name,
+      },
+      {
+        key: "age",
+        label: ta("ageGroup"),
+        render: (child) => calculateAgeGroup(child.birthDate) || "—",
+      },
+      {
+        key: "location",
+        label: t("location"),
+        render: (child) => child.latestLocation || "—",
+      },
+      {
+        key: "latestSki",
+        label: "SKI",
+        render: (child) =>
+          child.latestSki !== undefined ? (
+            <Badge color="kidex" variant="filled" size="sm">
+              {formatScore(child.latestSki)}
+            </Badge>
+          ) : (
+            "—"
+          ),
+      },
+      {
+        key: "followUp",
+        label: "Follow-up",
+        render: (child) =>
+          buildReassessmentSummary({
+            latestAssessmentAt: child.latestAssessmentAt,
+            plan: {
+              childId: child._id || "",
+              summary: "",
+              status: child.latestPlanStatus || "draft",
+              reviewCadenceDays: child.reviewCadenceDays ?? 0,
+              nextAssessmentDueDate: child.nextAssessmentDueDate,
+              reassessmentNotes: child.reassessmentNotes || "",
+              assignments: [],
+              checkpoints: [],
+              progressNotes: "",
+              createdAt: child.createdAt,
+              updatedAt: child.updatedAt,
+            },
+          }).status.replace("_", " "),
+      },
+      {
+        key: "actions",
+        label: tc("actions"),
+        render: (child) =>
+          showDeleted && canWriteChildren ? (
+            <Button
+              color="kidex"
+              variant="light"
+              size="sm"
+              onClick={() => {
+                setRestoreTarget(child);
+                setRestoreConfirmText("");
+              }}
+            >
+              {t("restoreAction")}
+            </Button>
+          ) : canWriteAssessments ? (
+            <Group gap="sm" wrap="nowrap">
+              <Button component={Link} href={`/dashboard/assessment?childId=${child._id}`} color="kidex" size="sm">
+                {t("newSurveyForChild")}
+              </Button>
+              <Button component={Link} href={`/dashboard/children/${child._id}`} variant="light" color="kidex" size="sm">
+                {t("viewHistory")}
+              </Button>
+            </Group>
+          ) : (
+            <Button component={Link} href={`/dashboard/children/${child._id}`} variant="light" color="kidex" size="sm">
+              {t("viewHistory")}
+            </Button>
+          ),
+      },
+    ],
+    [canWriteAssessments, canWriteChildren, showDeleted, t, ta, tc],
   );
 
   function startEdit(child: ChildProfile) {
@@ -569,12 +668,7 @@ export default function ChildrenListPage() {
                 </Button>
             }
             filterSlot={!mobileLayout && showAdvanced ? filterPanel : null}
-            activeFilters={[
-              ...selectedLocations.map((value) => ({ label: `${t("location")}: ${value}`, color: "kidex", onRemove: () => setSelectedLocations((current) => current.filter((item) => item !== value)) })),
-              ...selectedAgeGroups.map((value) => ({ label: `${ta("ageGroup")}: ${value}`, color: "blue", onRemove: () => setSelectedAgeGroups((current) => current.filter((item) => item !== value)) })),
-              ...selectedFollowUpStatuses.map((value) => ({ label: value.replace("_", " "), color: "orange", onRemove: () => setSelectedFollowUpStatuses((current) => current.filter((item) => item !== value)) })),
-              ...(skiRange[0] !== 0 || skiRange[1] !== 100 ? [{ label: `SKI: ${skiRange[0]}-${skiRange[1]}`, color: "grape", onRemove: () => setSkiRange([0, 100]) }] : []),
-            ]}
+            activeFilters={activeFilters}
           />
 
           <Group gap="xs" wrap="wrap">
@@ -609,12 +703,33 @@ export default function ChildrenListPage() {
             ) : null}
           </Group>
 
-          <ResponsiveDataView
-            data={filtered}
+          <ResponsiveDataView<ChildRow>
+            data={filteredRows}
+            columns={columns}
             emptyTitle={query ? t("noChildrenMatch") : tc("noChildren")}
             emptyDescription={query ? t("searchChildrenPlaceholder") : tc("noChildren")}
-            renderCard={(item) => {
-              const child = item as unknown as ChildProfile;
+            activeFilters={activeFilters}
+            toolbar={null}
+            mobileFilters={
+              activeFilterCount > 0 ? (
+                <Button size="sm" variant="subtle" onClick={resetFilters}>
+                  {tc("resetFilters")}
+                </Button>
+              ) : null
+            }
+            filterDrawer={
+              <FilterDrawer
+                opened={mobileFiltersOpen}
+                onClose={() => setMobileFiltersOpen(false)}
+                title={tc("advancedFilters")}
+                position="bottom"
+                size="85%"
+                primaryAction={<Button color="kidex" onClick={() => setMobileFiltersOpen(false)}>{tc("view")}</Button>}
+              >
+                {filterPanel}
+              </FilterDrawer>
+            }
+            renderCard={(child) => {
               const ageGroup = calculateAgeGroup(child.birthDate) || "-";
               const consentAlerts = getConsentAlerts(child.consentPolicy);
               const expiredAlerts = consentAlerts.filter((alert) => alert.reason === "expired");
@@ -715,20 +830,10 @@ export default function ChildrenListPage() {
                 />
               );
             }}
-            getRowKey={(item) => (item as unknown as ChildProfile)._id || (item as unknown as ChildProfile).name}
+            getRowKey={(item) => item._id || item.name}
           />
         </Stack>
       </SectionCard>
-      <FilterDrawer
-        opened={mobileFiltersOpen}
-        onClose={() => setMobileFiltersOpen(false)}
-        title={tc("advancedFilters")}
-        position="bottom"
-        size="85%"
-        primaryAction={<Button color="kidex" onClick={() => setMobileFiltersOpen(false)}>{tc("view")}</Button>}
-      >
-        {filterPanel}
-      </FilterDrawer>
       <Modal opened={canWriteChildren && Boolean(editing)} onClose={() => (saving ? null : setEditing(null))} title={t("editChild")} centered>
           <Stack gap="md" mt="xs">
             <TextInput

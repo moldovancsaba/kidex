@@ -1,13 +1,12 @@
-import { createTheme, type MantineThemeOverride } from "@mantine/core";
+import type { MantineTheme } from "@mantine/core";
+import { extendGdsTheme } from "@doneisbetter/gds-theme/server";
 import { KIDEX_BRAND_COLORS } from "@/theme/brand-colors";
 import { KIDEX_FONT_FAMILY_LTR, KIDEX_FONT_FAMILY_RTL, KIDEX_FONT_SIZES, KIDEX_FONT_WEIGHTS } from "@/theme/typography";
 
 type Direction = "ltr" | "rtl";
 
-export function getKidexMantineTheme(mode: "light" | "dark", direction: Direction = "ltr"): MantineThemeOverride {
-  const isDark = mode === "dark";
-
-  return createTheme({
+export function getKidexMantineTheme(direction: Direction = "ltr"): MantineTheme {
+  return extendGdsTheme({
     primaryColor: "kidex",
     defaultRadius: "md",
     fontFamily: direction === "rtl" ? KIDEX_FONT_FAMILY_RTL : KIDEX_FONT_FAMILY_LTR,
@@ -56,18 +55,6 @@ export function getKidexMantineTheme(mode: "light" | "dark", direction: Directio
     white: KIDEX_BRAND_COLORS.white,
     primaryShade: 5,
     components: {
-      Text: {
-        defaultProps: {
-          c: isDark ? "white" : "black",
-          ff: direction === "rtl" ? KIDEX_FONT_FAMILY_RTL : KIDEX_FONT_FAMILY_LTR,
-        },
-      },
-      Title: {
-        defaultProps: {
-          c: isDark ? "white" : "black",
-          ff: direction === "rtl" ? KIDEX_FONT_FAMILY_RTL : KIDEX_FONT_FAMILY_LTR,
-        },
-      },
       Input: {
         styles: {
           input: {

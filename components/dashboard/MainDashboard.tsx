@@ -14,10 +14,8 @@ import {
   CHART_READINESS_STACK_COLORS,
   CHART_RISK_COLORS,
 } from "@/components/analytics/chart-series-colors";
-import { LoadingState } from "@/components/ui/LoadingState";
-import { MetricCard } from "@/components/ui/MetricCard";
-import { PageHeader } from "@/components/ui/PageHeader";
-import { SectionCard } from "@/components/ui/SectionCard";
+import { PageHeader } from "@/components/gds-local/admin";
+import { LoadingState, MetricCard, SectionCard } from "@/components/gds-local/core";
 import { rapidSections } from "@/lib/kidex-schema";
 import { getDomainMainColor, type AssessmentDomain } from "@/lib/domain-colors";
 import { buildDashboardAnalytics } from "@/lib/dashboard-analytics";
@@ -906,7 +904,7 @@ function DailyAverageBarChart({
                 width={30}
               />
               <Tooltip
-                cursor={{ fill: "rgba(0,0,0,0.05)" }}
+                cursor={{ fill: "var(--mantine-color-gray-1)" }}
                 contentStyle={{
                   borderRadius: "var(--mantine-radius-md)",
                   border: "1px solid var(--mantine-color-default-border)",

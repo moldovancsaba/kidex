@@ -1,11 +1,12 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { Badge, Box, Group, Stack } from "@mantine/core";
+import {
+  DataToolbar as GdsDataToolbar,
+  type DataToolbarFilterChip as GdsDataToolbarFilterChip,
+} from "@doneisbetter/gds-core/client";
 
-export interface DataToolbarFilterChip {
-  label: string;
-  onRemove?: () => void;
+export interface DataToolbarFilterChip extends GdsDataToolbarFilterChip {
   color?: string;
 }
 
@@ -32,40 +33,18 @@ export function DataToolbar({
   secondary,
   filters,
 }: DataToolbarProps) {
-  const resolvedSearch = searchSlot ?? primary;
-  const resolvedFilter = filterSlot ?? filters;
-  const resolvedActions = createAction ?? secondary;
-
   return (
-    <Stack gap="sm">
-      <Group justify="space-between" align="flex-start" gap="sm">
-        <Group flex={1} align="flex-start" gap="sm" wrap="wrap">
-          {resolvedSearch ? <Box style={{ flex: 1, minWidth: 220 }}>{resolvedSearch}</Box> : null}
-          {resolvedFilter}
-          {sortSlot}
-        </Group>
-        <Group gap="sm" wrap="wrap">
-          {resetAction}
-          {resolvedActions}
-        </Group>
-      </Group>
-
-      {activeFilters.length ? (
-        <Group gap="xs" wrap="wrap">
-          {activeFilters.map((filter) => (
-            <Badge
-              key={filter.label}
-              color={filter.color}
-              variant="light"
-              rightSection={filter.onRemove ? "×" : undefined}
-              style={filter.onRemove ? { cursor: "pointer" } : undefined}
-              onClick={filter.onRemove}
-            >
-              {filter.label}
-            </Badge>
-          ))}
-        </Group>
-      ) : null}
-    </Stack>
+    <GdsDataToolbar
+      searchSlot={searchSlot ?? primary}
+      filterSlot={filterSlot ?? filters}
+      sortSlot={sortSlot}
+      resetAction={resetAction}
+      createAction={createAction ?? secondary}
+      activeFilters={activeFilters.map((filter) => {
+        const normalized = { ...filter };
+        delete normalized.color;
+        return normalized;
+      })}
+    />
   );
 }

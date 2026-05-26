@@ -185,7 +185,7 @@ KIDEX does not currently implement:
 
 ## Source documents
 
-- Design/UI/UX SSOT: [/Users/Shared/Projects/GENERAL_DESIGN_SYSTEM/README.md](/Users/Shared/Projects/GENERAL_DESIGN_SYSTEM/README.md)
+- Design/UI/UX SSOT: [sovereignsquad/general-design-system README](https://github.com/sovereignsquad/general-design-system/blob/main/README.md)
 - [API Reference](./api.md)
 - [Access Model](./access-model.md)
 - [Support Workspace](./support-workspace.md)

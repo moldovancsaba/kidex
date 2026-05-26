@@ -1,0 +1,126 @@
+{
+  "schemaVersion": 1,
+  "gdsVersion": "2.6.1",
+  "productArchetype": "hybrid",
+  "supportedEntryPoints": [
+    "@doneisbetter/gds-theme/client",
+    "@doneisbetter/gds-theme/server",
+    "@doneisbetter/gds-core/client",
+    "@doneisbetter/gds-core/server",
+    "@doneisbetter/gds-admin/client",
+    "@doneisbetter/gds-admin/server"
+  ],
+  "requiredContracts": [
+    "AppShell",
+    "PageHeader",
+    "ResponsiveDataView",
+    "EditorScaffold",
+    "FormSection",
+    "DataToolbar",
+    "FilterDrawer",
+    "ProductCard",
+    "MetricCard",
+    "SectionPanel",
+    "StateBlock"
+  ],
+  "localAdapters": [
+    {
+      "contract": "PageHeader",
+      "path": "components/gds-local/admin/PageHeader.tsx",
+      "status": "active"
+    },
+    {
+      "contract": "EditorScaffold",
+      "path": "components/gds-local/admin/EditorScaffold.tsx",
+      "status": "active"
+    },
+    {
+      "contract": "FormSection",
+      "path": "components/gds-local/admin/FormSection.tsx",
+      "status": "active"
+    },
+    {
+      "contract": "DataToolbar",
+      "path": "components/gds-local/core/DataToolbar.tsx",
+      "status": "active"
+    },
+    {
+      "contract": "FilterDrawer",
+      "path": "components/gds-local/core/FilterDrawer.tsx",
+      "status": "active"
+    },
+    {
+      "contract": "MetricCard",
+      "path": "components/gds-local/core/MetricCard.tsx",
+      "status": "active"
+    },
+    {
+      "contract": "ProductCard",
+      "path": "components/gds-local/core/ProductCard.tsx",
+      "status": "active"
+    },
+    {
+      "contract": "SectionPanel",
+      "path": "components/gds-local/core/SectionCard.tsx",
+      "status": "active"
+    },
+    {
+      "contract": "StateBlock",
+      "path": "components/gds-local/core/StateBlock.tsx",
+      "status": "active"
+    },
+    {
+      "contract": "SearchableSelect",
+      "path": "components/gds-local/core/SearchableSelect.tsx",
+      "status": "exception"
+    }
+  ],
+  "approvedExceptions": [
+    {
+      "surface": "Chart rendering",
+      "dependency": "recharts",
+      "allowImports": [
+        "recharts"
+      ],
+      "reason": "GDS governs chrome and layout, while chart rendering remains an approved exception surface.",
+      "owner": "kidex-platform",
+      "reviewDate": "2026-05-26"
+    },
+    {
+      "surface": "PDF and document export",
+      "reason": "Report generation is a non-runtime export surface outside canonical GDS component ownership.",
+      "owner": "kidex-platform",
+      "reviewDate": "2026-05-26"
+    },
+    {
+      "surface": "SearchableSelect adapter",
+      "reason": "KIDEX still carries a reviewed thin adapter until the shared searchable selection contract is promoted upstream.",
+      "owner": "kidex-platform",
+      "reviewDate": "2026-05-26"
+    }
+  ],
+  "compliance": {
+    "documentationPaths": [
+      "README.md",
+      "docs/design-system.md",
+      "docs/gds-compliance-checklist.md",
+      "docs/dod.md",
+      "docs/product-overview.md",
+      "handover.md"
+    ],
+    "staleDocumentationReferences": [
+      "@gds/",
+      "2.4.3 / 2026-05-25",
+      "Mantine 7-targeted"
+    ],
+    "protectedSurfacePaths": [
+      "components/gds-local",
+      "theme",
+      "app/providers.tsx"
+    ],
+    "bannedImports": []
+  },
+  "migrationStatus": "direct-package-adoption-with-thin-adapters",
+  "owner": "kidex-platform",
+  "lastReviewedAt": "2026-05-26"
+}

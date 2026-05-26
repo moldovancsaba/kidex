@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { Drawer, Group, Stack } from "@mantine/core";
+import { FilterDrawer as GdsFilterDrawer } from "@doneisbetter/gds-core/client";
 
 export interface FilterDrawerProps {
   opened: boolean;
@@ -22,19 +22,17 @@ export function FilterDrawer({
   primaryAction,
   secondaryAction,
   position = "right",
-  size = "md",
 }: FilterDrawerProps) {
   return (
-    <Drawer opened={opened} onClose={onClose} title={title} position={position} size={size}>
-      <Stack gap="md">
-        {children}
-        {primaryAction || secondaryAction ? (
-          <Group justify="space-between" mt="md">
-            {secondaryAction ?? <span />}
-            {primaryAction}
-          </Group>
-        ) : null}
-      </Stack>
-    </Drawer>
+    <GdsFilterDrawer
+      opened={opened}
+      onClose={onClose}
+      title={title}
+      mode={position === "bottom" ? "bottom-sheet" : "side"}
+      primaryAction={primaryAction}
+      secondaryAction={secondaryAction}
+    >
+      {children}
+    </GdsFilterDrawer>
   );
 }

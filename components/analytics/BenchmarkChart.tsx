@@ -52,7 +52,7 @@ export function BenchmarkChart({
               width={30}
             />
             <Tooltip
-              cursor={{ fill: 'rgba(0,0,0,0.05)' }}
+              cursor={{ fill: "var(--mantine-color-gray-1)" }}
               contentStyle={{
                 background: "var(--mantine-color-body)",
                 border: "1px solid var(--mantine-color-default-border)",

@@ -1,49 +1,29 @@
 "use client";
 
 import {
-  ActionIcon,
-  alpha,
   Box,
   Button,
-  Divider,
-  Drawer,
-  Group,
   NavLink,
   Stack,
   Text,
-  useMantineTheme,
 } from "@mantine/core";
-import { IconChecklist, IconLayoutDashboard, IconMenu2, IconSettings, IconUsersGroup } from "@tabler/icons-react";
-import Image from "next/image";
+import { AppShell } from "@doneisbetter/gds-admin/client";
+import { IconChecklist, IconLayoutDashboard, IconSettings, IconUsersGroup } from "@tabler/icons-react";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Link, usePathname, useRouter } from "@/i18n/navigation";
-import { PageContainer } from "@/components/ui/PageContainer";
-import { LoadingState } from "@/components/ui/LoadingState";
+import { LoadingState, PageContainer } from "@/components/gds-local/core";
 import { AppFooter } from "@/components/layout/AppFooter";
-import { LocaleSwitcher } from "@/components/ui/LocaleSwitcher";
-import { ThemeSwitcher } from "@/components/ui/ThemeSwitcher";
-import { AppShell } from "@/components/gds-local/admin";
+import { LocaleSwitcher } from "@/components/preferences/LocaleSwitcher";
 import { requiredActionForDashboardPath } from "@/lib/dashboard-access";
 import { canPerformAction } from "@/lib/permissions";
 import type { SupportedRuntimeRole } from "@/lib/roles";
-import { KIDEX_SHELL_LAYOUT } from "@/theme/layout";
 
 export default function DashboardShell({ children }: { children: React.ReactNode }) {
   const t = useTranslations("Dashboard");
   const tc = useTranslations("Common");
-  const theme = useMantineTheme();
   const pathname = usePathname();
   const router = useRouter();
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const sideInset = 12;
-
-  const shellBg = theme.black;
-  const shellMuted = alpha(theme.white, 0.88);
-  const shellBorder = alpha(theme.white, 0.32);
-  const shellSurface = alpha(theme.white, 0.05);
-  const shellSurfaceBorder = alpha(theme.white, 0.1);
-  const activeNavBg = theme.colors.kidex[5];
 
   const [user, setUser] = useState<{ name: string; email: string; roles?: SupportedRuntimeRole[]; primaryInstitutionId?: string } | null>(null);
   const [userLoaded, setUserLoaded] = useState(false);
@@ -92,7 +72,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
   const secondaryNav = nav.filter((item) => !mobilePrimaryNav.some((primary) => primary.href === item.href));
   const activeNavLabel = nav.find((item) => pathname === item.href || pathname.startsWith(`${item.href}/`))?.label ?? t("overview");
 
-  const renderNavLinks = (items: typeof nav, onNavigate?: () => void) =>
+  const renderNavLinks = (items: typeof nav) =>
     items.map((item) => {
       const active =
         item.href === "/dashboard" ? pathname === "/dashboard" : pathname === item.href || pathname.startsWith(`${item.href}/`);
@@ -105,226 +85,91 @@ export default function DashboardShell({ children }: { children: React.ReactNode
           label={item.label}
           active={active}
           leftSection={<Icon size={16} />}
-          onClick={onNavigate}
-          styles={{
-            root: {
-              borderRadius: "var(--mantine-radius-md)",
-              paddingInlineStart: 16,
-              paddingInlineEnd: 16,
-              backgroundColor: active ? activeNavBg : "transparent",
-            },
-            body: { paddingInlineStart: 0 },
-            label: { color: shellMuted, fontWeight: 500, textAlign: "start" },
-            section: { color: shellMuted },
-          }}
         />
       );
     });
 
   const userBlock = user ? (
-    <Stack gap={0} px={sideInset} pb="md" align="center">
-      <Box
-        p="xs"
-        w="100%"
-        style={{
-          backgroundColor: shellSurface,
-          borderRadius: "var(--mantine-radius-md)",
-          border: `1px solid ${shellSurfaceBorder}`,
+    <Stack gap="xs">
+      <Box>
+        <Text fw={700} size="sm" truncate>
+          {user.name}
+        </Text>
+        <Text c="dimmed" size="sm" truncate>
+          {user.email}
+        </Text>
+        {user.primaryInstitutionId ? (
+          <Text c="dimmed" size="sm" truncate>
+            {user.primaryInstitutionId}
+          </Text>
+        ) : null}
+      </Box>
+      <Button
+        variant="default"
+        onClick={() => {
+          window.location.href = "/api/auth/logout";
         }}
       >
-        <Stack gap={0}>
-          <Text c={shellMuted} fw={700} size="sm" truncate>
-            {user.name}
-          </Text>
-          <Text c={shellMuted} size="sm" truncate>
-            {user.email}
-          </Text>
-          {user.primaryInstitutionId ? (
-            <Text c={shellMuted} size="sm" truncate>
-              {user.primaryInstitutionId}
-            </Text>
-          ) : null}
-        </Stack>
-      </Box>
+        {t("logout")}
+      </Button>
     </Stack>
   ) : null;
 
-  const desktopNavContent = (
-    <Stack h="100%" gap={0} bg={shellBg}>
-      <Box p="md" style={{ display: "flex", justifyContent: "center" }}>
-        <Box bg="white" style={{ borderRadius: "var(--mantine-radius-md)", padding: 12 }}>
-          <Image src="/logo.jpeg" alt="KIDEX" width={100} height={100} priority />
-        </Box>
-      </Box>
-      {userBlock}
-      <Group
-        gap={8}
-        p={8}
-        justify="flex-start"
-        style={{
-          marginInline: sideInset,
-          border: "1px solid var(--mantine-color-default-border)",
-          borderRadius: "var(--mantine-radius-md)",
-        }}
-      >
-        <LocaleSwitcher />
-        <ThemeSwitcher />
-      </Group>
-      <Stack gap={6} px={sideInset} py="md" style={{ flex: 1 }}>
-        {renderNavLinks(nav, () => setMobileMenuOpen(false))}
-      </Stack>
-      <Divider color={shellBorder} />
-      <Box px={sideInset} py="md">
-        <NavLink
-          label={t("logout")}
-          onClick={() => {
-            window.location.href = "/api/auth/logout";
-          }}
-          styles={{
-            root: {
-              borderRadius: "var(--mantine-radius-md)",
-              paddingInlineStart: 16,
-              paddingInlineEnd: 16,
-            },
-            label: { color: shellMuted, fontWeight: 500, textAlign: "start" },
-          }}
-        />
-      </Box>
-      <Box h={16} />
-    </Stack>
-  );
-
-  const mobileSecondaryDrawer = (
-    <Stack h="100%" gap={0} bg={shellBg}>
-      {userBlock}
-      <Stack gap={6} px={sideInset} py="md" style={{ flex: 1 }}>
-        {secondaryNav.length > 0 ? renderNavLinks(secondaryNav, () => setMobileMenuOpen(false)) : null}
-      </Stack>
-      <Divider color={shellBorder} />
-      <Box px={sideInset} py="md">
-        <NavLink
-          label={t("logout")}
-          onClick={() => {
-            window.location.href = "/api/auth/logout";
-          }}
-          styles={{
-            root: {
-              borderRadius: "var(--mantine-radius-md)",
-              paddingInlineStart: 16,
-              paddingInlineEnd: 16,
-            },
-            label: { color: shellMuted, fontWeight: 500, textAlign: "start" },
-          }}
-        />
-      </Box>
-    </Stack>
-  );
-
   return (
-    <>
-      <Drawer
-        opened={mobileMenuOpen}
-        onClose={() => setMobileMenuOpen(false)}
-        padding={0}
-        withCloseButton={false}
-        size={KIDEX_SHELL_LAYOUT.navbarWidth}
-        hiddenFrom="md"
-        styles={{
-          content: { backgroundColor: shellBg },
-          body: { padding: 0 },
+    <AppShell
+      logoText="KIDEX"
+      headerContext={activeNavLabel}
+      headerActions={<LocaleSwitcher />}
+      primaryNavigation={<Stack gap="xs">{renderNavLinks(mobilePrimaryNav.length > 0 ? mobilePrimaryNav : nav)}</Stack>}
+      secondaryNavigation={secondaryNav.length > 0 ? <Stack gap="xs">{renderNavLinks(secondaryNav)}</Stack> : undefined}
+      accountPanel={userBlock}
+      mobileNavigation={
+        mobilePrimaryNav.length > 0 ? (
+          <>
+            {mobilePrimaryNav.map((item) => {
+              const active =
+                item.href === "/dashboard" ? pathname === "/dashboard" : pathname === item.href || pathname.startsWith(`${item.href}/`);
+              const Icon = item.icon;
+
+              return (
+                <Button
+                  key={item.href}
+                  component={Link}
+                  href={item.href}
+                  variant="subtle"
+                  color={active ? "kidex" : "gray"}
+                  radius={0}
+                  h="100%"
+                  fullWidth
+                  style={{ flexDirection: "column", gap: 2 }}
+                >
+                  <Icon size={18} />
+                  <Text size="sm" fw={active ? 700 : 500} lh={1.1}>
+                    {item.label}
+                  </Text>
+                </Button>
+              );
+            })}
+          </>
+        ) : undefined
+      }
+    >
+      <Box
+        className="dashboard-main"
+        style={{
+          minHeight: "100vh",
+          display: "flex",
+          flexDirection: "column",
+          paddingBottom: mobilePrimaryNav.length > 0 ? 88 : 16,
         }}
       >
-        {mobileSecondaryDrawer}
-      </Drawer>
-
-      <AppShell
-        headerHeight={60}
-        footerHeight={72}
-        navbarWidth={KIDEX_SHELL_LAYOUT.navbarWidth}
-        header={
-          <Group h="100%" px="md" justify="space-between" wrap="nowrap">
-            <Stack gap={0}>
-              <Text size="sm" c="dimmed" tt="uppercase" fw={700} hiddenFrom="sm">
-                KIDEX
-              </Text>
-              <Text fw={700} size="sm">
-                {activeNavLabel}
-              </Text>
-            </Stack>
-
-            <Group gap="xs" wrap="nowrap">
-              <Group hiddenFrom="md" gap={6}>
-                <LocaleSwitcher />
-                <ThemeSwitcher />
-              </Group>
-              <ActionIcon
-                variant="light"
-                color="gray"
-                size="lg"
-                hiddenFrom="md"
-                onClick={() => setMobileMenuOpen((open) => !open)}
-                aria-label={tc("actions")}
-              >
-                <IconMenu2 size={18} />
-              </ActionIcon>
-            </Group>
-          </Group>
-        }
-        navbar={
-          <Box visibleFrom="md" className="no-print" h="100%">
-            {desktopNavContent}
-          </Box>
-        }
-        footer={
-          mobilePrimaryNav.length > 0 ? (
-            <Box hiddenFrom="md" className="no-print" h="100%" w="100%">
-              <Group grow gap={0} h="100%" wrap="nowrap">
-                {mobilePrimaryNav.map((item) => {
-                  const active =
-                    item.href === "/dashboard" ? pathname === "/dashboard" : pathname === item.href || pathname.startsWith(`${item.href}/`);
-                  const Icon = item.icon;
-
-                  return (
-                    <Button
-                      key={item.href}
-                      component={Link}
-                      href={item.href}
-                      variant="subtle"
-                      color={active ? "kidex" : "gray"}
-                      radius={0}
-                      h="100%"
-                      fullWidth
-                      style={{ flexDirection: "column", gap: 2 }}
-                    >
-                      <Icon size={18} />
-                      <Text size="sm" fw={active ? 700 : 500} lh={1.1}>
-                        {item.label}
-                      </Text>
-                    </Button>
-                  );
-                })}
-              </Group>
-            </Box>
-          ) : null
-        }
-      >
-          <Box
-            className="dashboard-main"
-            style={{
-              minHeight: "100vh",
-              display: "flex",
-              flexDirection: "column",
-              paddingBottom: mobilePrimaryNav.length > 0 ? 88 : 16,
-            }}
-          >
-            <Box style={{ flex: 1 }}>
-              <PageContainer>
-                {!userLoaded || !routeAllowed ? <LoadingState label={tc("loading")} /> : children}
-              </PageContainer>
-            </Box>
-            <AppFooter />
-          </Box>
-      </AppShell>
-    </>
+        <Box style={{ flex: 1 }}>
+          <PageContainer>
+            {!userLoaded || !routeAllowed ? <LoadingState label={tc("loading")} /> : children}
+          </PageContainer>
+        </Box>
+        <AppFooter />
+      </Box>
+    </AppShell>
   );
 }

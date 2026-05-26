@@ -25,15 +25,13 @@ import {
   RadarChart,
   ResponsiveContainer,
 } from "recharts";
-import { ErrorState } from "@/components/ui/ErrorState";
-import { LoadingState } from "@/components/ui/LoadingState";
 import { PageHeader } from "@/components/gds-local/admin";
+import { ErrorState, LoadingState, SectionCard } from "@/components/gds-local/core";
 import { rapidSections } from "@/lib/kidex-schema";
 import { getDomainMainColor, type AssessmentDomain } from "@/lib/domain-colors";
 import { sectionsForMode } from "@/lib/kidex-schema";
 import { getStandardForAssessment } from "@/lib/standards";
 import { formatScore } from "@/lib/utils";
-import { SectionCard } from "@/components/ui/SectionCard";
 import { ReadinessGauge } from "@/components/analytics/ReadinessGauge";
 import { MaturityRadarChart } from "@/components/analytics/MaturityRadarChart";
 import { buildSupportWorkspaceSummary, type ChildSupportWorkspace } from "@/lib/support-workspace";

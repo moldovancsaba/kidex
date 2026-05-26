@@ -2,8 +2,11 @@ import { NextIntlClientProvider } from "next-intl";
 import { cookies } from "next/headers";
 import { getMessages } from "next-intl/server";
 import { Noto_Sans, Noto_Sans_Arabic } from "next/font/google";
-import { ThemeRegistry } from "@/components/theme/ThemeRegistry";
-import { CookieConsentBanner } from "@/components/ui/CookieConsentBanner";
+import { ColorSchemeScript } from "@mantine/core";
+import { getGdsMessages } from "@doneisbetter/gds-core/server";
+import { Providers } from "@/app/providers";
+import { CookieConsentBanner } from "@/components/consent/CookieConsentBanner";
+import { getKidexMantineTheme } from "@/theme/mantine-theme";
 import "@mantine/core/styles.css";
 import "@mantine/notifications/styles.css";
 import "../globals.css";
@@ -33,15 +36,20 @@ export default async function LocaleLayout({
   const cookieStore = await cookies();
   const themeCookie = cookieStore.get("kidex_theme")?.value;
   const initialMode = themeCookie === "dark" || themeCookie === "light" ? themeCookie : undefined;
+  const gdsMessages = getGdsMessages(locale);
+  const theme = getKidexMantineTheme(direction);
 
   return (
     <html lang={locale} dir={direction}>
+      <head>
+        <ColorSchemeScript defaultColorScheme={initialMode ?? "light"} />
+      </head>
       <body dir={direction} className={`${notoSans.variable} ${notoSansArabic.variable}`}>
         <NextIntlClientProvider locale={locale} messages={messages}>
-          <ThemeRegistry initialMode={initialMode}>
+          <Providers locale={locale} gdsMessages={gdsMessages} theme={theme} defaultColorScheme={initialMode}>
             {children}
             <CookieConsentBanner />
-          </ThemeRegistry>
+          </Providers>
         </NextIntlClientProvider>
       </body>
     </html>

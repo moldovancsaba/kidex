@@ -4,8 +4,8 @@ import { useEffect, useState } from "react";
 import { Button, Stack, Text } from "@mantine/core";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
-import { PageHeader } from "@/components/ui/PageHeader";
-import { SectionCard } from "@/components/ui/SectionCard";
+import { PageHeader } from "@/components/gds-local/admin";
+import { SectionCard } from "@/components/gds-local/core";
 import { APP_VERSION } from "@/lib/app-version";
 import { DEFAULT_KIDEX_SETTINGS, getSettings, type KidexSettings } from "@/services/settings-service";
 

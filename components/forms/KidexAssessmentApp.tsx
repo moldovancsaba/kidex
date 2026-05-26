@@ -31,12 +31,8 @@ import { calculateAgeGroup } from "@/lib/utils/age";
 import { getStandardForAgeGroup } from "@/lib/standards";
 import { formatScore } from "@/lib/utils";
 
-import { PageHeader } from "@/components/ui/PageHeader";
-import { LoadingState } from "@/components/ui/LoadingState";
-import { MetricCard } from "@/components/ui/MetricCard";
-import { SearchableSelect } from "@/components/ui/SearchableSelect";
-import { SectionCard } from "@/components/ui/SectionCard";
-import { EditorScaffold, FormSection } from "@/components/gds-local/admin";
+import { EditorScaffold, FormSection, PageHeader } from "@/components/gds-local/admin";
+import { LoadingState, MetricCard, SearchableSelect, SectionCard } from "@/components/gds-local/core";
 import { getSettings, saveSettings } from "@/services/settings-service";
 import { getConductors, getObservers } from "@/services/user-service";
 import type { AssessmentPayload, AssessmentRecord, EvidenceAttachment, ScoreEntry } from "@/types/assessment";
@@ -873,7 +869,7 @@ export function KidexAssessmentApp() {
               style={{ width: "100%", height: "auto", border: "1px solid var(--mantine-color-default-border)", borderRadius: "var(--mantine-radius-md)" }}
             />
           ) : (
-            <Box style={{ width: "100%", aspectRatio: "4/3", background: "#000", borderRadius: "var(--mantine-radius-md)", overflow: "hidden" }}>
+            <Box style={{ width: "100%", aspectRatio: "4/3", background: "var(--mantine-color-dark-9)", borderRadius: "var(--mantine-radius-md)", overflow: "hidden" }}>
               <video
                 ref={videoRef}
                 autoPlay

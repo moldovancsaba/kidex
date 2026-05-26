@@ -1,9 +1,11 @@
 import nextVitals from "eslint-config-next/core-web-vitals";
 import nextTypescript from "eslint-config-next/typescript";
+import { createGdsConfig } from "@doneisbetter/gds-eslint-config";
 
 export default [
   ...nextVitals,
   ...nextTypescript,
+  ...createGdsConfig(),
   {
     files: ["app/**/*.{ts,tsx}", "components/**/*.{ts,tsx}"],
     rules: {
