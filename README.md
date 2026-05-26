@@ -19,6 +19,7 @@ KIDEX currently includes:
 - mobile child-registry filter drawer and follow-up triage shortcuts
 - mobile survey save bar and faster resume context
 - assessment draft persistence and explicit resume/discard recovery
+- shell-level child quick switch with recent items, latest-record jumps, and follow-up shortcuts
 - detail-page reassessment and consent status headers
 - development plans, caregiver tools, coach guidance, and micro-learning
 - family-safe and professional PDF reports

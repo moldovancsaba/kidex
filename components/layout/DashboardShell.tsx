@@ -3,6 +3,7 @@
 import {
   Box,
   Button,
+  Group,
   NavLink,
   Stack,
   Text,
@@ -14,6 +15,7 @@ import { useTranslations } from "next-intl";
 import { Link, usePathname, useRouter } from "@/i18n/navigation";
 import { LoadingState, PageContainer } from "@/components/gds-local/core";
 import { AppFooter } from "@/components/layout/AppFooter";
+import { GlobalChildQuickSwitch } from "@/components/layout/GlobalChildQuickSwitch";
 import { LocaleSwitcher } from "@/components/preferences/LocaleSwitcher";
 import { requiredActionForDashboardPath } from "@/lib/dashboard-access";
 import { canPerformAction } from "@/lib/permissions";
@@ -119,7 +121,12 @@ export default function DashboardShell({ children }: { children: React.ReactNode
     <AppShell
       logoText="KIDEX"
       headerContext={activeNavLabel}
-      headerActions={<LocaleSwitcher />}
+      headerActions={
+        <Group gap="xs" wrap="nowrap">
+          {canPerformAction(roles, "children.read") ? <GlobalChildQuickSwitch roles={roles} /> : null}
+          <LocaleSwitcher />
+        </Group>
+      }
       primaryNavigation={<Stack gap="xs">{renderNavLinks(mobilePrimaryNav.length > 0 ? mobilePrimaryNav : nav)}</Stack>}
       secondaryNavigation={secondaryNav.length > 0 ? <Stack gap="xs">{renderNavLinks(secondaryNav)}</Stack> : undefined}
       accountPanel={userBlock}

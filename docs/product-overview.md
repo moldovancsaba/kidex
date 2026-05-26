@@ -24,6 +24,7 @@ Practitioners work from centralized child profiles that include:
 - consent policy
 - institution ownership and visibility
 - mobile filter-drawer triage, active-filter badges, and quick follow-up shortcuts
+- shell-level quick switch for jumping to child detail, latest record, or follow-up context
 
 Primary surface:
 
@@ -191,6 +192,15 @@ The assessment workflow now protects interrupted survey work with local draft pe
 - Resume/discard decisions are explicit when a recoverable draft exists.
 - Drafts are version-guarded and stale drafts are flagged before reuse.
 - Final assessment save clears the matching local draft so draft state is not confused with submitted data.
+
+## Global child quick switch
+
+The authenticated shell now provides a global child search and quick-switch flow.
+
+- It uses the existing permission-safe child registry metrics feed.
+- Results are ranked by child identity match, recency, and follow-up urgency.
+- Conductors can jump directly to child detail, latest record, follow-up context, or a new survey for the selected child.
+- Recent child shortcuts are stored locally in the browser for faster repeat navigation.
 
 ## Source documents
 

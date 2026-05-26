@@ -17,6 +17,7 @@ KIDEX is now a conductor-facing child assessment and development-intelligence pl
 - progress comparison and plan-effectiveness explanation
 - next-session focus recommendations for conductors
 - local draft persistence and explicit resume/discard recovery for interrupted assessments
+- shell-level child quick switch with recent items, latest-record jumps, and follow-up shortcuts
 - reassessment cadence, next-review due dates, and overdue follow-up visibility
 - anonymous culture/trust pulse launches with protected aggregation
 - culture-index dashboard analytics across role and scope views
@@ -84,27 +85,19 @@ Current resolved local versions at the time of this handover:
 
 The latest completed code delivery on `origin/main` covered:
 
-- `#54` direct GDS package adoption
-- `#55` convergence from local parity adapters to shared GDS surfaces
-- repo compliance wiring with manifest, ESLint, and GDS compliance checks
+- `#61` local draft persistence and explicit resume/discard recovery for interrupted assessments
+- `#62` shell-level child quick switch with recent items, latest record jumps, and follow-up routing
+- repo compliance wiring remains active through the direct `@doneisbetter/*` GDS package line
 
 Main implementation files for the latest UI slice:
 
-- [app/providers.tsx](/Users/Shared/Projects/kidex/app/providers.tsx)
-- [app/[locale]/layout.tsx](/Users/Shared/Projects/kidex/app/%5Blocale%5D/layout.tsx)
-- [theme/mantine-theme.ts](/Users/Shared/Projects/kidex/theme/mantine-theme.ts)
-- [components/gds-local/core/index.ts](/Users/Shared/Projects/kidex/components/gds-local/core/index.ts)
-- [components/gds-local/admin/index.ts](/Users/Shared/Projects/kidex/components/gds-local/admin/index.ts)
 - [components/layout/DashboardShell.tsx](/Users/Shared/Projects/kidex/components/layout/DashboardShell.tsx)
-- [components/dashboard/MainDashboard.tsx](/Users/Shared/Projects/kidex/components/dashboard/MainDashboard.tsx)
-- [app/[locale]/dashboard/children/page.tsx](/Users/Shared/Projects/kidex/app/%5Blocale%5D/dashboard/children/page.tsx)
-- [app/[locale]/dashboard/children/[id]/page.tsx](/Users/Shared/Projects/kidex/app/%5Blocale%5D/dashboard/children/%5Bid%5D/page.tsx)
-- [app/[locale]/dashboard/records/[id]/page.tsx](/Users/Shared/Projects/kidex/app/%5Blocale%5D/dashboard/records/%5Bid%5D/page.tsx)
-- [app/[locale]/dashboard/records/page.tsx](/Users/Shared/Projects/kidex/app/%5Blocale%5D/dashboard/records/page.tsx)
+- [components/layout/GlobalChildQuickSwitch.tsx](/Users/Shared/Projects/kidex/components/layout/GlobalChildQuickSwitch.tsx)
 - [components/forms/KidexAssessmentApp.tsx](/Users/Shared/Projects/kidex/components/forms/KidexAssessmentApp.tsx)
-- [gds-adoption.json](/Users/Shared/Projects/kidex/gds-adoption.json)
-- [docs/design-system.md](/Users/Shared/Projects/kidex/docs/design-system.md)
-- [docs/gds-compliance-checklist.md](/Users/Shared/Projects/kidex/docs/gds-compliance-checklist.md)
+- [lib/assessment-drafts.ts](/Users/Shared/Projects/kidex/lib/assessment-drafts.ts)
+- [lib/child-quick-switch.ts](/Users/Shared/Projects/kidex/lib/child-quick-switch.ts)
+- [docs/api.md](/Users/Shared/Projects/kidex/docs/api.md)
+- [docs/product-overview.md](/Users/Shared/Projects/kidex/docs/product-overview.md)
 
 Verification passed for that slice:
 
@@ -117,7 +110,7 @@ Verification passed for that slice:
 
 Latest pushed commit on `origin/main` before the current local work:
 
-- `376cb44` `Track local waiting issues before GDS unblock`
+- `dd29f5c` `Add assessment draft recovery`
 
 Branch state:
 
@@ -138,15 +131,17 @@ Branch state:
 - `#60` — `Done` after current sync
 - `#54` — `Done`
 - `#55` — `Done`
+- `#61` — `Done`
+- `#62` — `Done`
+- `#63` — `Todo (NEXT)`
 
 ## Recommended Next Work
 
 Current next execution order:
 
-1. [#62](https://github.com/moldovancsaba/kidex/issues/62)
-2. [#63](https://github.com/moldovancsaba/kidex/issues/63)
-3. [#64](https://github.com/moldovancsaba/kidex/issues/64)
-4. [#65](https://github.com/moldovancsaba/kidex/issues/65)
+1. [#63](https://github.com/moldovancsaba/kidex/issues/63)
+2. [#64](https://github.com/moldovancsaba/kidex/issues/64)
+3. [#65](https://github.com/moldovancsaba/kidex/issues/65)
 
 For UI work, continue using:
 

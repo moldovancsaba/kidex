@@ -102,6 +102,7 @@ Validation is centralized in [`lib/validations.ts`](../lib/validations.ts).
 
 - `GET /api/children`
   - Lists visible child profiles.
+  - `?metrics=true` returns child registry metrics that also power the shell quick-switch workflow.
   - Can backfill from historical assessments if needed.
   - Roles: `admin`, `conductor`, `observer`
 - `POST /api/children`
