@@ -282,6 +282,28 @@ This lifecycle is surfaced in:
 - governance export actions in settings
 
 Blocked states are used when policy prevents export, such as missing active `familyReport` or `dataSharing` consent.
+
+## Weak-network buffering behavior
+
+The first buffered local-sync increment keeps the existing APIs as the source of truth and does not introduce new server endpoints.
+
+Buffered write paths currently include:
+
+- assessment save requests
+- `POST /api/children/:id/plan`
+- `POST /api/children/:id/communications`
+
+Client behavior:
+
+- transient network or retryable server failures queue the write locally
+- queued writes retry automatically when the browser is online again
+- the UI exposes pending, retrying, retryable-failure, and conflict states
+- manual retry and discard remain explicit for buffered items
+
+Server behavior remains unchanged:
+
+- the existing endpoints are still authoritative
+- validation, permission checks, and audit behavior continue to run on the eventual synced request
 - development-plan and support-workspace linkage
 
 ## Draft persistence behavior

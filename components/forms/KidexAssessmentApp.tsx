@@ -1,6 +1,6 @@
 "use client";
 
-import { ChangeEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ChangeEvent, startTransition, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Alert,
   Anchor,
@@ -46,9 +46,12 @@ import { computeAssessment } from "@/lib/scoring";
 import { calculateAgeGroup } from "@/lib/utils/age";
 import { getStandardForAgeGroup } from "@/lib/standards";
 import { formatScore } from "@/lib/utils";
+import { buildSyncQueueOperation, isRetryableSyncResponseStatus, readSyncQueueFromStorage, removeSyncQueueOperationByKey, upsertSyncQueueOperation, writeSyncQueueToStorage } from "@/lib/offline-sync";
 
 import { EditorScaffold, FormSection, PageHeader } from "@/components/gds-local/admin";
 import { LoadingState, MetricCard, SearchableSelect, SectionCard } from "@/components/gds-local/core";
+import { SyncStatusNotice } from "@/components/sync/SyncStatusNotice";
+import { useSyncQueueOperations } from "@/components/sync/useSyncQueue";
 import { getSettings, saveSettings } from "@/services/settings-service";
 import { getConductors, getObservers } from "@/services/user-service";
 import type { AssessmentPayload, AssessmentRecord, EvidenceAttachment, ScoreEntry } from "@/types/assessment";
@@ -207,12 +210,25 @@ export function KidexAssessmentApp() {
   const computed = useMemo(() => computeAssessment(assessment), [assessment]);
   const consistencySummary = useMemo(() => buildAssessmentConsistencySummary(assessment, sections, ts), [assessment, sections, ts]);
   const standard = getStandardForAgeGroup(assessment.child.ageGroup);
+  const assessmentSyncOperationKey = useMemo(() => {
+    if (recordId) return `assessment-save:record:${recordId}`;
+    if (activeDraftId) return `assessment-save:draft:${activeDraftId}`;
+    if (childIdParam) return `assessment-save:child:${childIdParam}`;
+    return "assessment-save:new";
+  }, [activeDraftId, childIdParam, recordId]);
   const conductorOptions = useMemo(() => conductors.map((name) => ({ id: name, name })), [conductors]);
   const observerOptions = useMemo(() => observers.map((name) => ({ id: name, name })), [observers]);
   const locationOptions = useMemo(() => locations.map((name) => ({ id: name, name })), [locations]);
   const selectedChild = useMemo(() => children.find((child) => child._id === assessment.childId) || null, [assessment.childId, children]);
   const theme = useMantineTheme();
   const mobileLayout = useMediaQuery(`(max-width: ${theme.breakpoints.sm})`);
+  const {
+    operations: assessmentSyncOperations,
+    lastResults: syncResults,
+    retry: retrySyncQueue,
+    discard: discardSyncOperation,
+  } = useSyncQueueOperations((operation) => operation.operationKey === assessmentSyncOperationKey);
+  const activeAssessmentSyncOperation = assessmentSyncOperations[0] || null;
 
   useEffect(() => {
     assessmentRef.current = assessment;
@@ -373,6 +389,39 @@ export function KidexAssessmentApp() {
       setDraftSaveMessage("");
     }
   }
+
+  useEffect(() => {
+    if (!syncResults.length) return;
+    const syncedAssessmentResult = syncResults.find(
+      (result) => result.operationKey === assessmentSyncOperationKey && result.kind === "assessment_save" && result.outcome === "synced",
+    );
+    if (!syncedAssessmentResult) return;
+
+    const payload = syncedAssessmentResult.responseBody as { assessment?: AssessmentRecord } | null;
+    if (payload?.assessment?._id) {
+      startTransition(() => {
+        setRecordId(payload.assessment!._id || "");
+        setActiveDraftId(null);
+        setDraftSavedAt(null);
+        setDraftTouched(false);
+        setDraftSaveState("idle");
+        setDraftSaveMessage("");
+        setSaveState("saved");
+        setMessage("Assessment synced successfully after local buffering.");
+      });
+      if (typeof window !== "undefined") {
+        const nextDrafts = removeAssessmentDraftByContext(loadStoredDrafts(), {
+          conductorId: draftOwnerId,
+          locale,
+          routeChildId: childIdParam,
+          routeRecordId: payload.assessment._id,
+          payloadChildId: payload.assessment.childId,
+          payloadRecordId: payload.assessment._id,
+        });
+        localStorage.setItem(ASSESSMENT_DRAFT_STORAGE_KEY, serializeAssessmentDrafts(nextDrafts));
+      }
+    }
+  }, [assessmentSyncOperationKey, childIdParam, draftOwnerId, locale, syncResults]);
 
   useEffect(() => {
     if (!draftOwnerReady || hydratingRecord || !childPrefillResolved || draftCheckCompleteRef.current) {
@@ -602,6 +651,100 @@ export function KidexAssessmentApp() {
       return null;
     });
 
+    if (!response) {
+      const draftId = activeDraftId || crypto.randomUUID();
+      const storedDrafts = loadStoredDrafts();
+      const draft = buildAssessmentDraftRecord({
+        draftId,
+        payload: assessment,
+        conductorId: draftOwnerId,
+        locale,
+        routeChildId: childIdParam,
+        routeRecordId: idParam || recordId,
+        payloadRecordId: recordId,
+        syncState: "local_only",
+      });
+      const nextDrafts = upsertAssessmentDraft(removeAssessmentDraftById(storedDrafts, activeDraftId), draft);
+      localStorage.setItem(ASSESSMENT_DRAFT_STORAGE_KEY, serializeAssessmentDrafts(nextDrafts));
+      setActiveDraftId(draftId);
+      setDraftSavedAt(draft.lastEditedAt);
+      setDraftTouched(false);
+      setDraftSaveState("saved");
+      setDraftSaveMessage(t("draftSavedNow"));
+
+      const operationKey = recordId
+        ? `assessment-save:record:${recordId}`
+        : `assessment-save:draft:${draftId}`;
+      const queue = upsertSyncQueueOperation(
+        readSyncQueueFromStorage(),
+        buildSyncQueueOperation({
+          operationKey,
+          kind: "assessment_save",
+          endpoint: url,
+          method: recordId ? "PATCH" : "POST",
+          body: assessment,
+          summary: "Assessment saved locally and will sync automatically when the network returns.",
+          metadata: {
+            childId: assessment.childId,
+            recordId: recordId || undefined,
+            draftId,
+            createdAt: new Date().toISOString(),
+          },
+        }),
+      );
+      writeSyncQueueToStorage(queue);
+      setSaveState("saved");
+      setMessage("Assessment saved locally. It will sync automatically when the connection returns.");
+      return;
+    }
+
+    if (response && !response.ok && isRetryableSyncResponseStatus(response.status)) {
+      const draftId = activeDraftId || crypto.randomUUID();
+      const storedDrafts = loadStoredDrafts();
+      const draft = buildAssessmentDraftRecord({
+        draftId,
+        payload: assessment,
+        conductorId: draftOwnerId,
+        locale,
+        routeChildId: childIdParam,
+        routeRecordId: idParam || recordId,
+        payloadRecordId: recordId,
+        syncState: "local_only",
+      });
+      const nextDrafts = upsertAssessmentDraft(removeAssessmentDraftById(storedDrafts, activeDraftId), draft);
+      localStorage.setItem(ASSESSMENT_DRAFT_STORAGE_KEY, serializeAssessmentDrafts(nextDrafts));
+      setActiveDraftId(draftId);
+      setDraftSavedAt(draft.lastEditedAt);
+      setDraftTouched(false);
+      setDraftSaveState("saved");
+      setDraftSaveMessage(t("draftSavedNow"));
+
+      const operationKey = recordId
+        ? `assessment-save:record:${recordId}`
+        : `assessment-save:draft:${draftId}`;
+      const queue = upsertSyncQueueOperation(
+        readSyncQueueFromStorage(),
+        buildSyncQueueOperation({
+          operationKey,
+          kind: "assessment_save",
+          endpoint: url,
+          method: recordId ? "PATCH" : "POST",
+          body: assessment,
+          summary: "Assessment saved locally after a transient server failure and will retry automatically.",
+          metadata: {
+            childId: assessment.childId,
+            recordId: recordId || undefined,
+            draftId,
+            createdAt: new Date().toISOString(),
+          },
+        }),
+      );
+      writeSyncQueueToStorage(queue);
+      setSaveState("saved");
+      setMessage("Assessment saved locally after a transient server error. It will retry automatically.");
+      return;
+    }
+
     if (!response?.ok) {
       setSaveState("error");
       const err = response ? await parseApiError(response) : null;
@@ -611,6 +754,7 @@ export function KidexAssessmentApp() {
 
     const data = (await response.json()) as { assessment: AssessmentRecord };
     setRecordId(data.assessment._id || "");
+    writeSyncQueueToStorage(removeSyncQueueOperationByKey(readSyncQueueFromStorage(), assessmentSyncOperationKey));
     setSaveState("saved");
     if (typeof window !== "undefined") {
       const nextDrafts = removeAssessmentDraftByContext(loadStoredDrafts(), {
@@ -801,7 +945,7 @@ export function KidexAssessmentApp() {
     <EditorScaffold
       header={
         <Stack gap="xl">
-          <PageHeader
+      <PageHeader
             title={t("appTitle")}
             subtitle={t("appSubtitle")}
             actions={
@@ -819,7 +963,15 @@ export function KidexAssessmentApp() {
                 </Button>
               </Group>
             }
-          />
+      />
+
+      {activeAssessmentSyncOperation ? (
+        <SyncStatusNotice
+          operation={activeAssessmentSyncOperation}
+          onRetry={() => void retrySyncQueue((operation) => operation.operationKey === activeAssessmentSyncOperation.operationKey)}
+          onDiscard={() => discardSyncOperation(activeAssessmentSyncOperation.operationId)}
+        />
+      ) : null}
 
           {recordId ? (
             <Alert color="kidex" variant="light" title={t("resumeSurveyTitle")}>

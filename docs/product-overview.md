@@ -44,6 +44,7 @@ The assessment flow supports:
 - evidence attachments
 - mobile sticky save/setup actions
 - clearer selected-child resume context
+- queued assessment sync recovery when final save cannot reach the server
 
 Primary surface:
 
@@ -82,6 +83,7 @@ Each child can carry operational follow-through data:
 - referrals
 - evidence journal
 - queue-based reassessment action center for overdue, due-soon, missing-date, and blocked follow-up work
+- weak-network-safe plan and follow-up-note buffering with retry/discard recovery
 
 Primary surface:
 
@@ -119,6 +121,16 @@ The settings and governance stack includes:
 Primary surface:
 
 - `/{locale}/dashboard/settings`
+
+### 7. Weak-network protection
+
+KIDEX now fails soft under unstable connectivity for selected write-critical workflows.
+
+- assessment submission stays recoverable through local draft persistence plus queued submission retry
+- development plan saves can remain pending locally until the server is reachable again
+- governed follow-up notes can queue locally and retry automatically
+- the authenticated shell exposes a pending-sync banner with retry visibility
+- conflict and retryable failure states are explicit instead of silently dropping work
 
 ## Current implemented modules
 

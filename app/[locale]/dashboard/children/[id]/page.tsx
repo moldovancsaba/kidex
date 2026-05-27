@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, use } from "react";
+import { startTransition, useEffect, useState, use } from "react";
 import { Alert, Badge, Box, Button, Checkbox, Group, Modal, MultiSelect, Paper, Select, SimpleGrid, Stack, Table, Text, TextInput, Textarea, useMantineTheme } from "@mantine/core";
 import Image from "next/image";
 import { useTranslations } from "next-intl";
@@ -9,6 +9,8 @@ import { PolarAngleAxis, PolarGrid, PolarRadiusAxis, Radar, RadarChart, Responsi
 import { PageHeader } from "@/components/gds-local/admin";
 import { ErrorState, LoadingState, SectionCard } from "@/components/gds-local/core";
 import { ExportStatusNotice } from "@/components/reports/ExportStatusNotice";
+import { SyncStatusNotice } from "@/components/sync/SyncStatusNotice";
+import { useSyncQueueOperations } from "@/components/sync/useSyncQueue";
 import { buildChildStateSummary } from "@/lib/child-state-summary";
 import { buildFamilyFriendlyReportSummary } from "@/lib/family-report";
 import { buildProgressComparisonSummary } from "@/lib/progress-comparison";
@@ -31,6 +33,7 @@ import { buildSessionFocusPriorities } from "@/lib/session-focus";
 import { buildSuggestedDevelopmentPlan, type DevelopmentPlan } from "@/lib/development-plans";
 import { getConsentAlerts, hasActiveConsent } from "@/lib/consent-policy";
 import { getStandardForAssessment } from "@/lib/standards";
+import { buildSyncQueueOperation, isRetryableSyncResponseStatus, parseSyncQueueOperationBody, readSyncQueueFromStorage, removeSyncQueueOperationByKey, upsertSyncQueueOperation, writeSyncQueueToStorage } from "@/lib/offline-sync";
 import type { CommunicationLogEntry } from "@/repositories/communication.repository";
 import type { AssessmentRecord } from "@/types/assessment";
 import type { ChildProfile } from "@/repositories/child.repository";
@@ -94,6 +97,15 @@ export default function ChildHistoryPage({ params }: { params: Promise<{ id: str
     attachmentUrl: "",
     mediaType: "link" as EvidenceMediaType,
   });
+  const planSyncOperationKey = `plan-save:${id}`;
+  const {
+    operations: childSyncOperations,
+    lastResults: childSyncResults,
+    retry: retryChildSync,
+    discard: discardChildSync,
+  } = useSyncQueueOperations((operation) => operation.metadata?.childId === id && (operation.kind === "plan_save" || operation.kind === "follow_up_note"));
+  const pendingPlanOperation = childSyncOperations.find((operation) => operation.kind === "plan_save") || null;
+  const pendingCommunicationOperations = childSyncOperations.filter((operation) => operation.kind === "follow_up_note");
 
   useEffect(() => {
     Promise.all([
@@ -115,6 +127,45 @@ export default function ChildHistoryPage({ params }: { params: Promise<{ id: str
       })
       .finally(() => setLoading(false));
   }, [id]);
+
+  useEffect(() => {
+    if (!pendingPlanOperation) return;
+    const queuedPlan = parseSyncQueueOperationBody<DevelopmentPlan>(pendingPlanOperation);
+    if (queuedPlan) {
+      startTransition(() => {
+        setPlan(queuedPlan);
+      });
+    }
+  }, [pendingPlanOperation]);
+
+  useEffect(() => {
+    if (!childSyncResults.length) return;
+
+    const syncedPlan = childSyncResults.find(
+      (result) => result.kind === "plan_save" && result.metadata?.childId === id && result.outcome === "synced",
+    );
+    if (syncedPlan) {
+      const payload = syncedPlan.responseBody as { plan?: DevelopmentPlan } | null;
+      if (payload?.plan) {
+        startTransition(() => {
+          setPlan(payload.plan || null);
+        });
+      }
+    }
+
+    const syncedCommunications = childSyncResults
+      .filter((result) => result.kind === "follow_up_note" && result.metadata?.childId === id && result.outcome === "synced")
+      .map((result) => (result.responseBody as { communication?: CommunicationLogEntry } | null)?.communication)
+      .filter((communication): communication is CommunicationLogEntry => Boolean(communication));
+    if (syncedCommunications.length > 0) {
+      startTransition(() => {
+        setCommunications((current) => {
+          const seen = new Set(current.map((entry) => entry._id));
+          return [...syncedCommunications.filter((entry) => !seen.has(entry._id)), ...current];
+        });
+      });
+    }
+  }, [childSyncResults, id]);
 
   const canWriteAssessments = canPerformAction(roles, "assessments.write");
   const canWritePlans = canPerformAction(roles, "children.write");
@@ -237,6 +288,22 @@ export default function ChildHistoryPage({ params }: { params: Promise<{ id: str
     setDeletingSurvey(true);
     const response = await fetch(`/api/assessments/${data.assessments[0]._id}`, { method: "DELETE" }).catch(() => null);
     setDeletingSurvey(false);
+    if (response && !response.ok && isRetryableSyncResponseStatus(response.status)) {
+      const queue = upsertSyncQueueOperation(
+        readSyncQueueFromStorage(),
+        buildSyncQueueOperation({
+          operationKey: planSyncOperationKey,
+          kind: "plan_save",
+          endpoint: `/api/children/${id}/plan`,
+          method: "POST",
+          body: plan,
+          summary: "The development plan is saved locally after a transient server failure and waiting to sync.",
+          metadata: { childId: id },
+        }),
+      );
+      writeSyncQueueToStorage(queue);
+      return;
+    }
     if (!response?.ok) return;
     setData((current) => current ? { ...current, assessments: current.assessments.slice(1) } : current);
     setDeleteModalOpen(false);
@@ -352,9 +419,26 @@ export default function ChildHistoryPage({ params }: { params: Promise<{ id: str
       body: JSON.stringify(plan),
     }).catch(() => null);
     setSavingPlan(false);
+    if (!response) {
+      const queue = upsertSyncQueueOperation(
+        readSyncQueueFromStorage(),
+        buildSyncQueueOperation({
+          operationKey: planSyncOperationKey,
+          kind: "plan_save",
+          endpoint: `/api/children/${id}/plan`,
+          method: "POST",
+          body: plan,
+          summary: "The development plan is saved locally and waiting to sync.",
+          metadata: { childId: id },
+        }),
+      );
+      writeSyncQueueToStorage(queue);
+      return;
+    }
     if (!response?.ok) return;
     const payload = await response.json();
     setPlan(payload.plan || plan);
+    writeSyncQueueToStorage(removeSyncQueueOperationByKey(readSyncQueueFromStorage(), planSyncOperationKey));
   }
 
   async function saveSupport() {
@@ -558,6 +642,11 @@ export default function ChildHistoryPage({ params }: { params: Promise<{ id: str
   async function sendCommunication() {
     if (!communicationSubject.trim() || !communicationBody.trim()) return;
     setSendingCommunication(true);
+    const selectedCaregiverNames = caregiverOptions
+      .filter((caregiver) => communicationCaregiverIds.includes(caregiver.value))
+      .map((caregiver) => caregiver.label);
+    const draftCreatedAt = new Date().toISOString();
+    const queuedFollowUpOperationKey = `follow-up-note:${id}:${draftCreatedAt}`;
     const response = await fetch(`/api/children/${id}/communications`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -569,6 +658,38 @@ export default function ChildHistoryPage({ params }: { params: Promise<{ id: str
       }),
     }).catch(() => null);
     setSendingCommunication(false);
+    if (!response) {
+      const queue = upsertSyncQueueOperation(
+        readSyncQueueFromStorage(),
+        buildSyncQueueOperation({
+          operationKey: queuedFollowUpOperationKey,
+          kind: "follow_up_note",
+          endpoint: `/api/children/${id}/communications`,
+          method: "POST",
+          body: {
+            category: communicationCategory,
+            subject: communicationSubject,
+            body: communicationBody,
+            caregiverIds: communicationCaregiverIds,
+          },
+          summary: `Communication note “${communicationSubject.trim()}” is saved locally and waiting to sync.`,
+          metadata: {
+            childId: id,
+            category: communicationCategory,
+            subject: communicationSubject.trim(),
+            caregiverIds: communicationCaregiverIds,
+            caregiverNames: selectedCaregiverNames,
+            createdAt: draftCreatedAt,
+          },
+        }),
+      );
+      writeSyncQueueToStorage(queue);
+      setCommunicationCategory("internal_note");
+      setCommunicationSubject("");
+      setCommunicationBody("");
+      setCommunicationCaregiverIds([]);
+      return;
+    }
     if (!response?.ok) return;
     const payload = await response.json();
     if (payload?.communication) {
@@ -751,7 +872,19 @@ export default function ChildHistoryPage({ params }: { params: Promise<{ id: str
               </Stack>
             </Paper>
           ) : null}
-          {communications.length === 0 ? (
+          {pendingCommunicationOperations.length > 0 ? (
+            <Stack gap="sm">
+              {pendingCommunicationOperations.map((operation) => (
+                <SyncStatusNotice
+                  key={operation.operationId}
+                  operation={operation}
+                  onRetry={() => void retryChildSync((entry) => entry.operationId === operation.operationId)}
+                  onDiscard={() => discardChildSync(operation.operationId)}
+                />
+              ))}
+            </Stack>
+          ) : null}
+          {communications.length === 0 && pendingCommunicationOperations.length === 0 ? (
             <Text size="sm" c="dimmed">No governed communication logged for this child yet.</Text>
           ) : (
             <Stack gap="sm">
@@ -1140,6 +1273,19 @@ export default function ChildHistoryPage({ params }: { params: Promise<{ id: str
           <Text c="dimmed">No development plan yet. Generate one from the current recommendation set to start structured follow-up.</Text>
         ) : (
           <Stack gap="md">
+            {pendingPlanOperation ? (
+              <SyncStatusNotice
+                operation={pendingPlanOperation}
+                onRetry={() => void retryChildSync((operation) => operation.operationKey === pendingPlanOperation.operationKey)}
+                onDiscard={() => {
+                  discardChildSync(pendingPlanOperation.operationId);
+                  void fetch(`/api/children/${id}/plan`)
+                    .then((response) => response.json())
+                    .then((payload) => setPlan(payload?.plan || null))
+                    .catch(() => {});
+                }}
+              />
+            ) : null}
             <Paper withBorder p="md">
               <Stack gap="sm">
                 <Text fw={700}>Plan summary</Text>

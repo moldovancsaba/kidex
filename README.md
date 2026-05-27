@@ -19,13 +19,16 @@ KIDEX currently includes:
 - mobile child-registry filter drawer and follow-up triage shortcuts
 - mobile survey save bar and faster resume context
 - assessment draft persistence and explicit resume/discard recovery
+- shell-level offline/pending-sync banner with automatic retry and manual recovery controls
 - shell-level child quick switch with recent items, latest-record jumps, and follow-up shortcuts
 - dedicated follow-up action center with blocker-aware reassessment triage
 - explicit export/report lifecycle states with retry, terminal-failure, and consent-block guidance across PDF and governance exports
+- offline-safe local sync queue for assessment submission, development plans, and follow-up notes
 - detail-page reassessment and consent status headers
 - development plans, caregiver tools, coach guidance, and micro-learning
 - family-safe and professional PDF reports
 - export status notices for professional reports, family reports, and governance bundles
+- local buffering for queued plan saves and governed follow-up notes during weak connectivity
 - consent governance for media, family reports, and data sharing
 - family-linked caregivers and public consent-review links
 - governed communication logs with caregiver visibility controls
@@ -153,3 +156,4 @@ If `KIDEX_ENFORCE_AUTH=false`, route protection is bypassed for local or bootstr
 - Consent state is enforced across uploads and report exports.
 - Sensitive mutations and exports are written to the persistent audit log.
 - Invite delivery can run in Gmail mode or mock mode depending on whether an admin has linked Google access.
+- Weak-network buffering currently protects assessment submission-adjacent state, development plan saves, and governed follow-up notes.

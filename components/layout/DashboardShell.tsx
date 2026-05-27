@@ -17,6 +17,7 @@ import { LoadingState, PageContainer } from "@/components/gds-local/core";
 import { AppFooter } from "@/components/layout/AppFooter";
 import { GlobalChildQuickSwitch } from "@/components/layout/GlobalChildQuickSwitch";
 import { LocaleSwitcher } from "@/components/preferences/LocaleSwitcher";
+import { SyncQueueBanner } from "@/components/sync/SyncQueueBanner";
 import { requiredActionForDashboardPath } from "@/lib/dashboard-access";
 import { canPerformAction } from "@/lib/permissions";
 import type { SupportedRuntimeRole } from "@/lib/roles";
@@ -175,6 +176,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
       >
         <Box style={{ flex: 1 }}>
           <PageContainer>
+            <SyncQueueBanner />
             {!userLoaded || !routeAllowed ? <LoadingState label={tc("loading")} /> : children}
           </PageContainer>
         </Box>
