@@ -25,6 +25,7 @@ Practitioners work from centralized child profiles that include:
 - institution ownership and visibility
 - mobile filter-drawer triage, active-filter badges, and quick follow-up shortcuts
 - shell-level quick switch for jumping to child detail, latest record, or follow-up context
+- dedicated follow-up action center for reassessment triage and blocked-item review
 
 Primary surface:
 
@@ -80,10 +81,12 @@ Each child can carry operational follow-through data:
 - micro-learning
 - referrals
 - evidence journal
+- queue-based reassessment action center for overdue, due-soon, missing-date, and blocked follow-up work
 
 Primary surface:
 
 - `/{locale}/dashboard/children/[id]`
+- `/{locale}/dashboard/follow-up`
 
 ### 5. Reporting layer
 

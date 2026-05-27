@@ -9,7 +9,7 @@ import {
   Text,
 } from "@mantine/core";
 import { AppShell } from "@doneisbetter/gds-admin/client";
-import { IconChecklist, IconLayoutDashboard, IconSettings, IconUsersGroup } from "@tabler/icons-react";
+import { IconChecklist, IconClockHour4, IconLayoutDashboard, IconSettings, IconUsersGroup } from "@tabler/icons-react";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Link, usePathname, useRouter } from "@/i18n/navigation";
@@ -56,6 +56,9 @@ export default function DashboardShell({ children }: { children: React.ReactNode
       { href: "/dashboard", label: t("overview"), icon: IconLayoutDashboard, mobilePrimary: true },
       ...(canPerformAction(roles, "children.read")
         ? [{ href: "/dashboard/children", label: t("children"), icon: IconUsersGroup, mobilePrimary: true }]
+        : []),
+      ...(canPerformAction(roles, "children.read")
+        ? [{ href: "/dashboard/follow-up", label: t("followUpCenter"), icon: IconClockHour4, mobilePrimary: false }]
         : []),
       ...(canPerformAction(roles, "assessments.write")
         ? [{ href: "/dashboard/assessment", label: t("survey"), icon: IconChecklist, mobilePrimary: true }]

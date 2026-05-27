@@ -18,6 +18,7 @@ KIDEX is now a conductor-facing child assessment and development-intelligence pl
 - next-session focus recommendations for conductors
 - local draft persistence and explicit resume/discard recovery for interrupted assessments
 - shell-level child quick switch with recent items, latest-record jumps, and follow-up shortcuts
+- dedicated follow-up action center with blocker-aware reassessment triage
 - reassessment cadence, next-review due dates, and overdue follow-up visibility
 - anonymous culture/trust pulse launches with protected aggregation
 - culture-index dashboard analytics across role and scope views
@@ -85,18 +86,15 @@ Current resolved local versions at the time of this handover:
 
 The latest completed code delivery on `origin/main` covered:
 
-- `#61` local draft persistence and explicit resume/discard recovery for interrupted assessments
-- `#62` shell-level child quick switch with recent items, latest record jumps, and follow-up routing
+- `#63` dedicated follow-up action center with blocker-aware reassessment triage
 - repo compliance wiring remains active through the direct `@doneisbetter/*` GDS package line
 
 Main implementation files for the latest UI slice:
 
+- [app/[locale]/dashboard/follow-up/page.tsx](/Users/Shared/Projects/kidex/app/%5Blocale%5D/dashboard/follow-up/page.tsx)
 - [components/layout/DashboardShell.tsx](/Users/Shared/Projects/kidex/components/layout/DashboardShell.tsx)
-- [components/layout/GlobalChildQuickSwitch.tsx](/Users/Shared/Projects/kidex/components/layout/GlobalChildQuickSwitch.tsx)
-- [components/forms/KidexAssessmentApp.tsx](/Users/Shared/Projects/kidex/components/forms/KidexAssessmentApp.tsx)
-- [lib/assessment-drafts.ts](/Users/Shared/Projects/kidex/lib/assessment-drafts.ts)
-- [lib/child-quick-switch.ts](/Users/Shared/Projects/kidex/lib/child-quick-switch.ts)
-- [docs/api.md](/Users/Shared/Projects/kidex/docs/api.md)
+- [components/dashboard/MainDashboard.tsx](/Users/Shared/Projects/kidex/components/dashboard/MainDashboard.tsx)
+- [lib/follow-up-queue.ts](/Users/Shared/Projects/kidex/lib/follow-up-queue.ts)
 - [docs/product-overview.md](/Users/Shared/Projects/kidex/docs/product-overview.md)
 
 Verification passed for that slice:
@@ -110,7 +108,7 @@ Verification passed for that slice:
 
 Latest pushed commit on `origin/main` before the current local work:
 
-- `dd29f5c` `Add assessment draft recovery`
+- `e06a799` `Add global child quick switch`
 
 Branch state:
 
@@ -133,15 +131,15 @@ Branch state:
 - `#55` — `Done`
 - `#61` — `Done`
 - `#62` — `Done`
-- `#63` — `Todo (NEXT)`
+- `#63` — `Done`
+- `#64` — `Todo (NEXT)`
 
 ## Recommended Next Work
 
 Current next execution order:
 
-1. [#63](https://github.com/moldovancsaba/kidex/issues/63)
-2. [#64](https://github.com/moldovancsaba/kidex/issues/64)
-3. [#65](https://github.com/moldovancsaba/kidex/issues/65)
+1. [#64](https://github.com/moldovancsaba/kidex/issues/64)
+2. [#65](https://github.com/moldovancsaba/kidex/issues/65)
 
 For UI work, continue using:
 

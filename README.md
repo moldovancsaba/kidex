@@ -20,6 +20,7 @@ KIDEX currently includes:
 - mobile survey save bar and faster resume context
 - assessment draft persistence and explicit resume/discard recovery
 - shell-level child quick switch with recent items, latest-record jumps, and follow-up shortcuts
+- dedicated follow-up action center with blocker-aware reassessment triage
 - detail-page reassessment and consent status headers
 - development plans, caregiver tools, coach guidance, and micro-learning
 - family-safe and professional PDF reports
@@ -37,6 +38,7 @@ KIDEX currently includes:
 - `/{locale}`: public landing page
 - `/{locale}/dashboard`: analytics dashboard
 - `/{locale}/dashboard/assessment`: assessment workflow
+- `/{locale}/dashboard/follow-up`: reassessment and follow-up action center
 - `/{locale}/dashboard/children`: child registry
 - `/{locale}/dashboard/records`: assessment registry
 - `/{locale}/dashboard/settings`: settings, governance, standards, users, and restore workflows

@@ -7,6 +7,7 @@ export interface DashboardRouteRule {
 
 export const DASHBOARD_ROUTE_RULES: readonly DashboardRouteRule[] = [
   { prefix: "/dashboard/assessment", requiredAction: "assessments.write" },
+  { prefix: "/dashboard/follow-up", requiredAction: "children.read" },
   { prefix: "/dashboard/records", requiredAction: "assessments.read" },
   { prefix: "/dashboard/children", requiredAction: "children.read" },
   { prefix: "/dashboard/settings", requiredAction: "settings.read" },

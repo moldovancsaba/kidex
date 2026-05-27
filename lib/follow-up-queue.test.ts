@@ -1,59 +1,111 @@
 import { describe, expect, it } from "vitest";
-
-import { buildFollowUpQueue } from "./follow-up-queue";
+import { buildFollowUpQueue } from "@/lib/follow-up-queue";
 import type { ChildProfile } from "@/repositories/child.repository";
 
-function makeChild(overrides: Partial<ChildProfile>): ChildProfile {
+function child(overrides: Partial<ChildProfile> = {}): ChildProfile {
   return {
-    _id: overrides._id || crypto.randomUUID(),
-    name: overrides.name || "Child",
-    birthDate: overrides.birthDate || "2018-01-01",
+    _id: overrides._id || "child-1",
+    name: overrides.name || "Anna Kovacs",
+    birthDate: overrides.birthDate || "2016-04-12",
     ageGroup: overrides.ageGroup || "7-9",
-    consentPhoto: true,
-    consentReport: true,
-    caregivers: [],
-    createdAt: "2026-01-01T00:00:00.000Z",
-    updatedAt: "2026-01-01T00:00:00.000Z",
-    ...overrides,
+    consentPolicy: overrides.consentPolicy,
+    createdAt: overrides.createdAt || "2026-05-01T12:00:00.000Z",
+    updatedAt: overrides.updatedAt || "2026-05-01T12:00:00.000Z",
+    latestAssessmentAt: overrides.latestAssessmentAt,
+    latestRecordId: overrides.latestRecordId,
+    latestPlanStatus: overrides.latestPlanStatus,
+    latestSki: overrides.latestSki,
+    nextAssessmentDueDate: overrides.nextAssessmentDueDate,
+    reviewCadenceDays: overrides.reviewCadenceDays,
+    reassessmentNotes: overrides.reassessmentNotes,
   };
 }
 
 describe("buildFollowUpQueue", () => {
-  it("prioritizes overdue, then due soon, then missing follow-up dates", () => {
-    const queue = buildFollowUpQueue([
-      makeChild({
-        _id: "on-track",
-        name: "On Track",
-        latestAssessmentAt: "2026-05-01T00:00:00.000Z",
-        nextAssessmentDueDate: "2026-06-20",
-        reviewCadenceDays: 30,
-      }),
-      makeChild({
-        _id: "missing",
-        name: "Missing",
-        latestAssessmentAt: "2026-05-01T00:00:00.000Z",
-        nextAssessmentDueDate: undefined,
-        reviewCadenceDays: 0,
-      }),
-      makeChild({
-        _id: "soon",
-        name: "Soon",
-        latestAssessmentAt: "2026-05-01T00:00:00.000Z",
-        nextAssessmentDueDate: "2026-05-23",
-        reviewCadenceDays: 21,
-      }),
-      makeChild({
-        _id: "overdue",
-        name: "Overdue",
-        latestAssessmentAt: "2026-04-01T00:00:00.000Z",
-        nextAssessmentDueDate: "2026-05-10",
-        reviewCadenceDays: 21,
-      }),
-    ], "2026-05-20T12:00:00.000Z");
+  it("omits on-track children", () => {
+    const queue = buildFollowUpQueue(
+      [
+        child({
+          latestAssessmentAt: "2026-05-10T10:00:00.000Z",
+          reviewCadenceDays: 30,
+          nextAssessmentDueDate: "2026-06-20",
+        }),
+      ],
+      "2026-05-20T10:00:00.000Z",
+    );
 
-    expect(queue.map((item) => item.childName)).toEqual(["Overdue", "Soon", "Missing"]);
+    expect(queue).toEqual([]);
+  });
+
+  it("builds overdue items with direct targets", () => {
+    const queue = buildFollowUpQueue(
+      [
+        child({
+          _id: "child-7",
+          latestAssessmentAt: "2026-05-01T10:00:00.000Z",
+          latestRecordId: "record-9",
+          latestPlanStatus: "active",
+          nextAssessmentDueDate: "2026-05-10",
+        }),
+      ],
+      "2026-05-20T10:00:00.000Z",
+    );
+
+    expect(queue).toHaveLength(1);
     expect(queue[0]?.status).toBe("overdue");
-    expect(queue[1]?.status).toBe("due_soon");
-    expect(queue[2]?.status).toBe("missing");
+    expect(queue[0]?.reasonCode).toBe("reassessment_overdue");
+    expect(queue[0]?.primaryTargetHref).toBe("/dashboard/children/child-7");
+    expect(queue[0]?.recordTargetHref).toBe("/dashboard/records/record-9");
+    expect(queue[0]?.surveyTargetHref).toBe("/dashboard/assessment?childId=child-7");
+  });
+
+  it("flags blocker conditions", () => {
+    const queue = buildFollowUpQueue(
+      [
+        child({
+          latestAssessmentAt: "2026-05-01T10:00:00.000Z",
+          nextAssessmentDueDate: "2026-05-18",
+          consentPolicy: {
+            mediaCapture: { granted: true, notes: "" },
+            familyReport: { granted: false, notes: "" },
+            dataSharing: { granted: true, expiresAt: "2026-05-02", notes: "" },
+            publicity: { granted: false, notes: "" },
+          },
+        }),
+      ],
+      "2026-05-20T10:00:00.000Z",
+    );
+
+    expect(queue[0]?.hasBlockers).toBe(true);
+    expect(queue[0]?.blockerCodes).toContain("no_latest_record");
+    expect(queue[0]?.blockerCodes).toContain("consent_expired");
+  });
+
+  it("prioritizes overdue before due soon and missing", () => {
+    const queue = buildFollowUpQueue(
+      [
+        child({
+          _id: "missing",
+          name: "Missing Date",
+          latestAssessmentAt: "2026-05-01T10:00:00.000Z",
+          reviewCadenceDays: 0,
+        }),
+        child({
+          _id: "soon",
+          name: "Due Soon",
+          latestAssessmentAt: "2026-05-01T10:00:00.000Z",
+          nextAssessmentDueDate: "2026-05-25",
+        }),
+        child({
+          _id: "overdue",
+          name: "Overdue",
+          latestAssessmentAt: "2026-05-01T10:00:00.000Z",
+          nextAssessmentDueDate: "2026-05-10",
+        }),
+      ],
+      "2026-05-20T10:00:00.000Z",
+    );
+
+    expect(queue.map((item) => item.childId)).toEqual(["overdue", "soon", "missing"]);
   });
 });

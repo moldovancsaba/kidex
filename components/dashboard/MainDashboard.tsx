@@ -277,9 +277,17 @@ export function MainDashboard() {
 
   const operationalSections = (
     <>
-      <SectionCard title="Reassessment Queue" subheader="Children who need follow-up attention first based on overdue, due-soon, or missing reassessment timing.">
+      <SectionCard
+        title={t("followUpCenter")}
+        subheader={t("followUpCenterDescription")}
+        action={
+          <Button component={Link} href="/dashboard/follow-up" variant="default" size="sm">
+            {t("followUpOpenActionCenter")}
+          </Button>
+        }
+      >
         {followUpQueue.length === 0 ? (
-          <Alert color="teal">No reassessment queue items need attention right now.</Alert>
+          <Alert color="teal">{t("followUpEmpty")}</Alert>
         ) : (
           <Stack gap="sm">
             {followUpQueue.slice(0, 8).map((item) => (
@@ -289,17 +297,18 @@ export function MainDashboard() {
                     <Group gap="xs" wrap="wrap">
                       <Text fw={700}>{item.childName}</Text>
                       <Badge color={item.status === "overdue" ? "red" : item.status === "due_soon" ? "yellow" : "gray"} variant="light">
-                        {item.status === "overdue" ? "Overdue" : item.status === "due_soon" ? "Due soon" : "Date missing"}
+                        {item.status === "overdue" ? t("followUpOverdue") : item.status === "due_soon" ? t("followUpDueSoon") : t("followUpMissingDate")}
                       </Badge>
                       <Badge variant="outline">{item.ageGroup}</Badge>
                       {item.planStatus ? <Badge variant="light">{item.planStatus}</Badge> : null}
                     </Group>
                     <Text size="sm" c="dimmed">
-                      {item.dueDate ? `Due ${new Date(item.dueDate).toLocaleDateString()}` : "No reassessment date set"}
+                      {item.dueDate ? `${t("followUpDueDate")}: ${new Date(item.dueDate).toLocaleDateString()}` : t("followUpMissingDate")}
                       {typeof item.latestSki === "number" ? ` • SKI ${formatScore(item.latestSki)}` : ""}
                     </Text>
                     <Text size="sm">{item.summary}</Text>
                     <Text size="sm" c="dimmed">{item.action}</Text>
+                    {item.blockerSummary ? <Text size="sm" c="red">{item.blockerSummary}</Text> : null}
                   </Stack>
                   <Group>
                     {item.childId ? (
