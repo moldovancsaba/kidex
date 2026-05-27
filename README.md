@@ -21,9 +21,11 @@ KIDEX currently includes:
 - assessment draft persistence and explicit resume/discard recovery
 - shell-level child quick switch with recent items, latest-record jumps, and follow-up shortcuts
 - dedicated follow-up action center with blocker-aware reassessment triage
+- explicit export/report lifecycle states with retry, terminal-failure, and consent-block guidance across PDF and governance exports
 - detail-page reassessment and consent status headers
 - development plans, caregiver tools, coach guidance, and micro-learning
 - family-safe and professional PDF reports
+- export status notices for professional reports, family reports, and governance bundles
 - consent governance for media, family reports, and data sharing
 - family-linked caregivers and public consent-review links
 - governed communication logs with caregiver visibility controls

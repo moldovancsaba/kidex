@@ -19,6 +19,7 @@ KIDEX is now a conductor-facing child assessment and development-intelligence pl
 - local draft persistence and explicit resume/discard recovery for interrupted assessments
 - shell-level child quick switch with recent items, latest-record jumps, and follow-up shortcuts
 - dedicated follow-up action center with blocker-aware reassessment triage
+- explicit report and governance export lifecycle states with retry and consent-block feedback
 - reassessment cadence, next-review due dates, and overdue follow-up visibility
 - anonymous culture/trust pulse launches with protected aggregation
 - culture-index dashboard analytics across role and scope views
@@ -86,15 +87,16 @@ Current resolved local versions at the time of this handover:
 
 The latest completed code delivery on `origin/main` covered:
 
-- `#63` dedicated follow-up action center with blocker-aware reassessment triage
+- `#64` report and export delivery workflow hardening with explicit lifecycle states
 - repo compliance wiring remains active through the direct `@doneisbetter/*` GDS package line
 
 Main implementation files for the latest UI slice:
 
-- [app/[locale]/dashboard/follow-up/page.tsx](/Users/Shared/Projects/kidex/app/%5Blocale%5D/dashboard/follow-up/page.tsx)
-- [components/layout/DashboardShell.tsx](/Users/Shared/Projects/kidex/components/layout/DashboardShell.tsx)
-- [components/dashboard/MainDashboard.tsx](/Users/Shared/Projects/kidex/components/dashboard/MainDashboard.tsx)
-- [lib/follow-up-queue.ts](/Users/Shared/Projects/kidex/lib/follow-up-queue.ts)
+- [app/[locale]/dashboard/children/[id]/page.tsx](/Users/Shared/Projects/kidex/app/%5Blocale%5D/dashboard/children/%5Bid%5D/page.tsx)
+- [app/[locale]/dashboard/records/[id]/page.tsx](/Users/Shared/Projects/kidex/app/%5Blocale%5D/dashboard/records/%5Bid%5D/page.tsx)
+- [app/[locale]/dashboard/settings/page.tsx](/Users/Shared/Projects/kidex/app/%5Blocale%5D/dashboard/settings/page.tsx)
+- [components/reports/ExportStatusNotice.tsx](/Users/Shared/Projects/kidex/components/reports/ExportStatusNotice.tsx)
+- [lib/export-delivery.ts](/Users/Shared/Projects/kidex/lib/export-delivery.ts)
 - [docs/product-overview.md](/Users/Shared/Projects/kidex/docs/product-overview.md)
 
 Verification passed for that slice:
@@ -108,7 +110,7 @@ Verification passed for that slice:
 
 Latest pushed commit on `origin/main` before the current local work:
 
-- `e06a799` `Add global child quick switch`
+- `6e6de1b` `Add follow-up action center`
 
 Branch state:
 
@@ -132,14 +134,14 @@ Branch state:
 - `#61` — `Done`
 - `#62` — `Done`
 - `#63` — `Done`
-- `#64` — `Todo (NEXT)`
+- `#64` — `Done`
+- `#65` — `Todo (NEXT)`
 
 ## Recommended Next Work
 
 Current next execution order:
 
-1. [#64](https://github.com/moldovancsaba/kidex/issues/64)
-2. [#65](https://github.com/moldovancsaba/kidex/issues/65)
+1. [#65](https://github.com/moldovancsaba/kidex/issues/65)
 
 For UI work, continue using:
 

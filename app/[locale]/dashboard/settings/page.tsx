@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import { useParams } from "next/navigation";
 import { PageHeader } from "@/components/gds-local/admin";
 import { LoadingState, SearchableSelect, SectionCard } from "@/components/gds-local/core";
+import { ExportStatusNotice } from "@/components/reports/ExportStatusNotice";
 import { DEFAULT_KIDEX_SETTINGS, getSettings, type KidexSettings, saveSettings } from "@/services/settings-service";
 import { getUsers, saveUser, type User } from "@/services/user-service";
 import type { AuditLogEntry } from "@/repositories/audit.repository";
@@ -16,6 +17,8 @@ import type { SupportedRuntimeRole } from "@/lib/roles";
 import type { CultureAnalyticsSummary, CultureSurveyLaunch, CultureSurveyTargetRole } from "@/lib/culture-surveys";
 import { getActiveVariantName, getVariantForVersion, syncVersionFromVariant, type StandardsAgeGroup, type StandardsDomain, type StandardsEvidenceStatus } from "@/lib/standards-config";
 import { computeReadinessImpactPreview, formulaWeightPercentages, summarizeVersionThresholds, validateStandardsVersion } from "@/lib/standards-governance";
+import { classifyExportFailure, failedExportStatus, generatingExportStatus, idleExportStatus, queuedExportStatus, successfulExportStatus, type ExportDeliveryStatus } from "@/lib/export-delivery";
+import { logDataExportTelemetry } from "@/lib/pdf-export-guards";
 
 interface CurrentUser {
   email: string;
@@ -97,6 +100,12 @@ export default function SettingsPage() {
   const [cultureClosesAtDraft, setCultureClosesAtDraft] = useState("");
   const [cultureShareLink, setCultureShareLink] = useState("");
   const [cultureSaving, setCultureSaving] = useState(false);
+  const [governanceExportStatus, setGovernanceExportStatus] = useState<Record<string, ExportDeliveryStatus>>({
+    governance: idleExportStatus(),
+    children: idleExportStatus(),
+    assessments: idleExportStatus(),
+    audit: idleExportStatus(),
+  });
 
   useEffect(() => {
     void (async () => {
@@ -710,10 +719,31 @@ export default function SettingsPage() {
 
   async function downloadGovernanceExport(scope: "governance" | "children" | "assessments" | "audit") {
     if (!isAdmin) return;
+    const startedAt = Date.now();
     setExportingScope(scope);
+    setGovernanceExportStatus((current) => ({
+      ...current,
+      [scope]: queuedExportStatus("The export request is being prepared."),
+    }));
     try {
+      setGovernanceExportStatus((current) => ({
+        ...current,
+        [scope]: generatingExportStatus("Generating the selected governance bundle now."),
+      }));
       const response = await fetch(`/api/governance/export?scope=${scope}`);
       if (!response.ok) {
+        const error = new Error("Governance export failed.");
+        const failure = classifyExportFailure(error);
+        setGovernanceExportStatus((current) => ({
+          ...current,
+          [scope]: failedExportStatus(failure.reason, failure.message, failure.retryable),
+        }));
+        await logDataExportTelemetry({
+          status: "failed",
+          scope,
+          durationMs: Date.now() - startedAt,
+          error: failure.message,
+        });
         setMessage(tc("error"));
         return;
       }
@@ -728,8 +758,28 @@ export default function SettingsPage() {
       link.click();
       link.remove();
       URL.revokeObjectURL(downloadUrl);
+      setGovernanceExportStatus((current) => ({
+        ...current,
+        [scope]: successfulExportStatus(`The ${scope} bundle downloaded successfully.`),
+      }));
+      await logDataExportTelemetry({
+        status: "success",
+        scope,
+        durationMs: Date.now() - startedAt,
+      });
       setMessage(tc("success"));
-    } catch {
+    } catch (error) {
+      const failure = classifyExportFailure(error);
+      setGovernanceExportStatus((current) => ({
+        ...current,
+        [scope]: failedExportStatus(failure.reason, failure.message, failure.retryable),
+      }));
+      await logDataExportTelemetry({
+        status: "failed",
+        scope,
+        durationMs: Date.now() - startedAt,
+        error: failure.message,
+      });
       setMessage(tc("error"));
     } finally {
       setExportingScope(null);
@@ -1613,6 +1663,16 @@ export default function SettingsPage() {
                   Audit trail export
                 </Button>
               </Group>
+              <Stack gap="xs">
+                {(["governance", "children", "assessments", "audit"] as const).map((scope) => (
+                  <ExportStatusNotice
+                    key={scope}
+                    status={governanceExportStatus[scope]}
+                    onRetry={() => void downloadGovernanceExport(scope)}
+                    retryLabel={`Retry ${scope} export`}
+                  />
+                ))}
+              </Stack>
             </Stack>
           ) : null}
 

@@ -8,6 +8,7 @@ import { Link } from "@/i18n/navigation";
 import { PolarAngleAxis, PolarGrid, PolarRadiusAxis, Radar, RadarChart, ResponsiveContainer, Tooltip } from "recharts";
 import { PageHeader } from "@/components/gds-local/admin";
 import { ErrorState, LoadingState, SectionCard } from "@/components/gds-local/core";
+import { ExportStatusNotice } from "@/components/reports/ExportStatusNotice";
 import { buildChildStateSummary } from "@/lib/child-state-summary";
 import { buildFamilyFriendlyReportSummary } from "@/lib/family-report";
 import { buildProgressComparisonSummary } from "@/lib/progress-comparison";
@@ -19,6 +20,7 @@ import { PdfService } from "@/lib/pdf-service";
 import { getUsers } from "@/services/user-service";
 import { withDisplayNamesForReport } from "@/lib/report-user-display";
 import { logPdfExportTelemetry, validatePdfExport } from "@/lib/pdf-export-guards";
+import { blockedExportStatus, classifyExportFailure, exportNowMs, failedExportStatus, generatingExportStatus, idleExportStatus, queuedExportStatus, successfulExportStatus, type ExportDeliveryStatus } from "@/lib/export-delivery";
 import { getDomainMainColor, type AssessmentDomain } from "@/lib/domain-colors";
 import { LongitudinalChart } from "@/components/analytics/LongitudinalChart";
 import { BenchmarkChart } from "@/components/analytics/BenchmarkChart";
@@ -51,6 +53,8 @@ export default function ChildHistoryPage({ params }: { params: Promise<{ id: str
   const [data, setData] = useState<{ child: ChildProfile; assessments: AssessmentRecord[] } | null>(null);
   const [loading, setLoading] = useState(true);
   const [downloadingPdf, setDownloadingPdf] = useState(false);
+  const [professionalExportStatus, setProfessionalExportStatus] = useState<ExportDeliveryStatus>(idleExportStatus());
+  const [familyExportStatus, setFamilyExportStatus] = useState<ExportDeliveryStatus>(idleExportStatus());
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
   const [deletingSurvey, setDeletingSurvey] = useState(false);
@@ -120,13 +124,20 @@ export default function ChildHistoryPage({ params }: { params: Promise<{ id: str
 
   async function downloadPdf() {
     if (!data || data.assessments.length === 0) return;
-    const startedAt = Date.now();
+    const startedAt = exportNowMs();
     const latestRecord = data.assessments[0];
     const validation = validatePdfExport(latestRecord, data.assessments);
     if (validation.warnings.length > 0) console.warn("PDF export warnings:", validation.warnings);
 
+    if (!hasActiveConsent(data.child.consentPolicy, "dataSharing")) {
+      setProfessionalExportStatus(blockedExportStatus("consent", "Professional export is blocked because data-sharing consent is not active."));
+      return;
+    }
+
+    setProfessionalExportStatus(queuedExportStatus("The latest child report is queued and preparing for export."));
     setDownloadingPdf(true);
     try {
+      setProfessionalExportStatus(generatingExportStatus("Generating the professional report now. This can take a few seconds."));
       const users = await getUsers();
       const printableRecord = withDisplayNamesForReport(latestRecord, users);
       const recommendationSummary = buildRecommendationSummary(
@@ -142,21 +153,80 @@ export default function ChildHistoryPage({ params }: { params: Promise<{ id: str
         audience: "professional",
         childId: latestRecord.childId,
         recordId: latestRecord._id,
-        durationMs: Date.now() - startedAt,
+        durationMs: exportNowMs() - startedAt,
         warnings: validation.warnings
       });
+      setProfessionalExportStatus(successfulExportStatus("Professional report generated successfully."));
     } catch (error) {
       console.error("PDF generation failed:", error);
+      const failure = classifyExportFailure(error);
       await logPdfExportTelemetry({
         status: "failed",
         format: "map",
         audience: "professional",
         childId: latestRecord.childId,
         recordId: latestRecord._id,
-        durationMs: Date.now() - startedAt,
+        durationMs: exportNowMs() - startedAt,
         warnings: validation.warnings,
         error: error instanceof Error ? error.message : "unknown"
       });
+      setProfessionalExportStatus(failedExportStatus(failure.reason, failure.message, failure.retryable));
+    } finally {
+      setDownloadingPdf(false);
+    }
+  }
+
+  async function downloadFamilyReport() {
+    if (!data || data.assessments.length === 0) return;
+    const startedAt = exportNowMs();
+    const latestRecord = data.assessments[0];
+    if (!latest || !recommendationSummary) return;
+
+    if (!hasActiveConsent(data.child.consentPolicy, "familyReport")) {
+      setFamilyExportStatus(blockedExportStatus("consent", "Family report export is blocked because family-report consent is not active."));
+      return;
+    }
+
+    setFamilyExportStatus(queuedExportStatus("The family report is queued and preparing for export."));
+    setDownloadingPdf(true);
+    try {
+      setFamilyExportStatus(generatingExportStatus("Generating the family report now. This can take a few seconds."));
+      const users = await getUsers();
+      const printableRecord = withDisplayNamesForReport(latestRecord, users);
+      await PdfService.generateFamilyReport(
+        printableRecord,
+        t,
+        tc,
+        ts,
+        tr,
+        recommendationSummary,
+        plan,
+        data.child,
+        effectiveSupportWorkspace,
+        data.assessments,
+        data.assessments.length,
+      );
+      await logPdfExportTelemetry({
+        status: "success",
+        format: "map",
+        audience: "family",
+        childId: latestRecord.childId,
+        recordId: latestRecord._id,
+        durationMs: exportNowMs() - startedAt,
+      });
+      setFamilyExportStatus(successfulExportStatus("Family report generated successfully."));
+    } catch (error) {
+      const failure = classifyExportFailure(error);
+      await logPdfExportTelemetry({
+        status: "failed",
+        format: "map",
+        audience: "family",
+        childId: latestRecord.childId,
+        recordId: latestRecord._id,
+        durationMs: exportNowMs() - startedAt,
+        error: error instanceof Error ? error.message : "unknown",
+      });
+      setFamilyExportStatus(failedExportStatus(failure.reason, failure.message, failure.retryable));
     } finally {
       setDownloadingPdf(false);
     }
@@ -573,30 +643,7 @@ export default function ChildHistoryPage({ params }: { params: Promise<{ id: str
             <Button
               color="kidex"
               variant="light"
-              onClick={async () => {
-                if (!latest || !recommendationSummary) return;
-                if (!canGenerateFamilyReport) return;
-                setDownloadingPdf(true);
-                try {
-                  const users = await getUsers();
-                  const printableRecord = withDisplayNamesForReport(latest, users);
-                  await PdfService.generateFamilyReport(
-                    printableRecord,
-                    t,
-                    tc,
-                    ts,
-                    tr,
-                    recommendationSummary,
-                    plan,
-                    data.child,
-                    effectiveSupportWorkspace,
-                    data.assessments,
-                    data.assessments.length,
-                  );
-                } finally {
-                  setDownloadingPdf(false);
-                }
-              }}
+              onClick={() => void downloadFamilyReport()}
               disabled={data.assessments.length === 0 || !canGenerateFamilyReport}
             >
               {tr("familyReportTitle")}
@@ -612,35 +659,14 @@ export default function ChildHistoryPage({ params }: { params: Promise<{ id: str
           ...(canWriteAssessments && data.assessments.length > 0 ? [{ label: td("downloadPdf"), onClick: () => void downloadPdf() }] : []),
           {
             label: tr("familyReportTitle"),
-            onClick: async () => {
-              if (!latest || !recommendationSummary) return;
-              if (!canGenerateFamilyReport) return;
-              setDownloadingPdf(true);
-              try {
-                const users = await getUsers();
-                const printableRecord = withDisplayNamesForReport(latest, users);
-                await PdfService.generateFamilyReport(
-                  printableRecord,
-                  t,
-                  tc,
-                  ts,
-                  tr,
-                  recommendationSummary,
-                  plan,
-                  data.child,
-                  effectiveSupportWorkspace,
-                  data.assessments,
-                  data.assessments.length,
-                );
-              } finally {
-                setDownloadingPdf(false);
-              }
-            },
+            onClick: () => void downloadFamilyReport(),
           },
           ...(canWriteAssessments ? [{ label: t("deleteSurvey"), color: "red", onClick: () => setDeleteModalOpen(true) }] : []),
         ]}
       />
 
+      <ExportStatusNotice status={professionalExportStatus} onRetry={() => void downloadPdf()} />
+      <ExportStatusNotice status={familyExportStatus} onRetry={() => void downloadFamilyReport()} />
       <ConsentAlertPanel alerts={consentAlerts} title={t("consentAlertTitle")} t={t} />
 
       {data.child.caregivers?.length ? (

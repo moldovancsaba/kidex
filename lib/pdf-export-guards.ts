@@ -31,10 +31,28 @@ export async function logPdfExportTelemetry(event: {
     await fetch("/api/audit", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(event),
+      body: JSON.stringify({ kind: "pdf", ...event }),
     });
   } catch (error) {
     if (event.status === "failed") console.error(payload, error);
     else console.info(payload, error);
+  }
+}
+
+export async function logDataExportTelemetry(event: {
+  status: "success" | "failed";
+  scope: "governance" | "children" | "assessments" | "audit";
+  durationMs: number;
+  error?: string;
+}) {
+  try {
+    await fetch("/api/audit", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ kind: "data", ...event }),
+    });
+  } catch (error) {
+    if (event.status === "failed") console.error(event, error);
+    else console.info(event, error);
   }
 }

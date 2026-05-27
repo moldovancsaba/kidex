@@ -17,6 +17,7 @@ import { getConsentAlerts, hasActiveConsent } from "@/lib/consent-policy";
 import { getUsers } from "@/services/user-service";
 import { withDisplayNamesForReport } from "@/lib/report-user-display";
 import { logPdfExportTelemetry, validatePdfExport } from "@/lib/pdf-export-guards";
+import { blockedExportStatus, classifyExportFailure, exportNowMs, failedExportStatus, generatingExportStatus, idleExportStatus, queuedExportStatus, successfulExportStatus, type ExportDeliveryStatus } from "@/lib/export-delivery";
 import {
   PolarAngleAxis,
   PolarGrid,
@@ -27,6 +28,7 @@ import {
 } from "recharts";
 import { PageHeader } from "@/components/gds-local/admin";
 import { ErrorState, LoadingState, SectionCard } from "@/components/gds-local/core";
+import { ExportStatusNotice } from "@/components/reports/ExportStatusNotice";
 import { rapidSections } from "@/lib/kidex-schema";
 import { getDomainMainColor, type AssessmentDomain } from "@/lib/domain-colors";
 import { sectionsForMode } from "@/lib/kidex-schema";
@@ -59,6 +61,8 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
   const [history, setHistory] = useState<AssessmentRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [downloadingPdf, setDownloadingPdf] = useState(false);
+  const [professionalExportStatus, setProfessionalExportStatus] = useState<ExportDeliveryStatus>(idleExportStatus());
+  const [familyExportStatus, setFamilyExportStatus] = useState<ExportDeliveryStatus>(idleExportStatus());
   const [settings, setSettings] = useState<KidexSettings | null>(null);
   const [plan, setPlan] = useState<DevelopmentPlan | null>(null);
   const [child, setChild] = useState<ChildProfile | null>(null);
@@ -78,13 +82,26 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
 
   const downloadPdf = async (audience: "professional" | "family" = "professional") => {
     if (!record) return;
-    const startedAt = Date.now();
+    const startedAt = exportNowMs();
     const validation = validatePdfExport(record, history);
     if (validation.warnings.length > 0) {
       console.warn("PDF export warnings:", validation.warnings);
     }
+    if (audience === "family" && !hasActiveConsent(child?.consentPolicy, "familyReport")) {
+      setFamilyExportStatus(blockedExportStatus("consent", "Family report export is blocked because family-report consent is not active."));
+      return;
+    }
+
+    if (audience === "professional" && !hasActiveConsent(child?.consentPolicy, "dataSharing")) {
+      setProfessionalExportStatus(blockedExportStatus("consent", "Professional export is blocked because data-sharing consent is not active."));
+      return;
+    }
+
+    const setStatus = audience === "family" ? setFamilyExportStatus : setProfessionalExportStatus;
+    setStatus(queuedExportStatus("The export request is queued and preparing the latest record package."));
     setDownloadingPdf(true);
     try {
+      setStatus(generatingExportStatus("Generating the export now. This can take a few seconds for full report content."));
       const users = await getUsers();
       const printableRecord = withDisplayNamesForReport(record, users);
       const recommendationSummary = buildRecommendationSummary(
@@ -107,21 +124,24 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
         audience,
         childId: record.childId,
         recordId: record._id,
-        durationMs: Date.now() - startedAt,
+        durationMs: exportNowMs() - startedAt,
         warnings: validation.warnings
       });
+      setStatus(successfulExportStatus(audience === "family" ? "Family report generated successfully." : "Professional report generated successfully."));
     } catch (error) {
       console.error("PDF generation failed:", error);
+      const failure = classifyExportFailure(error);
       await logPdfExportTelemetry({
         status: "failed",
         format: reportFormat === "map" ? "map" : "original",
         audience,
         childId: record.childId,
         recordId: record._id,
-        durationMs: Date.now() - startedAt,
+        durationMs: exportNowMs() - startedAt,
         warnings: validation.warnings,
         error: error instanceof Error ? error.message : "unknown"
       });
+      setStatus(failedExportStatus(failure.reason, failure.message, failure.retryable));
     } finally {
       setDownloadingPdf(false);
     }
@@ -299,6 +319,8 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
       </Stack>
       <SectionCard title={t("reportPreview")}>
         <Stack gap="xl">
+          <ExportStatusNotice status={professionalExportStatus} onRetry={() => void downloadPdf()} />
+          <ExportStatusNotice status={familyExportStatus} onRetry={() => void downloadPdf("family")} />
           <ConsentAlertPanel alerts={consentAlerts} title={t("consentAlertTitle")} t={t} />
           {child?.accessibilityProfile ? (
             <Paper withBorder p="md" radius="md">

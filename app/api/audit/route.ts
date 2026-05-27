@@ -29,11 +29,13 @@ export async function POST(request: Request) {
 
   try {
     const body = await readJson(request) as {
+      kind?: "pdf" | "data";
       format?: "map" | "original";
       audience?: "professional" | "family";
       status?: "success" | "failed";
       childId?: string;
       recordId?: string;
+      scope?: "governance" | "children" | "assessments" | "audit";
       durationMs?: number;
       warnings?: string[];
       error?: string;
@@ -46,8 +48,12 @@ export async function POST(request: Request) {
       ? await getChildById(new ObjectId(body.childId))
       : null;
 
+    const isDataExport = body?.kind === "data";
+    const action = isDataExport ? "export.data" : "export.pdf";
+    const formatLabel = isDataExport ? body?.scope || "governance" : body?.format || "original";
+
     await recordAuditEvent({
-      action: "export.pdf",
+      action,
       status: body?.status === "failed" ? "failed" : "success",
       actor,
       request,
@@ -55,10 +61,12 @@ export async function POST(request: Request) {
       targetType: "report",
       targetId: body?.recordId || body?.childId,
       targetLabel: assessment?.child?.name || child?.name,
-      summary: `PDF ${body?.status === "failed" ? "export failed" : "export generated"} (${body?.format || "original"})`,
+      summary: `${isDataExport ? "Data" : "PDF"} ${body?.status === "failed" ? "export failed" : "export generated"} (${formatLabel})`,
       metadata: {
+        kind: body?.kind || "pdf",
         format: body?.format || "original",
         audience: body?.audience || "professional",
+        scope: body?.scope,
         childId: body?.childId,
         recordId: body?.recordId,
         durationMs: body?.durationMs,

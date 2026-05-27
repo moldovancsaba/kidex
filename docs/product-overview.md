@@ -96,6 +96,12 @@ KIDEX supports two report families:
 - family-safe report
 
 These reports use the same evidence base but different language and emphasis.
+They now also expose explicit delivery state:
+
+- blocked when consent or scope prevents export
+- queued and generating while the export is in progress
+- success after delivery completes
+- retryable or terminal failure when export generation fails
 
 ### 6. Governance and operations
 
@@ -131,6 +137,7 @@ Primary surface:
 - parent improvement guidance
 - reassessment cadence and due-soon / overdue follow-up visibility
 - family-safe reporting
+- export lifecycle notices with retry and block-state explanation
 - support workspace
 - mobile-first child and record detail orientation
 

@@ -196,7 +196,11 @@ Validation is centralized in [`lib/validations.ts`](../lib/validations.ts).
   - Returns recent audit events.
   - Roles: `admin`
 - `POST /api/audit`
-  - Writes client-side export telemetry events such as PDF export results.
+  - Writes client-side export telemetry events such as PDF and governance/data export results.
+  - Supports:
+    - `kind: "pdf" | "data"`
+    - PDF audience and consent-block outcomes
+    - governance export `scope` such as `governance`, `children`, `assessments`, or `audit`
   - Roles: any authenticated user with read access to the exported record
 
 - `GET /api/governance/export`
@@ -258,6 +262,26 @@ The current downstream interpretation stack includes:
 - next-session conductor focus priorities
 - reassessment cadence and follow-up status
 - confidence / reliability context
+
+## Export delivery behavior
+
+Current report and governance export flows share an explicit lifecycle model:
+
+- `idle`
+- `blocked`
+- `queued`
+- `generating`
+- `success`
+- `failed_retryable`
+- `failed_terminal`
+
+This lifecycle is surfaced in:
+
+- child-detail professional and family report export actions
+- record-detail professional and family report export actions
+- governance export actions in settings
+
+Blocked states are used when policy prevents export, such as missing active `familyReport` or `dataSharing` consent.
 - development-plan and support-workspace linkage
 
 ## Draft persistence behavior
