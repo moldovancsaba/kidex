@@ -34,7 +34,7 @@ For the fuller current product description, use:
 
 Design/UI/UX SSOT:
 
-- [sovereignsquad/general-design-system README](https://github.com/sovereignsquad/general-design-system/blob/main/README.md) (aligned version `2.6.3 / 2026-05-28`)
+- [sovereignsquad/general-design-system README](https://github.com/sovereignsquad/general-design-system/blob/main/README.md) (aligned version `2.6.4 / 2026-05-28`)
 
 KIDEX local design docs are adapters only. The shared design-system repository above is the authority for design, UI, UX, pattern service, navigation, responsive rules, component contracts, governance, and the Mantine-only product primitive policy. Local status is **umbrella package adoption with thin adapters** — see [docs/design-system.md](/Users/Shared/Projects/kidex/docs/design-system.md), [docs/gds-compliance-checklist.md](/Users/Shared/Projects/kidex/docs/gds-compliance-checklist.md), [docs/gds-pr-review-checklist.md](/Users/Shared/Projects/kidex/docs/gds-pr-review-checklist.md), and [gds-adoption.json](/Users/Shared/Projects/kidex/gds-adoption.json).
 
@@ -145,7 +145,7 @@ Branch state:
 
 Current next execution order:
 
-No remaining committed execution issues are open after `#65`. Current local work is a GDS umbrella-runtime normalization pass plus documentation and manifest cleanup.
+No remaining committed execution issues are open after `#65`. Current local work is a GDS `2.6.4` conformance pass that replaces the remaining custom dashboard shell navigation with `DiscoveryShell` and `SidebarNav`.
 
 For UI work, continue using:
 

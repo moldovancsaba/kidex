@@ -1,7 +1,7 @@
 # KIDEX Design System Adapter
 
 SSOT: [sovereignsquad/general-design-system](https://github.com/sovereignsquad/general-design-system)  
-Aligned package/runtime line: `2.6.3 / 2026-05-28`  
+Aligned package/runtime line: `2.6.4 / 2026-05-28`  
 Local status: `umbrella package adoption with thin adapters`
 
 This file is a local adapter only. If it conflicts with the shared GDS repository, the shared repository wins.
@@ -36,7 +36,7 @@ The granular `@doneisbetter/gds-*` packages remain the underlying published lane
 
 ## Canonical surfaces in KIDEX
 
-- Shell: [components/layout/DashboardShell.tsx](/Users/Shared/Projects/kidex/components/layout/DashboardShell.tsx) via `@doneisbetter/gds/client`
+- Shell: [components/layout/DashboardShell.tsx](/Users/Shared/Projects/kidex/components/layout/DashboardShell.tsx) via `DiscoveryShell`, `SidebarNav`, and `SidebarNavItem` from `@doneisbetter/gds/client`
 - Registry lists: [app/[locale]/dashboard/children/page.tsx](/Users/Shared/Projects/kidex/app/%5Blocale%5D/dashboard/children/page.tsx) and [app/[locale]/dashboard/records/page.tsx](/Users/Shared/Projects/kidex/app/%5Blocale%5D/dashboard/records/page.tsx) via `ResponsiveDataView`
 - Page headers: `PageHeader` from `@doneisbetter/gds`
 - Assessment workflow scaffold: [components/forms/KidexAssessmentApp.tsx](/Users/Shared/Projects/kidex/components/forms/KidexAssessmentApp.tsx) via `EditorScaffold` and `FormSection`
@@ -65,7 +65,6 @@ These adapters are governed by [gds-adoption.json](../gds-adoption.json) and che
   - Recharts rendering: GDS governs chrome/layout, mobile priority, and state handling, not the chart engine
   - PDF and document export rendering
   - `SearchableSelect` until the upstream searchable-selection contract is finalized
-  - shell navigation label overrides while the current GDS nav contract does not yet expose domain-specific labels for operational products
 - Product-authored but still GDS-compliant surfaces:
   - child-state summaries
   - recommendation evidence blocks

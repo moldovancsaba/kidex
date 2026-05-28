@@ -68,7 +68,7 @@ KIDEX currently includes:
 
 Design/UI/UX SSOT:
 
-- [General Design System README](https://github.com/sovereignsquad/general-design-system/blob/main/README.md) (current KIDEX alignment `2.6.3 / 2026-05-28`)
+- [General Design System README](https://github.com/sovereignsquad/general-design-system/blob/main/README.md) (current KIDEX alignment `2.6.4 / 2026-05-28`)
 
 KIDEX-specific design documentation is an adapter only ([docs/design-system.md](docs/design-system.md)). The shared SSOT above is the authority for foundation rules, component and pattern contracts, pattern service, navigation, responsive behavior, governance, portfolio operations, and the Mantine-only product primitive policy.
 

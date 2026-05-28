@@ -2,13 +2,18 @@
 
 import {
   Box,
-  Button,
   Group,
-  NavLink,
   Stack,
   Text,
 } from "@mantine/core";
-import { AppShell, getSemanticActionConfig, type SemanticAction } from "@doneisbetter/gds/client";
+import {
+  DiscoveryShell,
+  SemanticButton,
+  SidebarNav,
+  SidebarNavItem,
+  SidebarNavSection,
+  type SemanticActionId,
+} from "@doneisbetter/gds/client";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Link, usePathname, useRouter } from "@/i18n/navigation";
@@ -53,49 +58,29 @@ export default function DashboardShell({ children }: { children: React.ReactNode
 
   const nav = useMemo(
     () => [
-      { href: "/dashboard", label: t("overview"), action: "dashboard" as SemanticAction, mobilePrimary: true },
+      { href: "/dashboard", label: t("overview"), action: "dashboard" as SemanticActionId, priority: "primary" as const },
       ...(canPerformAction(roles, "children.read")
-        ? [{ href: "/dashboard/children", label: t("children"), action: "child" as SemanticAction, mobilePrimary: true }]
+        ? [{ href: "/dashboard/children", label: t("children"), action: "child" as SemanticActionId, priority: "primary" as const }]
         : []),
       ...(canPerformAction(roles, "children.read")
-        ? [{ href: "/dashboard/follow-up", label: t("followUpCenter"), action: "history" as SemanticAction, mobilePrimary: false }]
+        ? [{ href: "/dashboard/follow-up", label: t("followUpCenter"), action: "history" as SemanticActionId, priority: "primary" as const }]
         : []),
       ...(canPerformAction(roles, "assessments.write")
-        ? [{ href: "/dashboard/assessment", label: t("survey"), action: "check" as SemanticAction, mobilePrimary: true }]
+        ? [{ href: "/dashboard/assessment", label: t("survey"), action: "record" as SemanticActionId, priority: "primary" as const }]
         : []),
       ...(canPerformAction(roles, "assessments.read")
-        ? [{ href: "/dashboard/records", label: t("records"), action: "history" as SemanticAction, mobilePrimary: true }]
+        ? [{ href: "/dashboard/records", label: t("records"), action: "analytics" as SemanticActionId, priority: "primary" as const }]
         : []),
       ...(canPerformAction(roles, "settings.read")
-        ? [{ href: "/dashboard/settings", label: t("settings"), action: "settings" as SemanticAction, mobilePrimary: false }]
+        ? [{ href: "/dashboard/settings", label: t("settings"), action: "settings" as SemanticActionId, priority: "secondary" as const }]
         : []),
     ],
     [roles, t],
   );
 
-  const mobilePrimaryNav = nav.filter((item) => item.mobilePrimary).slice(0, 4);
-  const secondaryNav = nav.filter((item) => !mobilePrimaryNav.some((primary) => primary.href === item.href));
+  const primaryNav = nav.filter((item) => item.priority === "primary");
+  const secondaryNav = nav.filter((item) => item.priority === "secondary");
   const activeNavLabel = nav.find((item) => pathname === item.href || pathname.startsWith(`${item.href}/`))?.label ?? t("overview");
-  const LogoutIcon = getSemanticActionConfig("logout").icon;
-
-  const renderNavLinks = (items: typeof nav) =>
-    items.map((item) => {
-      const active =
-        item.href === "/dashboard" ? pathname === "/dashboard" : pathname === item.href || pathname.startsWith(`${item.href}/`);
-      const Icon = getSemanticActionConfig(item.action).icon;
-      return (
-        <NavLink
-          key={item.href}
-          component={Link}
-          href={item.href}
-          label={item.label}
-          active={active}
-          leftSection={<Icon size={16} />}
-        />
-      );
-    });
-
-  const desktopPrimaryNavigation = <Stack gap="xs">{renderNavLinks(mobilePrimaryNav.length > 0 ? mobilePrimaryNav : nav)}</Stack>;
 
   const userBlock = user ? (
     <Stack gap="xs">
@@ -112,86 +97,114 @@ export default function DashboardShell({ children }: { children: React.ReactNode
           </Text>
         ) : null}
       </Box>
-      <Button
+      <SemanticButton
+        action="logout"
         variant="default"
-        leftSection={<LogoutIcon size={16} />}
         onClick={() => {
           window.location.href = "/api/auth/logout";
         }}
       >
         {t("logout")}
-      </Button>
+      </SemanticButton>
     </Stack>
   ) : null;
 
-  return (
-    <AppShell
-      logoText="KIDEX"
-      headerContext={activeNavLabel}
-      headerActions={
-        <Group gap="xs" wrap="nowrap">
-          {canPerformAction(roles, "children.read") ? <GlobalChildQuickSwitch roles={roles} /> : null}
-          <LocaleSwitcher />
-        </Group>
-      }
-      primaryNavigation={desktopPrimaryNavigation}
-      secondaryNavigation={secondaryNav.length > 0 ? <Stack gap="xs">{renderNavLinks(secondaryNav)}</Stack> : undefined}
-      accountPanel={userBlock}
-      mobileNavigation={
-        mobilePrimaryNav.length > 0 ? (
-          <>
-            {mobilePrimaryNav.map((item) => {
-              const active =
-                item.href === "/dashboard" ? pathname === "/dashboard" : pathname === item.href || pathname.startsWith(`${item.href}/`);
-              const Icon = getSemanticActionConfig(item.action).icon;
+  const sidebar = (
+    <Stack h="100%" gap="lg">
+      <Box>
+        <Text fw={800} size="xl" lh={1}>
+          KIDEX
+        </Text>
+        <Text c="dimmed" size="sm">
+          {t("workspaceDescription")}
+        </Text>
+      </Box>
 
+      <SidebarNav ariaLabel={t("primaryNavigation")}>
+        <SidebarNavSection label={t("primaryNavigation")}>
+          {primaryNav.map((item) => {
+            const active =
+              item.href === "/dashboard" ? pathname === "/dashboard" : pathname === item.href || pathname.startsWith(`${item.href}/`);
+            return (
+              <SidebarNavItem
+                key={item.href}
+                component={Link}
+                href={item.href}
+                action={item.action}
+                label={item.label}
+                active={active}
+                aria-current={active ? "page" : undefined}
+              />
+            );
+          })}
+        </SidebarNavSection>
+
+        {secondaryNav.length > 0 ? (
+          <SidebarNavSection label={t("secondaryNavigation")} pushToBottom>
+            {secondaryNav.map((item) => {
+              const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
               return (
-                <Button
+                <SidebarNavItem
                   key={item.href}
                   component={Link}
                   href={item.href}
-                  variant="subtle"
-                  color={active ? "kidex" : "gray"}
-                  radius={0}
-                  h="100%"
-                  fullWidth
-                  style={{ flexDirection: "column", gap: 2 }}
-                >
-                  <Icon size={18} />
-                  <Text size="sm" fw={active ? 700 : 500} lh={1.1}>
-                    {item.label}
-                  </Text>
-                </Button>
+                  action={item.action}
+                  label={item.label}
+                  active={active}
+                  aria-current={active ? "page" : undefined}
+                />
               );
             })}
-          </>
-        ) : undefined
-      }
-      >
-        <Box
-          className="dashboard-main"
+          </SidebarNavSection>
+        ) : null}
+      </SidebarNav>
+    </Stack>
+  );
+
+  const header = (
+    <Group justify="space-between" wrap="nowrap" align="center">
+      <Text fw={700} size="lg" truncate>
+        {activeNavLabel}
+      </Text>
+      <Group gap="xs" wrap="nowrap">
+        {canPerformAction(roles, "children.read") ? <GlobalChildQuickSwitch roles={roles} /> : null}
+        <LocaleSwitcher />
+      </Group>
+    </Group>
+  );
+
+  return (
+    <DiscoveryShell
+      header={header}
+      sidebar={sidebar}
+      footer={userBlock}
+      mobileNavigationLabel={t("primaryNavigation")}
+      sidebarWidth={320}
+      stickySidebar
+    >
+      <Box
+        className="dashboard-main"
         style={{
           minHeight: "100vh",
           display: "flex",
           flexDirection: "column",
-          paddingBottom: mobilePrimaryNav.length > 0 ? 88 : 16,
         }}
-        >
-          <Box style={{ flex: 1 }}>
-            <Box
-              style={{
-                width: "100%",
-                maxWidth: 1600,
-                marginInline: "auto",
-              }}
-              px={{ base: "md", md: "lg" }}
-            >
-              <SyncQueueBanner />
-              {!userLoaded || !routeAllowed ? <LoadingState label={tc("loading")} /> : children}
-            </Box>
+      >
+        <Box style={{ flex: 1 }}>
+          <Box
+            style={{
+              width: "100%",
+              maxWidth: 1600,
+              marginInline: "auto",
+            }}
+            px={{ base: "md", md: "lg" }}
+          >
+            <SyncQueueBanner />
+            {!userLoaded || !routeAllowed ? <LoadingState label={tc("loading")} /> : children}
           </Box>
-          <AppFooter />
         </Box>
-    </AppShell>
+        <AppFooter />
+      </Box>
+    </DiscoveryShell>
   );
 }

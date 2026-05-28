@@ -1,6 +1,6 @@
 # KIDEX GDS Compliance Checklist
 
-Aligned GDS line: `2.6.3 / 2026-05-28`  
+Aligned GDS line: `2.6.4 / 2026-05-28`  
 Manifest: [gds-adoption.json](../gds-adoption.json)  
 Adapter: [design-system.md](./design-system.md)
 
