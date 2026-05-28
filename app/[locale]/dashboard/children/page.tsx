@@ -7,14 +7,14 @@ import { IconDownload, IconEdit, IconEye, IconRestore, IconTrash } from "@tabler
 import { useParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
+import { AdminPageHeader as PageHeader, DataToolbar, FilterDrawer, ResponsiveDataView, type ResponsiveDataViewFilterChip } from "@doneisbetter/gds/client";
 import { ACCOMMODATION_OPTIONS, COMMUNICATION_SUPPORTS, defaultAccessibilityProfile, FAMILY_VIEW_MODES, type AccommodationOption, type ChildAccessibilityProfile, type CommunicationSupport, type FamilyViewMode } from "@/lib/accessibility-profile";
 import { defaultConsentPolicy, deriveLegacyConsents, getConsentAlerts, type ChildConsentPolicy, type ConsentPolicyKey } from "@/lib/consent-policy";
 import { normalizePreferredLocale } from "@/lib/locales";
 import { canPerformAction } from "@/lib/permissions";
 import { buildReassessmentSummary } from "@/lib/reassessment";
-import { AdminPageHeader as PageHeader, ResponsiveDataView, type ResponsiveDataViewFilterChip } from "@doneisbetter/gds/client";
 import type { DataTableColumn } from "@doneisbetter/gds/client";
-import { DataToolbar, FilterDrawer, LoadingState, ProductCard, SectionCard } from "@/components/gds-local/core";
+import { LoadingState, ProductCard, SectionCard } from "@/components/gds-local/core";
 import { createEmptyFamilyCaregiver, FAMILY_ACCESS_LEVELS, FAMILY_CAREGIVER_STATUSES, FAMILY_RELATIONSHIPS, type FamilyCaregiver } from "@/lib/family-access";
 import { calculateAgeGroup } from "@/lib/utils/age";
 import { formatScore } from "@/lib/utils";
@@ -722,8 +722,7 @@ export default function ChildrenListPage() {
                 opened={mobileFiltersOpen}
                 onClose={() => setMobileFiltersOpen(false)}
                 title={tc("advancedFilters")}
-                position="bottom"
-                size="85%"
+                mode="bottom-sheet"
                 primaryAction={<Button color="kidex" onClick={() => setMobileFiltersOpen(false)}>{tc("view")}</Button>}
               >
                 {filterPanel}

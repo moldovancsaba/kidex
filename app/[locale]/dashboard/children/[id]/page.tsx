@@ -2,11 +2,11 @@
 
 import { startTransition, useEffect, useState, use } from "react";
 import { Alert, Badge, Box, Button, Checkbox, Group, Modal, MultiSelect, Paper, Select, SimpleGrid, Stack, Table, Text, TextInput, Textarea, useMantineTheme } from "@mantine/core";
+import { AdminPageHeader as PageHeader } from "@doneisbetter/gds/client";
 import Image from "next/image";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { PolarAngleAxis, PolarGrid, PolarRadiusAxis, Radar, RadarChart, ResponsiveContainer, Tooltip } from "recharts";
-import { PageHeader } from "@/components/gds-local/admin";
 import { ErrorState, LoadingState, SectionCard } from "@/components/gds-local/core";
 import { ExportStatusNotice } from "@/components/reports/ExportStatusNotice";
 import { SyncStatusNotice } from "@/components/sync/SyncStatusNotice";

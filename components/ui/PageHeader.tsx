@@ -1,2 +1,2 @@
-export { PageHeader } from "@/components/gds-local/admin";
-export type { PageHeaderProps, PageHeaderMenuAction } from "@/components/gds-local/admin";
+export { AdminPageHeader as PageHeader } from "@doneisbetter/gds/client";
+export type { AdminPageHeaderProps as PageHeaderProps, AdminPageHeaderOverflowAction as PageHeaderMenuAction } from "@doneisbetter/gds/client";

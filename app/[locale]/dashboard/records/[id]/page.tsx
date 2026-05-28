@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
+import { AdminPageHeader as PageHeader } from "@doneisbetter/gds/client";
 import { buildChildStateSummary } from "@/lib/child-state-summary";
 import { buildFamilyFriendlyReportSummary } from "@/lib/family-report";
 import { PdfService } from "@/lib/pdf-service";
@@ -26,7 +27,6 @@ import {
   RadarChart,
   ResponsiveContainer,
 } from "recharts";
-import { PageHeader } from "@/components/gds-local/admin";
 import { ErrorState, LoadingState, SectionCard } from "@/components/gds-local/core";
 import { ExportStatusNotice } from "@/components/reports/ExportStatusNotice";
 import { rapidSections } from "@/lib/kidex-schema";

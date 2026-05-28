@@ -23,6 +23,7 @@ import { useMediaQuery } from "@mantine/hooks";
 import Image from "next/image";
 import { useParams, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
+import { AdminPageHeader as PageHeader, EditorScaffold, FormSection } from "@doneisbetter/gds/client";
 import { sectionsForMode } from "@/lib/kidex-schema";
 import {
   ASSESSMENT_DRAFT_STORAGE_KEY,
@@ -48,7 +49,6 @@ import { getStandardForAgeGroup } from "@/lib/standards";
 import { formatScore } from "@/lib/utils";
 import { buildSyncQueueOperation, isRetryableSyncResponseStatus, readSyncQueueFromStorage, removeSyncQueueOperationByKey, upsertSyncQueueOperation, writeSyncQueueToStorage } from "@/lib/offline-sync";
 
-import { EditorScaffold, FormSection, PageHeader } from "@/components/gds-local/admin";
 import { LoadingState, MetricCard, SearchableSelect, SectionCard } from "@/components/gds-local/core";
 import { SyncStatusNotice } from "@/components/sync/SyncStatusNotice";
 import { useSyncQueueOperations } from "@/components/sync/useSyncQueue";
@@ -948,7 +948,7 @@ export function KidexAssessmentApp() {
       <PageHeader
             title={t("appTitle")}
             subtitle={t("appSubtitle")}
-            actions={
+            primaryAction={
               <Group gap="sm">
                 <Button variant="default" onClick={newAssessment}>
                   {tc("new")}

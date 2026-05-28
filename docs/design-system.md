@@ -2,7 +2,7 @@
 
 SSOT: [sovereignsquad/general-design-system](https://github.com/sovereignsquad/general-design-system)  
 Aligned package/runtime line: `2.6.4 / 2026-05-28`  
-Local status: `umbrella package adoption with thin adapters`
+Local status: `umbrella package adoption with a reduced thin-adapter set`
 
 This file is a local adapter only. If it conflicts with the shared GDS repository, the shared repository wins.
 
@@ -38,22 +38,21 @@ The granular `@doneisbetter/gds-*` packages remain the underlying published lane
 
 - Shell: [components/layout/DashboardShell.tsx](/Users/Shared/Projects/kidex/components/layout/DashboardShell.tsx) via `DiscoveryShell`, `SidebarNav`, and `SidebarNavItem` from `@doneisbetter/gds/client`
 - Registry lists: [app/[locale]/dashboard/children/page.tsx](/Users/Shared/Projects/kidex/app/%5Blocale%5D/dashboard/children/page.tsx) and [app/[locale]/dashboard/records/page.tsx](/Users/Shared/Projects/kidex/app/%5Blocale%5D/dashboard/records/page.tsx) via `ResponsiveDataView`
-- Page headers: `PageHeader` from `@doneisbetter/gds`
-- Assessment workflow scaffold: [components/forms/KidexAssessmentApp.tsx](/Users/Shared/Projects/kidex/components/forms/KidexAssessmentApp.tsx) via `EditorScaffold` and `FormSection`
+- Page headers: direct `AdminPageHeader` usage from `@doneisbetter/gds`
+- Assessment workflow scaffold: [components/forms/KidexAssessmentApp.tsx](/Users/Shared/Projects/kidex/components/forms/KidexAssessmentApp.tsx) via direct `EditorScaffold` and `FormSection` imports from `@doneisbetter/gds`
 - Shared primitives:
-  - `MetricCard`
-  - `DataToolbar`
-  - `FilterDrawer`
-  - `ProductCard`
-  - `SectionPanel`
-  - `StateBlock`
+  - direct `DataToolbar`
+  - direct `FilterDrawer`
+  - thin-adapter `MetricCard`
+  - thin-adapter `ProductCard`
+  - thin-adapter `SectionPanel`
+  - thin-adapter `StateBlock`
 
 ## Approved thin adapters
 
 Thin adapters remain in [components/gds-local](/Users/Shared/Projects/kidex/components/gds-local) only where KIDEX still needs:
 
-- legacy prop-shape preservation during migration
-- stable local composition for shell/container framing that GDS intentionally leaves to the product
+- legacy prop-shape preservation where KIDEX still passes product-specific props that do not map 1:1 to current GDS contracts
 - temporary contract bridging for `SearchableSelect`
 - local composition helpers for state-block family usage
 

@@ -14,7 +14,7 @@ import {
   CHART_READINESS_STACK_COLORS,
   CHART_RISK_COLORS,
 } from "@/components/analytics/chart-series-colors";
-import { PageHeader } from "@/components/gds-local/admin";
+import { AdminPageHeader as PageHeader } from "@doneisbetter/gds/client";
 import { LoadingState, MetricCard, SectionCard } from "@/components/gds-local/core";
 import { rapidSections } from "@/lib/kidex-schema";
 import { getDomainMainColor, type AssessmentDomain } from "@/lib/domain-colors";

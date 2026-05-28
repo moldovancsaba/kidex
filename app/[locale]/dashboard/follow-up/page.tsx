@@ -5,9 +5,9 @@ import { Alert, Badge, Button, Group, MultiSelect, Paper, Stack, Text, TextInput
 import { useMediaQuery } from "@mantine/hooks";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
-import { AdminPageHeader as PageHeader, ResponsiveDataView, type ResponsiveDataViewFilterChip } from "@doneisbetter/gds/client";
+import { AdminPageHeader as PageHeader, DataToolbar, FilterDrawer, ResponsiveDataView, type ResponsiveDataViewFilterChip } from "@doneisbetter/gds/client";
 import type { DataTableColumn } from "@doneisbetter/gds/client";
-import { DataToolbar, FilterDrawer, LoadingState, ProductCard, SectionCard } from "@/components/gds-local/core";
+import { LoadingState, ProductCard, SectionCard } from "@/components/gds-local/core";
 import { buildFollowUpQueue, type FollowUpQueueItem } from "@/lib/follow-up-queue";
 import type { ChildProfile } from "@/repositories/child.repository";
 import { canPerformAction } from "@/lib/permissions";
@@ -233,8 +233,7 @@ export default function FollowUpActionCenterPage() {
                 opened={mobileFiltersOpen}
                 onClose={() => setMobileFiltersOpen(false)}
                 title={t("followUpFilters")}
-                position="bottom"
-                size="85%"
+                mode="bottom-sheet"
                 primaryAction={<Button color="kidex" onClick={() => setMobileFiltersOpen(false)}>{tc("view")}</Button>}
               >
                 {filterPanel}

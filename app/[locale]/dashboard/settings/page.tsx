@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Alert, Badge, Box, Button, Checkbox, Divider, Group, MultiSelect, NumberInput, Paper, Select, Stack, Table, Tabs, Text, Textarea, TextInput } from "@mantine/core";
 import { useTranslations } from "next-intl";
 import { useParams } from "next/navigation";
-import { PageHeader } from "@/components/gds-local/admin";
+import { AdminPageHeader as PageHeader } from "@doneisbetter/gds/client";
 import { LoadingState, SearchableSelect, SectionCard } from "@/components/gds-local/core";
 import { ExportStatusNotice } from "@/components/reports/ExportStatusNotice";
 import { DEFAULT_KIDEX_SETTINGS, getSettings, type KidexSettings, saveSettings } from "@/services/settings-service";

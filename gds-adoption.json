@@ -17,31 +17,6 @@
   ],
   "localAdapters": [
     {
-      "contract": "PageHeader",
-      "path": "components/gds-local/admin/PageHeader.tsx",
-      "status": "active"
-    },
-    {
-      "contract": "EditorScaffold",
-      "path": "components/gds-local/admin/EditorScaffold.tsx",
-      "status": "active"
-    },
-    {
-      "contract": "FormSection",
-      "path": "components/gds-local/admin/FormSection.tsx",
-      "status": "active"
-    },
-    {
-      "contract": "DataToolbar",
-      "path": "components/gds-local/core/DataToolbar.tsx",
-      "status": "active"
-    },
-    {
-      "contract": "FilterDrawer",
-      "path": "components/gds-local/core/FilterDrawer.tsx",
-      "status": "active"
-    },
-    {
       "contract": "MetricCard",
       "path": "components/gds-local/core/MetricCard.tsx",
       "status": "active"
