@@ -5,8 +5,8 @@ import { Badge, Button, Group, Modal, Stack, Text, TextInput } from "@mantine/co
 import { useParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
-import { PageHeader, ResponsiveDataView } from "@doneisbetter/gds-admin/client";
-import type { DataTableColumn } from "@doneisbetter/gds-admin/client";
+import { AdminPageHeader as PageHeader, ResponsiveDataView } from "@doneisbetter/gds/client";
+import type { DataTableColumn } from "@doneisbetter/gds/client";
 import { canPerformAction } from "@/lib/permissions";
 import { formatScore } from "@/lib/utils";
 import { DataToolbar, LoadingState, ProductCard, SectionCard } from "@/components/gds-local/core";

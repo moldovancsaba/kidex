@@ -26,7 +26,6 @@ export function SymmetryChart({ title, data }: SymmetryChartProps) {
       )}
       <Box style={{ width: "100%", height: ANALYTICS_CONFIG.chartHeight }}>
         <ResponsiveContainer width="100%" height="100%">
-          {/* Recharts uses RadarChart for this single-series domain-balance view. */}
           <RadarChart cx="50%" cy="50%" outerRadius={ANALYTICS_CONFIG.radarOuterRadius} data={data}>
             <PolarGrid stroke={theme.colors.gray[4]} />
             <PolarAngleAxis

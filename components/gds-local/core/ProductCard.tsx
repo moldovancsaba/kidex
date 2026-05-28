@@ -6,7 +6,7 @@ import {
   ProductCard as GdsProductCard,
   type ProductCardAction as GdsProductCardAction,
   type ProductCardMetaItem,
-} from "@doneisbetter/gds-core/client";
+} from "@doneisbetter/gds/client";
 
 export type { ProductCardMetaItem };
 

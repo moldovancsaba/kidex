@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { FilterDrawer as GdsFilterDrawer } from "@doneisbetter/gds-core/client";
+import { FilterDrawer as GdsFilterDrawer } from "@doneisbetter/gds/client";
 
 export interface FilterDrawerProps {
   opened: boolean;

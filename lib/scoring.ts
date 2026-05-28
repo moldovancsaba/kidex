@@ -20,7 +20,6 @@ export function computeAssessment(
 ): AssessmentRecord["computed"] {
   const sections = sectionsForMode(payload.mode);
   
-  // Calculate averages by domain
   const domainValues: Record<string, number[]> = {
     movement: [],
     social: [],

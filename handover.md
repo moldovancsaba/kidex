@@ -34,9 +34,9 @@ For the fuller current product description, use:
 
 Design/UI/UX SSOT:
 
-- [sovereignsquad/general-design-system README](https://github.com/sovereignsquad/general-design-system/blob/main/README.md) (aligned version `2.6.1 / 2026-05-26`)
+- [sovereignsquad/general-design-system README](https://github.com/sovereignsquad/general-design-system/blob/main/README.md) (aligned version `2.6.3 / 2026-05-28`)
 
-KIDEX local design docs are adapters only. The shared design-system repository above is the authority for design, UI, UX, pattern service, navigation, responsive rules, component contracts, governance, and the Mantine-only product primitive policy. Local status is **direct package adoption with thin adapters** — see [docs/design-system.md](/Users/Shared/Projects/kidex/docs/design-system.md), [docs/gds-compliance-checklist.md](/Users/Shared/Projects/kidex/docs/gds-compliance-checklist.md), [docs/gds-pr-review-checklist.md](/Users/Shared/Projects/kidex/docs/gds-pr-review-checklist.md), and [gds-adoption.json](/Users/Shared/Projects/kidex/gds-adoption.json).
+KIDEX local design docs are adapters only. The shared design-system repository above is the authority for design, UI, UX, pattern service, navigation, responsive rules, component contracts, governance, and the Mantine-only product primitive policy. Local status is **umbrella package adoption with thin adapters** — see [docs/design-system.md](/Users/Shared/Projects/kidex/docs/design-system.md), [docs/gds-compliance-checklist.md](/Users/Shared/Projects/kidex/docs/gds-compliance-checklist.md), [docs/gds-pr-review-checklist.md](/Users/Shared/Projects/kidex/docs/gds-pr-review-checklist.md), and [gds-adoption.json](/Users/Shared/Projects/kidex/gds-adoption.json).
 
 ## UI / GDS track
 
@@ -56,10 +56,11 @@ Delivered GDS migration track:
 
 Current GDS runtime facts:
 
-- package line: `@doneisbetter/gds-theme`, `@doneisbetter/gds-core`, `@doneisbetter/gds-admin`
+- primary runtime package: `@doneisbetter/gds`
+- supporting published packages: `@doneisbetter/gds-theme`, `@doneisbetter/gds-core`, `@doneisbetter/gds-admin`
 - canonical install source: npm
 - verified consumer baseline: Next `15.5.18`, React `19.2.0`, Mantine `8.3.6`
-- KIDEX now consumes the published package line directly and keeps only reviewed thin adapters
+- KIDEX now consumes the published umbrella package directly and keeps only reviewed thin adapters plus documented exception surfaces
 
 Delivered locally:
 
@@ -113,7 +114,7 @@ Verification passed for that slice:
 
 Latest pushed commit on `origin/main` before the current local work:
 
-- `132223d` `Harden export delivery workflows`
+- `c76dc70` `Add offline-safe workflow protection`
 
 Branch state:
 
@@ -144,7 +145,7 @@ Branch state:
 
 Current next execution order:
 
-No remaining committed execution issues are open after `#65`.
+No remaining committed execution issues are open after `#65`. Current local work is a GDS umbrella-runtime normalization pass plus documentation and manifest cleanup.
 
 For UI work, continue using:
 

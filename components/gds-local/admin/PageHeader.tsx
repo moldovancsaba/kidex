@@ -2,10 +2,10 @@
 
 import type { ReactNode } from "react";
 import {
-  PageHeader as GdsPageHeader,
-  type PageHeaderOverflowAction,
-  type PageHeaderProps as GdsPageHeaderProps,
-} from "@doneisbetter/gds-admin/client";
+  AdminPageHeader as GdsPageHeader,
+  type AdminPageHeaderOverflowAction as PageHeaderOverflowAction,
+  type AdminPageHeaderProps as GdsPageHeaderProps,
+} from "@doneisbetter/gds/client";
 
 export interface PageHeaderMenuAction extends PageHeaderOverflowAction {
   leftSection?: ReactNode;

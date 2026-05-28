@@ -1,8 +1,8 @@
 # KIDEX Design System Adapter
 
 SSOT: [sovereignsquad/general-design-system](https://github.com/sovereignsquad/general-design-system)  
-Aligned package/runtime line: `2.6.1 / 2026-05-26`  
-Local status: `direct package adoption with thin adapters`
+Aligned package/runtime line: `2.6.3 / 2026-05-28`  
+Local status: `umbrella package adoption with thin adapters`
 
 This file is a local adapter only. If it conflicts with the shared GDS repository, the shared repository wins.
 
@@ -10,6 +10,7 @@ This file is a local adapter only. If it conflicts with the shared GDS repositor
 
 KIDEX now consumes the published GDS package line from npm:
 
+- `@doneisbetter/gds`
 - `@doneisbetter/gds-theme`
 - `@doneisbetter/gds-core`
 - `@doneisbetter/gds-admin`
@@ -24,22 +25,20 @@ The app is GDS-governed and GDS-runtime-backed. Remaining local UI wrappers are 
 - Root layout: [app/[locale]/layout.tsx](/Users/Shared/Projects/kidex/app/%5Blocale%5D/layout.tsx)
 - Theme extension: [theme/mantine-theme.ts](/Users/Shared/Projects/kidex/theme/mantine-theme.ts)
 
-Current package usage follows the GDS server/client split:
+Current runtime usage follows the canonical GDS umbrella split:
 
-- server-safe theme and message imports:
-  - `@doneisbetter/gds-theme/server`
-  - `@doneisbetter/gds-core/server`
-  - `@doneisbetter/gds-admin/server`
+- server-safe imports:
+  - `@doneisbetter/gds/server`
 - interactive imports:
-  - `@doneisbetter/gds-theme/client`
-  - `@doneisbetter/gds-core/client`
-  - `@doneisbetter/gds-admin/client`
+  - `@doneisbetter/gds/client`
+
+The granular `@doneisbetter/gds-*` packages remain the underlying published lanes, but KIDEX runtime code now treats the umbrella package as the canonical import surface.
 
 ## Canonical surfaces in KIDEX
 
-- Shell: [components/layout/DashboardShell.tsx](/Users/Shared/Projects/kidex/components/layout/DashboardShell.tsx) via `@doneisbetter/gds-admin/client`
+- Shell: [components/layout/DashboardShell.tsx](/Users/Shared/Projects/kidex/components/layout/DashboardShell.tsx) via `@doneisbetter/gds/client`
 - Registry lists: [app/[locale]/dashboard/children/page.tsx](/Users/Shared/Projects/kidex/app/%5Blocale%5D/dashboard/children/page.tsx) and [app/[locale]/dashboard/records/page.tsx](/Users/Shared/Projects/kidex/app/%5Blocale%5D/dashboard/records/page.tsx) via `ResponsiveDataView`
-- Page headers: `PageHeader` from `@doneisbetter/gds-admin`
+- Page headers: `PageHeader` from `@doneisbetter/gds`
 - Assessment workflow scaffold: [components/forms/KidexAssessmentApp.tsx](/Users/Shared/Projects/kidex/components/forms/KidexAssessmentApp.tsx) via `EditorScaffold` and `FormSection`
 - Shared primitives:
   - `MetricCard`
@@ -54,6 +53,7 @@ Current package usage follows the GDS server/client split:
 Thin adapters remain in [components/gds-local](/Users/Shared/Projects/kidex/components/gds-local) only where KIDEX still needs:
 
 - legacy prop-shape preservation during migration
+- stable local composition for shell/container framing that GDS intentionally leaves to the product
 - temporary contract bridging for `SearchableSelect`
 - local composition helpers for state-block family usage
 
@@ -61,9 +61,23 @@ These adapters are governed by [gds-adoption.json](../gds-adoption.json) and che
 
 ## Approved exception surfaces
 
-- Recharts rendering: GDS governs chrome/layout, not the chart engine
-- PDF and document export rendering
-- `SearchableSelect` until the upstream searchable-selection contract is finalized
+- Current KIDEX exceptions:
+  - Recharts rendering: GDS governs chrome/layout, mobile priority, and state handling, not the chart engine
+  - PDF and document export rendering
+  - `SearchableSelect` until the upstream searchable-selection contract is finalized
+- Product-authored but still GDS-compliant surfaces:
+  - child-state summaries
+  - recommendation evidence blocks
+  - progress and plan-effectiveness interpretation
+  - follow-up queue cards and conductor triage flows
+  - consent/governance panels and report-delivery notices
+  These are not exceptions when built from GDS primitives.
+- Additional non-standard categories allowed by the shared SSOT if KIDEX needs them later:
+  - map engines
+  - sanctioned embeds
+  - hardware-adjacent capture surfaces
+  - playback/kiosk surfaces
+  Those remain narrow exception surfaces and must be recorded in [gds-adoption.json](../gds-adoption.json) before implementation.
 
 ## Enforcement
 

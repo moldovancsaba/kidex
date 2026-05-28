@@ -35,8 +35,7 @@ export async function POST(request: Request) {
       if (user?.googleToken) {
         accessToken = user.googleToken.access_token;
 
-        // Refresh eagerly when a refresh token is available so invite delivery
-        // does not depend on the previously cached Gmail access token still being valid.
+        // Refresh eagerly when possible so invite delivery does not rely on a stale cached Gmail token.
         if (user.googleToken.refresh_token) {
           try {
             const newTokens = await refreshGoogleToken(user.googleToken.refresh_token);

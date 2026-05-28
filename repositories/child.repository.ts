@@ -33,7 +33,7 @@ export interface ChildProfile {
   locale?: string;
   createdAt: string;
   updatedAt: string;
-  // Metrics fields (populated via aggregation)
+  // Registry metrics are added by aggregation-based list views and are not required on stored documents.
   latestLocation?: string;
   latestSki?: number;
   avgSki?: number;
@@ -179,7 +179,7 @@ export async function upsertChild(profile: Omit<ChildProfile, "_id" | "createdAt
   
   const name = profile.name.trim();
   
-  // Try to find existing child by name and birthDate to avoid duplicates
+  // Prefer a stable name + birthDate match before inserting a second child record.
   const existing = await db.collection(collectionName).findOne({ 
     name: name, 
     birthDate: profile.birthDate 

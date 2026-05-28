@@ -45,7 +45,7 @@ export function getStandardForAgeGroup(ageGroup: string): AgeGroupStandard | nul
         if (variant && (ageGroup === "4-6" || ageGroup === "7-9" || ageGroup === "10-12")) return variant[ageGroup];
       }
     } catch {
-      // fallback to defaults
+      // Ignore malformed local settings and fall back to the bundled defaults.
     }
   }
   return standards[ageGroup] || null;

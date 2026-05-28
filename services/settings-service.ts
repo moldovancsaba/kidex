@@ -165,7 +165,7 @@ export async function getSettings(): Promise<KidexSettings> {
     return normalizeSettings((await response.json()) as Partial<KidexSettings>);
   }
   
-  // Fallback to local storage or empty settings
+  // Preserve the last locally saved admin state when the settings API is unavailable.
   const local = localStorage.getItem(STORAGE_KEY);
   if (local) return normalizeSettings(JSON.parse(local) as Partial<KidexSettings>);
   

@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
 
     let localUser = await findUserByEmail(ssoUser.email);
     
-    // Older bootstrap data may predate email-based identity storage.
+    // Migrate legacy bootstrap users that were stored before email became the identity key.
     if (!localUser && ssoUser.name) {
       const db = await getDatabase();
       const doc = await db.collection("users").findOne({ name: ssoUser.name, email: { $exists: false } });
@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Bootstrap the first platform user with setup access.
+    // Bootstrap the first platform user as the initial admin.
     const allUsers = await listAllUsers();
     if (allUsers.length === 0) {
       console.info(`Bootstrapping first user as admin: ${ssoUser.email}`);

@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import {
   EditorScaffold as GdsEditorScaffold,
   type EditorScaffoldProps as GdsEditorScaffoldProps,
-} from "@doneisbetter/gds-admin/client";
+} from "@doneisbetter/gds/client";
 
 export interface EditorScaffoldProps {
   header?: ReactNode;

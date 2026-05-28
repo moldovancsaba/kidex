@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { MetricCard as GdsMetricCard } from "@doneisbetter/gds-core/client";
+import { MetricCard as GdsMetricCard } from "@doneisbetter/gds/client";
 
 export type MetricCardProps = {
   label: string;

@@ -10,7 +10,6 @@ export interface ScoreSection {
 const item = (key: string, domain: AssessmentDomain): ScoreItemDefinition => ({
   key,
   domain,
-  // We'll translate these in the UI using keys like `Schema.${key}.title`
   title: "", 
   prompt: ""
 });

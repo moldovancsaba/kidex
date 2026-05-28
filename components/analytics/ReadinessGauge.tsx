@@ -3,7 +3,7 @@
 import { Box, Paper, Text, useMantineTheme, Group } from "@mantine/core";
 
 interface ReadinessGaugeProps {
-  value: number; // 0-6
+  value: number;
   title?: string;
   subtitle?: string;
 }
@@ -11,17 +11,13 @@ interface ReadinessGaugeProps {
 export function ReadinessGauge({ value, title, subtitle }: ReadinessGaugeProps) {
   const theme = useMantineTheme();
   
-  // Normalized value for SVG (0 to 1)
   const normalizedValue = Math.min(Math.max(value / 6, 0), 1);
-  
-  // Gauge parameters
   const size = 180;
   const strokeWidth = 14;
   const radius = (size - strokeWidth) / 2;
-  const circumference = radius * Math.PI; // Semicircle
+  const circumference = radius * Math.PI;
   const offset = circumference - normalizedValue * circumference;
 
-  // Determine color based on readiness
   const getColor = () => {
     if (value < 3) return theme.colors.red[6];
     if (value < 4) return theme.colors.yellow[6];
@@ -40,7 +36,6 @@ export function ReadinessGauge({ value, title, subtitle }: ReadinessGaugeProps) 
       
       <Box style={{ position: "relative", width: size, height: size / 2 + 20, margin: "0 auto" }}>
         <svg width={size} height={size / 2 + 10} style={{ transform: "rotate(180deg)" }}>
-          {/* Background Track */}
           <circle
             cx={size / 2}
             cy={10}
@@ -51,7 +46,6 @@ export function ReadinessGauge({ value, title, subtitle }: ReadinessGaugeProps) 
             strokeDasharray={circumference}
             strokeLinecap="round"
           />
-          {/* Active Value Path */}
           <circle
             cx={size / 2}
             cy={10}
@@ -66,7 +60,6 @@ export function ReadinessGauge({ value, title, subtitle }: ReadinessGaugeProps) 
           />
         </svg>
         
-        {/* Value Display */}
         <Box style={{ position: "absolute", bottom: 10, left: 0, right: 0 }}>
           <Text size="xl" fw={800} style={{ lineHeight: 1 }}>
             {value.toFixed(1)}

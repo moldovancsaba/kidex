@@ -87,8 +87,7 @@ export async function listAssessmentsByChildId(childId: string): Promise<Assessm
     .sort({ createdAt: 1 })
     .toArray();
 
-  // Backward compatibility: older records may not have childId set,
-  // but they can still be linked by immutable identity fields.
+  // Older records may predate childId persistence, so fall back to immutable child identity fields.
   if (assessments.length === 0 && objectId) {
     const child = await db.collection("children").findOne({ _id: objectId });
     if (child?.name && child?.birthDate) {

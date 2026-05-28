@@ -1,5 +1,5 @@
 import type { MantineTheme } from "@mantine/core";
-import { extendGdsTheme } from "@doneisbetter/gds-theme/server";
+import { extendGdsTheme } from "@doneisbetter/gds/server";
 import { KIDEX_BRAND_COLORS } from "@/theme/brand-colors";
 import { KIDEX_FONT_FAMILY_LTR, KIDEX_FONT_FAMILY_RTL, KIDEX_FONT_SIZES, KIDEX_FONT_WEIGHTS } from "@/theme/typography";
 

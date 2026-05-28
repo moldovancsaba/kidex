@@ -3,7 +3,7 @@ import { cookies } from "next/headers";
 import { getMessages } from "next-intl/server";
 import { Noto_Sans, Noto_Sans_Arabic } from "next/font/google";
 import { ColorSchemeScript } from "@mantine/core";
-import { getGdsMessages } from "@doneisbetter/gds-core/server";
+import { getGdsMessages } from "@doneisbetter/gds/server";
 import { Providers } from "@/app/providers";
 import { CookieConsentBanner } from "@/components/consent/CookieConsentBanner";
 import { getKidexMantineTheme } from "@/theme/mantine-theme";

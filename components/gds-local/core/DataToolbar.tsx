@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import {
   DataToolbar as GdsDataToolbar,
   type DataToolbarFilterChip as GdsDataToolbarFilterChip,
-} from "@doneisbetter/gds-core/client";
+} from "@doneisbetter/gds/client";
 
 export interface DataToolbarFilterChip extends GdsDataToolbarFilterChip {
   color?: string;

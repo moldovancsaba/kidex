@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 import { Box } from "@mantine/core";
-import { StateBlock as GdsStateBlock, type StateBlockVariant } from "@doneisbetter/gds-core/client";
+import { StateBlock as GdsStateBlock, type StateBlockVariant } from "@doneisbetter/gds/client";
 
 export type StateBlockProps = {
   variant: StateBlockVariant;

@@ -5,8 +5,8 @@ import { Alert, Badge, Button, Group, MultiSelect, Paper, Stack, Text, TextInput
 import { useMediaQuery } from "@mantine/hooks";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
-import { PageHeader, ResponsiveDataView, type ResponsiveDataViewFilterChip } from "@doneisbetter/gds-admin/client";
-import type { DataTableColumn } from "@doneisbetter/gds-admin/client";
+import { AdminPageHeader as PageHeader, ResponsiveDataView, type ResponsiveDataViewFilterChip } from "@doneisbetter/gds/client";
+import type { DataTableColumn } from "@doneisbetter/gds/client";
 import { DataToolbar, FilterDrawer, LoadingState, ProductCard, SectionCard } from "@/components/gds-local/core";
 import { buildFollowUpQueue, type FollowUpQueueItem } from "@/lib/follow-up-queue";
 import type { ChildProfile } from "@/repositories/child.repository";

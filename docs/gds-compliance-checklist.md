@@ -1,6 +1,6 @@
 # KIDEX GDS Compliance Checklist
 
-Aligned GDS line: `2.6.1 / 2026-05-26`  
+Aligned GDS line: `2.6.3 / 2026-05-28`  
 Manifest: [gds-adoption.json](../gds-adoption.json)  
 Adapter: [design-system.md](./design-system.md)
 
@@ -14,14 +14,15 @@ Adapter: [design-system.md](./design-system.md)
 
 ## Runtime
 
-- [x] Root provider comes from `@doneisbetter/gds-theme/client`
-- [x] Theme extension comes from `@doneisbetter/gds-theme/server`
+- [x] Root provider comes from `@doneisbetter/gds/client`
+- [x] Theme extension comes from `@doneisbetter/gds/server`
 - [x] Root notifications and modals are mounted through GDS provider runtime
 - [x] GDS locale/message bridge is wired in app layout
+- [x] Runtime imports prefer the umbrella `@doneisbetter/gds` client/server surface
 
 ## Surface adoption
 
-- [x] Authenticated dashboard shell is built on `@doneisbetter/gds-admin`
+- [x] Authenticated dashboard shell is built on `@doneisbetter/gds`
 - [x] Children and records registries use `ResponsiveDataView`
 - [x] Major route headers use GDS `PageHeader`
 - [x] Assessment workflow uses GDS `EditorScaffold` and `FormSection`
@@ -41,6 +42,7 @@ Adapter: [design-system.md](./design-system.md)
 - [x] Recharts documented as an approved rendering exception
 - [x] PDF/export rendering documented as an approved exception
 - [x] `SearchableSelect` documented as a reviewed thin-adapter exception
+- [x] Product-authored KIDEX experience blocks are documented as GDS-compliant compositions, not design-system exceptions
 
 ## Verification gates
 

@@ -1,7 +1,7 @@
 "use client";
 
 import type { CSSProperties, ReactNode } from "react";
-import { SectionPanel } from "@doneisbetter/gds-core/client";
+import { SectionPanel } from "@doneisbetter/gds/client";
 
 export interface SectionCardProps {
   title?: string;

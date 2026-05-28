@@ -20,9 +20,6 @@ interface JsPDFWithAutoTable extends jsPDF {
 
 type TFunction = (key: string) => string;
 
-/**
- * PDF service for KIDEX report exports.
- */
 export const PdfService = {
   async ensureUnicodeFont(doc: jsPDF): Promise<void> {
     const fontName = "ArialUnicode";
@@ -48,22 +45,17 @@ export const PdfService = {
     doc.addFont("Arial.ttf", fontName, "normal");
     doc.setFont(fontName, "normal");
   },
-  /**
-   * Generates the original technical assessment report.
-   */
   async generateOriginalReport(record: AssessmentRecord, t: TFunction, tc: TFunction, ts: TFunction): Promise<void> {
     const doc = new jsPDF({ unit: "mm", format: "a4" }) as JsPDFWithAutoTable;
     await this.ensureUnicodeFont(doc);
     const reportDate = new Date(record.createdAt).toLocaleDateString();
     const reportTime = new Date(record.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-    // Logo
     const logoDataUrl = await this.getLogoDataUrl();
     if (logoDataUrl) {
       doc.addImage(logoDataUrl, "JPEG", 14, 10, 20, 20);
     }
 
-    // Header
     doc.setFontSize(16);
     doc.text(t("reportPrintTitle"), 38, 16);
     doc.setFontSize(11);
@@ -75,7 +67,6 @@ export const PdfService = {
     doc.text(`${t("conductor")}: ${record.session.conductor || "—"}`, 140, 24);
     doc.text(`${t("observers")}: ${record.session.observers || "—"}`, 140, 29);
 
-    // Summary Table
     autoTable(doc, {
       startY: 34,
       head: [[ts("movement"), ts("social"), ts("mental"), ts("ski")]],
@@ -89,7 +80,6 @@ export const PdfService = {
       styles: { fontSize: 10, halign: "center" }
     });
 
-    // Setup Table
     autoTable(doc, {
       startY: doc.lastAutoTable!.finalY + 4,
       head: [[{ content: t("setupTitle"), colSpan: 2 }]],
@@ -106,7 +96,6 @@ export const PdfService = {
       columnStyles: { 0: { cellWidth: 55, fontStyle: "bold" }, 1: { cellWidth: 125 } }
     });
 
-    // Detailed tables mirror the current rapid assessment export format.
     const sections = rapidSections;
     for (const section of sections) {
       autoTable(doc, {
@@ -320,9 +309,6 @@ export const PdfService = {
     doc.save(`kidex_family_report_${safeName}_${reportDate}.pdf`);
   },
 
-  /**
-   * Generates the professional map report.
-   */
   async generateMapReport(
     record: AssessmentRecord, 
     t: TFunction, 
@@ -337,7 +323,6 @@ export const PdfService = {
     await this.ensureUnicodeFont(doc);
     const logoDataUrl = await this.getLogoDataUrl();
 
-    // --- PAGE 1: COVER ---
     if (logoDataUrl) doc.addImage(logoDataUrl, "JPEG", 70, 40, 70, 70);
     doc.setFont("ArialUnicode", "normal");
     doc.setFontSize(28);
@@ -351,11 +336,10 @@ export const PdfService = {
     doc.setFontSize(14);
     doc.text(`${record.session.date} · ${tr("latestAssessment")}`, 105, 180, { align: "center" });
     
-    doc.setDrawColor(19, 165, 158); // Brand Teal
+    doc.setDrawColor(19, 165, 158);
     doc.setLineWidth(1.5);
     doc.line(40, 200, 170, 200);
 
-    // --- PAGE 2: GENERAL OBSERVATION ---
     doc.addPage();
     this.drawPageHeader(doc, tr("assessmentReport"), record.child.name, logoDataUrl);
     doc.setFontSize(12);
@@ -363,7 +347,6 @@ export const PdfService = {
     doc.setFont("ArialUnicode", "normal");
     doc.text(doc.splitTextToSize(record.notes.general || tr("noGeneralObservation"), 170), 20, 60);
 
-    // --- PAGE 3: DEVELOPMENT TRENDS ---
     if (history.length > 1) {
       doc.addPage();
       this.drawPageHeader(doc, tr("assessmentReport"), record.child.name, logoDataUrl);
@@ -375,18 +358,15 @@ export const PdfService = {
 
       const trendData = [...history].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
       
-      // Draw a simple line chart
       const chartX = 30;
       const chartY = 120;
       const chartWidth = 150;
       const chartHeight = 40;
       
-      // Axes
       doc.setDrawColor(200);
-      doc.line(chartX, chartY, chartX + chartWidth, chartY); // X axis
-      doc.line(chartX, chartY, chartX, chartY - chartHeight); // Y axis
+      doc.line(chartX, chartY, chartX + chartWidth, chartY);
+      doc.line(chartX, chartY, chartX, chartY - chartHeight);
       
-      // Plot SKI Trend
       doc.setDrawColor(19, 165, 158);
       doc.setLineWidth(0.8);
       
@@ -422,7 +402,6 @@ export const PdfService = {
       });
     }
 
-    // --- PAGE 4: ANALYTICS SNAPSHOT (4 CHARTS) ---
     doc.addPage();
     this.drawPageHeader(doc, tr("assessmentReport"), record.child.name, logoDataUrl);
     doc.setFontSize(14);
@@ -433,7 +412,6 @@ export const PdfService = {
     this.drawDomainVarianceChart(doc, trendData, ts);
     this.drawItemDeltaBars(doc, trendData, ts);
 
-    // --- PAGE 5: PROFILES (II-IV ON ONE PAGE) ---
     const domains: Array<{key: string, label: string, color: [number, number, number]}> = [
       { key: "rapid_movement", label: `II. ${ts("movement").toUpperCase()}`, color: [19, 165, 158] },
       { key: "rapid_social", label: `III. ${ts("social").toUpperCase()}`, color: [253, 203, 88] },
@@ -471,7 +449,6 @@ export const PdfService = {
       profileY = (doc.lastAutoTable?.finalY || profileY) + 4;
     }
 
-    // --- PAGE 6: SKI ---
     doc.addPage();
     this.drawPageHeader(doc, tr("assessmentReport"), record.child.name, logoDataUrl);
     doc.setFontSize(14);
@@ -488,12 +465,10 @@ export const PdfService = {
     doc.setTextColor(0, 0, 0);
     doc.text(`KIDEX ${ts("ski").toUpperCase()}`, 105, 95, { align: "center" });
 
-    // Draw a Gauge
     const gaugeX = 105;
     const gaugeY = 125;
     const gaugeRadius = 25;
     
-    // Background arc
     doc.setDrawColor(230);
     doc.setLineWidth(4);
     for (let a = 0; a <= 180; a += 5) {
@@ -505,7 +480,6 @@ export const PdfService = {
       );
     }
     
-    // Active arc
     const val = (currentSki || 0) / 6;
     doc.setDrawColor(19, 165, 158);
     for (let a = 0; a <= 180 * val; a += 5) {
@@ -517,7 +491,6 @@ export const PdfService = {
       );
     }
 
-    // Needle
     const needleRad = (180 + (180 * val)) * Math.PI / 180;
     doc.setDrawColor(0);
     doc.setLineWidth(1);
@@ -540,7 +513,6 @@ export const PdfService = {
     doc.setFontSize(11);
     doc.text(doc.splitTextToSize(tr("skiExplanation"), 150), 30, 170);
 
-    // --- PAGE 7: RECOMMENDATIONS + PRIORITIES + FINAL EVALUATION ---
     doc.addPage();
     this.drawPageHeader(doc, tr("assessmentReport"), record.child.name, logoDataUrl);
     doc.setFontSize(12);
@@ -639,7 +611,6 @@ export const PdfService = {
     doc.text(reassessmentLines, 20, reassessmentStartY);
     let signatureTitleY = reassessmentStartY + reassessmentLines.length * 5 + 12;
 
-    // If content gets too long, move final evaluation block to a clean new page.
     if (signatureTitleY > 175) {
       doc.addPage();
       this.drawPageHeader(doc, tr("assessmentReport"), record.child.name, logoDataUrl);
@@ -666,7 +637,6 @@ export const PdfService = {
     doc.save(`${safeName}_Kidex_Bio-Pszicho-Szocialis_Terkep.pdf`);
   },
 
-  // Helpers
   async getLogoDataUrl(): Promise<string> {
     return fetch("/logo.jpeg")
       .then((res) => res.blob())

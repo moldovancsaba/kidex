@@ -1,15 +1,7 @@
 {
   "schemaVersion": 1,
-  "gdsVersion": "2.6.1",
+  "gdsVersion": "2.6.3",
   "productArchetype": "hybrid",
-  "supportedEntryPoints": [
-    "@doneisbetter/gds-theme/client",
-    "@doneisbetter/gds-theme/server",
-    "@doneisbetter/gds-core/client",
-    "@doneisbetter/gds-core/server",
-    "@doneisbetter/gds-admin/client",
-    "@doneisbetter/gds-admin/server"
-  ],
   "requiredContracts": [
     "AppShell",
     "PageHeader",
@@ -55,6 +47,11 @@
       "status": "active"
     },
     {
+      "contract": "PageContainer",
+      "path": "components/gds-local/core/PageContainer.tsx",
+      "status": "active"
+    },
+    {
       "contract": "ProductCard",
       "path": "components/gds-local/core/ProductCard.tsx",
       "status": "active"
@@ -82,21 +79,21 @@
       "allowImports": [
         "recharts"
       ],
-      "reason": "GDS governs chrome and layout, while chart rendering remains an approved exception surface.",
+      "reason": "GDS governs chart framing, state handling, action placement, and mobile hierarchy, but the chart engine itself remains outside first-class GDS ownership.",
       "owner": "kidex-platform",
-      "reviewDate": "2026-05-26"
+      "reviewDate": "2026-05-28"
     },
     {
-      "surface": "PDF and document export",
-      "reason": "Report generation is a non-runtime export surface outside canonical GDS component ownership.",
+      "surface": "PDF and document export rendering",
+      "reason": "Professional reports, family reports, governance bundles, and print-perfect document output remain product-authored export surfaces outside the runtime GDS component layer.",
       "owner": "kidex-platform",
-      "reviewDate": "2026-05-26"
+      "reviewDate": "2026-05-28"
     },
     {
       "surface": "SearchableSelect adapter",
-      "reason": "KIDEX still carries a reviewed thin adapter until the shared searchable selection contract is promoted upstream.",
+      "reason": "KIDEX still uses a reviewed thin adapter around Mantine Select for searchable/addable selection flows until GDS ships a canonical searchable-selection contract.",
       "owner": "kidex-platform",
-      "reviewDate": "2026-05-26"
+      "reviewDate": "2026-05-28"
     }
   ],
   "compliance": {
@@ -111,7 +108,8 @@
     "staleDocumentationReferences": [
       "@gds/",
       "2.4.3 / 2026-05-25",
-      "Mantine 7-targeted"
+      "Mantine 7-targeted",
+      "release-asset tarballs"
     ],
     "protectedSurfacePaths": [
       "components/gds-local",
@@ -120,7 +118,7 @@
     ],
     "bannedImports": []
   },
-  "migrationStatus": "direct-package-adoption-with-thin-adapters",
+  "migrationStatus": "governed",
   "owner": "kidex-platform",
-  "lastReviewedAt": "2026-05-26"
+  "lastReviewedAt": "2026-05-28"
 }

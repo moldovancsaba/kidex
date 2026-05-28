@@ -8,8 +8,7 @@ export function getGoogleAuthorizationUrl(state: string) {
   url.searchParams.set("client_id", clientId);
   url.searchParams.set("redirect_uri", redirectUri);
   url.searchParams.set("response_type", "code");
-  // We need gmail.send for invitations
-  // offline access is needed to get a refresh token so the admin doesn't have to re-auth every hour
+  // Request Gmail send scope plus offline access so invite delivery can refresh tokens later.
   url.searchParams.set("scope", "openid email profile https://www.googleapis.com/auth/gmail.send");
   url.searchParams.set("access_type", "offline");
   url.searchParams.set("prompt", "consent");
