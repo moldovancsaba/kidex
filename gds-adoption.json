@@ -47,11 +47,6 @@
       "status": "active"
     },
     {
-      "contract": "PageContainer",
-      "path": "components/gds-local/core/PageContainer.tsx",
-      "status": "active"
-    },
-    {
       "contract": "ProductCard",
       "path": "components/gds-local/core/ProductCard.tsx",
       "status": "active"
@@ -92,6 +87,12 @@
     {
       "surface": "SearchableSelect adapter",
       "reason": "KIDEX still uses a reviewed thin adapter around Mantine Select for searchable/addable selection flows until GDS ships a canonical searchable-selection contract.",
+      "owner": "kidex-platform",
+      "reviewDate": "2026-05-28"
+    },
+    {
+      "surface": "Operational shell navigation label overrides",
+      "reason": "KIDEX currently uses GDS semantic iconography and shell structure, but keeps product-specific navigation labels for Children, Survey, Records, and Follow-up until GDS exposes a canonical labeled operational nav contract for domain-specific shells.",
       "owner": "kidex-platform",
       "reviewDate": "2026-05-28"
     }

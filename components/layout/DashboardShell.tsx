@@ -8,12 +8,11 @@ import {
   Stack,
   Text,
 } from "@mantine/core";
-import { AppShell } from "@doneisbetter/gds/client";
-import { IconChecklist, IconClockHour4, IconLayoutDashboard, IconSettings, IconUsersGroup } from "@tabler/icons-react";
+import { AppShell, getSemanticActionConfig, type SemanticAction } from "@doneisbetter/gds/client";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Link, usePathname, useRouter } from "@/i18n/navigation";
-import { LoadingState, PageContainer } from "@/components/gds-local/core";
+import { LoadingState } from "@/components/gds-local/core";
 import { AppFooter } from "@/components/layout/AppFooter";
 import { GlobalChildQuickSwitch } from "@/components/layout/GlobalChildQuickSwitch";
 import { LocaleSwitcher } from "@/components/preferences/LocaleSwitcher";
@@ -54,21 +53,21 @@ export default function DashboardShell({ children }: { children: React.ReactNode
 
   const nav = useMemo(
     () => [
-      { href: "/dashboard", label: t("overview"), icon: IconLayoutDashboard, mobilePrimary: true },
+      { href: "/dashboard", label: t("overview"), action: "dashboard" as SemanticAction, mobilePrimary: true },
       ...(canPerformAction(roles, "children.read")
-        ? [{ href: "/dashboard/children", label: t("children"), icon: IconUsersGroup, mobilePrimary: true }]
+        ? [{ href: "/dashboard/children", label: t("children"), action: "child" as SemanticAction, mobilePrimary: true }]
         : []),
       ...(canPerformAction(roles, "children.read")
-        ? [{ href: "/dashboard/follow-up", label: t("followUpCenter"), icon: IconClockHour4, mobilePrimary: false }]
+        ? [{ href: "/dashboard/follow-up", label: t("followUpCenter"), action: "history" as SemanticAction, mobilePrimary: false }]
         : []),
       ...(canPerformAction(roles, "assessments.write")
-        ? [{ href: "/dashboard/assessment", label: t("survey"), icon: IconChecklist, mobilePrimary: true }]
+        ? [{ href: "/dashboard/assessment", label: t("survey"), action: "check" as SemanticAction, mobilePrimary: true }]
         : []),
       ...(canPerformAction(roles, "assessments.read")
-        ? [{ href: "/dashboard/records", label: t("records"), icon: IconChecklist, mobilePrimary: true }]
+        ? [{ href: "/dashboard/records", label: t("records"), action: "history" as SemanticAction, mobilePrimary: true }]
         : []),
       ...(canPerformAction(roles, "settings.read")
-        ? [{ href: "/dashboard/settings", label: t("settings"), icon: IconSettings, mobilePrimary: false }]
+        ? [{ href: "/dashboard/settings", label: t("settings"), action: "settings" as SemanticAction, mobilePrimary: false }]
         : []),
     ],
     [roles, t],
@@ -77,12 +76,13 @@ export default function DashboardShell({ children }: { children: React.ReactNode
   const mobilePrimaryNav = nav.filter((item) => item.mobilePrimary).slice(0, 4);
   const secondaryNav = nav.filter((item) => !mobilePrimaryNav.some((primary) => primary.href === item.href));
   const activeNavLabel = nav.find((item) => pathname === item.href || pathname.startsWith(`${item.href}/`))?.label ?? t("overview");
+  const LogoutIcon = getSemanticActionConfig("logout").icon;
 
   const renderNavLinks = (items: typeof nav) =>
     items.map((item) => {
       const active =
         item.href === "/dashboard" ? pathname === "/dashboard" : pathname === item.href || pathname.startsWith(`${item.href}/`);
-      const Icon = item.icon;
+      const Icon = getSemanticActionConfig(item.action).icon;
       return (
         <NavLink
           key={item.href}
@@ -114,6 +114,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
       </Box>
       <Button
         variant="default"
+        leftSection={<LogoutIcon size={16} />}
         onClick={() => {
           window.location.href = "/api/auth/logout";
         }}
@@ -142,7 +143,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
             {mobilePrimaryNav.map((item) => {
               const active =
                 item.href === "/dashboard" ? pathname === "/dashboard" : pathname === item.href || pathname.startsWith(`${item.href}/`);
-              const Icon = item.icon;
+              const Icon = getSemanticActionConfig(item.action).icon;
 
               return (
                 <Button
@@ -166,24 +167,31 @@ export default function DashboardShell({ children }: { children: React.ReactNode
           </>
         ) : undefined
       }
-    >
-      <Box
-        className="dashboard-main"
+      >
+        <Box
+          className="dashboard-main"
         style={{
           minHeight: "100vh",
           display: "flex",
           flexDirection: "column",
           paddingBottom: mobilePrimaryNav.length > 0 ? 88 : 16,
         }}
-      >
-        <Box style={{ flex: 1 }}>
-          <PageContainer>
-            <SyncQueueBanner />
-            {!userLoaded || !routeAllowed ? <LoadingState label={tc("loading")} /> : children}
-          </PageContainer>
+        >
+          <Box style={{ flex: 1 }}>
+            <Box
+              style={{
+                width: "100%",
+                maxWidth: 1600,
+                marginInline: "auto",
+              }}
+              px={{ base: "md", md: "lg" }}
+            >
+              <SyncQueueBanner />
+              {!userLoaded || !routeAllowed ? <LoadingState label={tc("loading")} /> : children}
+            </Box>
+          </Box>
+          <AppFooter />
         </Box>
-        <AppFooter />
-      </Box>
     </AppShell>
   );
 }

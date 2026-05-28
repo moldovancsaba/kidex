@@ -65,6 +65,7 @@ These adapters are governed by [gds-adoption.json](../gds-adoption.json) and che
   - Recharts rendering: GDS governs chrome/layout, mobile priority, and state handling, not the chart engine
   - PDF and document export rendering
   - `SearchableSelect` until the upstream searchable-selection contract is finalized
+  - shell navigation label overrides while the current GDS nav contract does not yet expose domain-specific labels for operational products
 - Product-authored but still GDS-compliant surfaces:
   - child-state summaries
   - recommendation evidence blocks

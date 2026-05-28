@@ -4,7 +4,6 @@ export * from "./ErrorState";
 export * from "./FilterDrawer";
 export * from "./LoadingState";
 export * from "./MetricCard";
-export * from "./PageContainer";
 export * from "./ProductCard";
 export * from "./SearchableSelect";
 export * from "./SectionCard";
