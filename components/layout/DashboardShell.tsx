@@ -5,13 +5,11 @@ import {
   Button,
   Group,
   NavLink,
-  Stack as MantineStack,
   Stack,
   Text,
 } from "@mantine/core";
 import { AppShell } from "@doneisbetter/gds/client";
 import { IconChecklist, IconClockHour4, IconLayoutDashboard, IconSettings, IconUsersGroup } from "@tabler/icons-react";
-import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Link, usePathname, useRouter } from "@/i18n/navigation";
@@ -79,19 +77,6 @@ export default function DashboardShell({ children }: { children: React.ReactNode
   const mobilePrimaryNav = nav.filter((item) => item.mobilePrimary).slice(0, 4);
   const secondaryNav = nav.filter((item) => !mobilePrimaryNav.some((primary) => primary.href === item.href));
   const activeNavLabel = nav.find((item) => pathname === item.href || pathname.startsWith(`${item.href}/`))?.label ?? t("overview");
-  const logoBlock = (
-    <Group gap="sm" wrap="nowrap">
-      <Image src="/logo.png" alt="KIDEX" width={32} height={32} priority />
-      <MantineStack gap={0}>
-        <Text fw={800} size="sm" lh={1.1}>
-          KIDEX
-        </Text>
-        <Text size="sm" c="dimmed" lh={1.1}>
-          {activeNavLabel}
-        </Text>
-      </MantineStack>
-    </Group>
-  );
 
   const renderNavLinks = (items: typeof nav) =>
     items.map((item) => {
@@ -110,14 +95,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
       );
     });
 
-  const desktopPrimaryNavigation = (
-    <Stack gap="md">
-      <Box component={Link} href="/dashboard" style={{ textDecoration: "none", color: "inherit" }}>
-        {logoBlock}
-      </Box>
-      <Stack gap="xs">{renderNavLinks(mobilePrimaryNav.length > 0 ? mobilePrimaryNav : nav)}</Stack>
-    </Stack>
-  );
+  const desktopPrimaryNavigation = <Stack gap="xs">{renderNavLinks(mobilePrimaryNav.length > 0 ? mobilePrimaryNav : nav)}</Stack>;
 
   const userBlock = user ? (
     <Stack gap="xs">
@@ -148,7 +126,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
   return (
     <AppShell
       logoText="KIDEX"
-      headerContext={logoBlock}
+      headerContext={activeNavLabel}
       headerActions={
         <Group gap="xs" wrap="nowrap">
           {canPerformAction(roles, "children.read") ? <GlobalChildQuickSwitch roles={roles} /> : null}
