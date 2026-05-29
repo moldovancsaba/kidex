@@ -17,6 +17,7 @@ import {
 } from "@doneisbetter/gds/client";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
+import Image from "next/image";
 import { Link, usePathname, useRouter } from "@/i18n/navigation";
 import { AppFooter } from "@/components/layout/AppFooter";
 import { GlobalChildQuickSwitch } from "@/components/layout/GlobalChildQuickSwitch";
@@ -111,13 +112,24 @@ export default function DashboardShell({ children }: { children: React.ReactNode
 
   const sidebar = (
     <Stack h="100%" gap="lg">
-      <Box>
-        <Text fw={800} size="xl" lh={1}>
-          KIDEX
-        </Text>
-        <Text c="dimmed" size="sm">
-          {t("workspaceDescription")}
-        </Text>
+      <Box px="sm" py="xs">
+        <Group gap="sm" wrap="nowrap" align="center">
+          <Group gap="sm" wrap="nowrap" align="center">
+            <Image
+              src="/logo.png"
+              alt="KIDEX logo"
+              width={34}
+              height={34}
+              style={{ display: "block", borderRadius: "var(--mantine-radius-md)" }}
+            />
+            <Text fw={700} size="lg" lh={1.1}>
+              KIDEX
+            </Text>
+          </Group>
+          <Text c="dimmed" size="xs" fw={600}>
+            {t("workspaceDescription")}
+          </Text>
+        </Group>
       </Box>
 
       <SidebarNav ariaLabel={t("primaryNavigation")}>

@@ -111,6 +111,10 @@ Verification passed for that slice:
 - `npm run build`
 - `npm run typecheck`
 
+Immediate follow-up from current local continuation:
+
+- fixed duplicated dashboard sidebar branding by reducing sidebar header to a single logo+name row
+
 ## Git State
 
 Latest pushed commit on `origin/main` before the current local work:
