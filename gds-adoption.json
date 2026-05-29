@@ -80,12 +80,7 @@
       "docs/product-overview.md",
       "handover.md"
     ],
-    "staleDocumentationReferences": [
-      "@gds/",
-      "2.4.3 / 2026-05-25",
-      "Mantine 7-targeted",
-      "release-asset tarballs"
-    ],
+    "staleDocumentationReferences": [],
     "protectedSurfacePaths": [
       "theme",
       "app/providers.tsx"

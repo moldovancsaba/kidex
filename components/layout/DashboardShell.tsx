@@ -20,7 +20,7 @@ import { useTranslations } from "next-intl";
 import { Link, usePathname, useRouter } from "@/i18n/navigation";
 import { AppFooter } from "@/components/layout/AppFooter";
 import { GlobalChildQuickSwitch } from "@/components/layout/GlobalChildQuickSwitch";
-import { LocaleSwitcher } from "@/components/preferences/LocaleSwitcher";
+import { LocaleSwitcher } from "@/components/ui/LocaleSwitcher";
 import { SyncQueueBanner } from "@/components/sync/SyncQueueBanner";
 import { requiredActionForDashboardPath } from "@/lib/dashboard-access";
 import { canPerformAction } from "@/lib/permissions";
