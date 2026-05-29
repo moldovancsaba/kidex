@@ -18,8 +18,8 @@ import { useHotkeys, useMediaQuery } from "@mantine/hooks";
 import { IconArrowRight, IconChecklist, IconClockHour4, IconFileDescription, IconSearch, IconUser } from "@tabler/icons-react";
 import { startTransition, useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
+import { StateBlock } from "@doneisbetter/gds/client";
 import { useRouter } from "@/i18n/navigation";
-import { StateBlock } from "@/components/gds-local/core";
 import {
   CHILD_QUICK_SWITCH_RECENTS_KEY,
   rankChildQuickSwitchResults,

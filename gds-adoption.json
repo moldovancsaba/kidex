@@ -15,33 +15,7 @@
     "SectionPanel",
     "StateBlock"
   ],
-  "localAdapters": [
-    {
-      "contract": "MetricCard",
-      "path": "components/gds-local/core/MetricCard.tsx",
-      "status": "active"
-    },
-    {
-      "contract": "ProductCard",
-      "path": "components/gds-local/core/ProductCard.tsx",
-      "status": "active"
-    },
-    {
-      "contract": "SectionPanel",
-      "path": "components/gds-local/core/SectionCard.tsx",
-      "status": "active"
-    },
-    {
-      "contract": "StateBlock",
-      "path": "components/gds-local/core/StateBlock.tsx",
-      "status": "active"
-    },
-    {
-      "contract": "SearchableSelect",
-      "path": "components/gds-local/core/SearchableSelect.tsx",
-      "status": "exception"
-    }
-  ],
+  "localAdapters": [],
   "approvedExceptions": [
     {
       "surface": "Chart rendering",
@@ -81,19 +55,20 @@
       "reviewDate": "2026-05-28"
     },
     {
-      "surface": "SearchableSelect adapter",
+      "surface": "Searchable selection behavior",
       "category": "package-coverage-gap",
       "scope": [
-        "components/gds-local/core/SearchableSelect.tsx"
+        "components/forms/KidexAssessmentApp.tsx",
+        "app/[locale]/dashboard/settings/page.tsx"
       ],
-      "reason": "KIDEX still uses a reviewed thin adapter around Mantine Select for searchable/addable selection flows until GDS ships a canonical searchable-selection contract.",
-      "allowedImplementation": "Keep a single thin adapter that normalizes searchable/addable selection props onto Mantine Select/Combobox behavior without introducing custom design tokens or layout primitives.",
+      "reason": "GDS still does not ship a canonical searchable-selection contract for KIDEX's searchable and addable location/conductor flows.",
+      "allowedImplementation": "Use narrow, page-local Mantine Select behavior for searchable/addable selection while keeping labels, field framing, validation messaging, spacing, and section structure inside GDS-governed form surfaces.",
       "mustStillUse": "Labels, field framing, helper/error messaging, spacing, and surrounding form layout must continue to come from GDS-governed form contracts.",
-      "mustNotDo": "Do not expand this adapter into a local component family, custom combobox styling system, or per-page selection variants.",
-      "exitCondition": "Remove this exception once GDS publishes a canonical searchable-selection component or contract export and KIDEX migrates to it.",
+      "mustNotDo": "Do not reintroduce a shared local searchable-selection wrapper, custom combobox styling system, or page-specific selection design language.",
+      "exitCondition": "Remove this exception once GDS publishes a canonical searchable-selection component or contract export and KIDEX migrates these page-local usages to it.",
       "status": "temporary",
       "owner": "kidex-platform",
-      "reviewDate": "2026-05-28"
+      "reviewDate": "2026-05-29"
     }
   ],
   "compliance": {
@@ -112,13 +87,12 @@
       "release-asset tarballs"
     ],
     "protectedSurfacePaths": [
-      "components/gds-local",
       "theme",
       "app/providers.tsx"
     ],
     "bannedImports": []
   },
-  "migrationStatus": "governed",
+  "migrationStatus": "exceptions-only",
   "owner": "kidex-platform",
-  "lastReviewedAt": "2026-05-28"
+  "lastReviewedAt": "2026-05-29"
 }

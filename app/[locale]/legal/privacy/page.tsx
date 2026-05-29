@@ -3,9 +3,8 @@
 import { useEffect, useState } from "react";
 import { Button, Stack, Text } from "@mantine/core";
 import { useTranslations } from "next-intl";
-import { AdminPageHeader as PageHeader } from "@doneisbetter/gds/client";
+import { AdminPageHeader as PageHeader, SectionPanel } from "@doneisbetter/gds/client";
 import { Link } from "@/i18n/navigation";
-import { SectionCard } from "@/components/gds-local/core";
 import { APP_VERSION } from "@/lib/app-version";
 import { DEFAULT_KIDEX_SETTINGS, getSettings, type KidexSettings } from "@/services/settings-service";
 
@@ -21,19 +20,19 @@ export default function PrivacyPolicyPage() {
     <Stack gap="md">
       <PageHeader title={t("privacyTitle")} subtitle={`${t("effectiveDate")}: ${settings.company.registered}`} />
 
-      <SectionCard title={t("privacyCollectionTitle")}>
+      <SectionPanel title={t("privacyCollectionTitle")}>
         <Text size="sm">{t("privacyCollectionBody")}</Text>
-      </SectionCard>
+      </SectionPanel>
 
-      <SectionCard title={t("privacyUseTitle")}>
+      <SectionPanel title={t("privacyUseTitle")}>
         <Text size="sm">{t("privacyUseBody")}</Text>
-      </SectionCard>
+      </SectionPanel>
 
-      <SectionCard title={t("privacyRetentionTitle")}>
+      <SectionPanel title={t("privacyRetentionTitle")}>
         <Text size="sm">{t("privacyRetentionBody")}</Text>
-      </SectionCard>
+      </SectionPanel>
 
-      <SectionCard title={t("companyDataTitle")}>
+      <SectionPanel title={t("companyDataTitle")}>
         <Stack gap={6}>
           <Row label={t("companyDataTitle")} value={settings.company.name} />
           <Row label={t("idNo")} value={settings.company.ico} />
@@ -47,7 +46,7 @@ export default function PrivacyPolicyPage() {
         <Text size="sm" mt="xs">
           <strong>App:</strong> KIDEX v{APP_VERSION}
         </Text>
-      </SectionCard>
+      </SectionPanel>
 
       <Button component={Link} href="/dashboard" variant="default" style={{ alignSelf: "flex-start" }}>
         {t("backToDashboard")}

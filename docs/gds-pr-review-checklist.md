@@ -4,19 +4,19 @@ Use this checklist when reviewing UI changes in KIDEX.
 
 ## Pattern reuse
 
-- [ ] Uses an existing local contract (`PageHeader`, `DetailActionBar`, `MetricCard`, `DataToolbar`, `LoadingState`, `EmptyState`, `ErrorState`, `SectionCard`) instead of inventing a page-local variant
+- [ ] Uses direct `@doneisbetter/gds` runtime contracts or an explicitly documented exception surface instead of inventing a page-local variant
 - [ ] Shell, header, card, metric, toolbar, and state-block paths in [design-system.md](./design-system.md) still match the implementation
 
 ## Mantine-only and tokens
 
-- [ ] New UI uses Mantine primitives or approved thin wrappers only
+- [ ] New UI uses direct GDS primitives or an explicitly documented approved exception only
 - [ ] No imports from `@/theme/brand-colors` or removed `@/theme/tokens` in `app/` or `components/`
 - [ ] No raw hex/rgb in feature UI outside `components/analytics/chart-series-colors.ts`
 
 ## States
 
 - [ ] Loading, empty, error, disabled, and success states are explicit
-- [ ] Detail pages with multiple actions use `DetailActionBar` (primary + overflow menu on mobile)
+- [ ] Detail pages with multiple actions use the GDS `AdminPageHeader` action contract (primary + overflow menu on mobile)
 
 ## Responsive conductor UX
 

@@ -5,9 +5,8 @@ import { Alert, Badge, Button, Group, MultiSelect, Paper, Stack, Text, TextInput
 import { useMediaQuery } from "@mantine/hooks";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
-import { AdminPageHeader as PageHeader, DataToolbar, FilterDrawer, ResponsiveDataView, type ResponsiveDataViewFilterChip } from "@doneisbetter/gds/client";
+import { AdminPageHeader as PageHeader, DataToolbar, FilterDrawer, ProductCard, ResponsiveDataView, SectionPanel, StateBlock, type ResponsiveDataViewFilterChip } from "@doneisbetter/gds/client";
 import type { DataTableColumn } from "@doneisbetter/gds/client";
-import { LoadingState, ProductCard, SectionCard } from "@/components/gds-local/core";
 import { buildFollowUpQueue, type FollowUpQueueItem } from "@/lib/follow-up-queue";
 import type { ChildProfile } from "@/repositories/child.repository";
 import { canPerformAction } from "@/lib/permissions";
@@ -171,7 +170,11 @@ export default function FollowUpActionCenterPage() {
   );
 
   if (loading) {
-    return <LoadingState label={tc("loading")} minHeight="12rem" />;
+    return (
+      <Paper withBorder p="md" radius="md" style={{ minHeight: "12rem", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <StateBlock variant="loading" title={tc("loading")} compact />
+      </Paper>
+    );
   }
 
   return (
@@ -186,7 +189,7 @@ export default function FollowUpActionCenterPage() {
         }
       />
 
-      <SectionCard>
+      <SectionPanel>
         <Stack gap="md">
           <DataToolbar
             searchSlot={
@@ -239,11 +242,11 @@ export default function FollowUpActionCenterPage() {
                 {filterPanel}
               </FilterDrawer>
             }
-            renderCard={(item) => (
-              <ProductCard
+            renderCard={(item) => {
+              const card = (
+                <ProductCard
                 title={item.childName}
                 description={`${item.reasonLabel} · ${item.dueDate ? new Date(item.dueDate).toLocaleDateString() : t("followUpMissingDate")}`}
-                onClick={() => item.primaryTargetHref ? (window.location.href = item.primaryTargetHref) : undefined}
                 status={
                   <Badge color={item.status === "overdue" ? "red" : item.status === "due_soon" ? "yellow" : "grape"} variant="filled" size="sm">
                     {item.status === "overdue" ? "Overdue" : item.status === "due_soon" ? "Due soon" : "Missing date"}
@@ -277,11 +280,34 @@ export default function FollowUpActionCenterPage() {
                     : []),
                 ]}
               />
-            )}
+              );
+              if (!item.primaryTargetHref) return card;
+              return (
+                <Paper
+                  withBorder={false}
+                  p={0}
+                  radius={0}
+                  role="link"
+                  tabIndex={0}
+                  style={{ cursor: "pointer", background: "transparent" }}
+                  onClick={() => {
+                    window.location.href = item.primaryTargetHref!;
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      window.location.href = item.primaryTargetHref!;
+                    }
+                  }}
+                >
+                  {card}
+                </Paper>
+              );
+            }}
             getRowKey={(item) => item.childId || item.childName}
           />
         </Stack>
-      </SectionCard>
+      </SectionPanel>
     </Stack>
   );
 }

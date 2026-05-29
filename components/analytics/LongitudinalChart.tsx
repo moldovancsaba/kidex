@@ -2,6 +2,7 @@
 
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { Box, Paper, Text, useMantineTheme } from "@mantine/core";
+import { StateBlock } from "@doneisbetter/gds/client";
 import { ANALYTICS_CONFIG } from "./AnalyticsConstants";
 
 interface DataPoint {
@@ -24,6 +25,15 @@ export function LongitudinalChart({
   yDomain = [0, 6]
 }: LongitudinalChartProps) {
   const theme = useMantineTheme();
+  const latestPoint = data[data.length - 1];
+
+  if (data.length === 0) {
+    return (
+      <Paper withBorder p="md" radius="md">
+        <StateBlock variant="empty" title={title || "Trend unavailable"} description="No longitudinal data is available yet." compact />
+      </Paper>
+    );
+  }
 
   return (
     <Paper withBorder p="md" radius="md">
@@ -32,7 +42,11 @@ export function LongitudinalChart({
           {title}
         </Text>
       )}
-      <Box style={{ width: "100%", height: ANALYTICS_CONFIG.chartHeight }}>
+      <Box
+        style={{ width: "100%", height: ANALYTICS_CONFIG.chartHeight }}
+        role="img"
+        aria-label={`${title || "Longitudinal trend"} with ${data.length} points. Latest value ${latestPoint?.value ?? 0}.`}
+      >
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={data} margin={ANALYTICS_CONFIG.margins}>
             <defs>
@@ -79,6 +93,11 @@ export function LongitudinalChart({
           </AreaChart>
         </ResponsiveContainer>
       </Box>
+      {latestPoint ? (
+        <Text size="sm" c="dimmed" mt="sm">
+          Latest reading: {latestPoint.value.toFixed(1)} on {latestPoint.label || latestPoint.date}.
+        </Text>
+      ) : null}
     </Paper>
   );
 }

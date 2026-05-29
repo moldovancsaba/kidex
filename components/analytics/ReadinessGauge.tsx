@@ -25,6 +25,7 @@ export function ReadinessGauge({ value, title, subtitle }: ReadinessGaugeProps) 
   };
 
   const gaugeColor = getColor();
+  const readinessBand = value < 3 ? "needs support" : value < 4 ? "developing" : "ready";
 
   return (
     <Paper withBorder p="md" radius="md" style={{ textAlign: "center" }}>
@@ -34,7 +35,11 @@ export function ReadinessGauge({ value, title, subtitle }: ReadinessGaugeProps) 
         </Text>
       )}
       
-      <Box style={{ position: "relative", width: size, height: size / 2 + 20, margin: "0 auto" }}>
+      <Box
+        style={{ position: "relative", width: size, height: size / 2 + 20, margin: "0 auto" }}
+        role="img"
+        aria-label={`${title || "Readiness gauge"} showing ${value.toFixed(1)} out of 6, currently ${readinessBand}.`}
+      >
         <svg width={size} height={size / 2 + 10} style={{ transform: "rotate(180deg)" }}>
           <circle
             cx={size / 2}
@@ -76,6 +81,9 @@ export function ReadinessGauge({ value, title, subtitle }: ReadinessGaugeProps) 
         <Text size="sm" c="dimmed">0.0</Text>
         <Text size="sm" c="dimmed">6.0</Text>
       </Group>
+      <Text size="sm" c="dimmed" mt="sm">
+        Current readiness band: {readinessBand}.
+      </Text>
     </Paper>
   );
 }

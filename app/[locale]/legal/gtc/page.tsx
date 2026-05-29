@@ -3,9 +3,8 @@
 import { useEffect, useState } from "react";
 import { Button, Stack, Text } from "@mantine/core";
 import { useTranslations } from "next-intl";
-import { AdminPageHeader as PageHeader } from "@doneisbetter/gds/client";
+import { AdminPageHeader as PageHeader, SectionPanel } from "@doneisbetter/gds/client";
 import { Link } from "@/i18n/navigation";
-import { SectionCard } from "@/components/gds-local/core";
 import { APP_VERSION } from "@/lib/app-version";
 import { DEFAULT_KIDEX_SETTINGS, getSettings, type KidexSettings } from "@/services/settings-service";
 
@@ -21,24 +20,24 @@ export default function GtcPage() {
     <Stack gap="md">
       <PageHeader title={t("gtcTitle")} subtitle={`${t("effectiveDate")}: ${settings.company.registered}`} />
 
-      <SectionCard title={t("scopeTitle")}>
+      <SectionPanel title={t("scopeTitle")}>
         <Text size="sm">{t("scopeBody")}</Text>
-      </SectionCard>
+      </SectionPanel>
 
-      <SectionCard title={t("serviceTitle")}>
+      <SectionPanel title={t("serviceTitle")}>
         <Text size="sm">{t("serviceBody")}</Text>
-      </SectionCard>
+      </SectionPanel>
 
-      <SectionCard title={t("responsibilityTitle")}>
+      <SectionPanel title={t("responsibilityTitle")}>
         <Text size="sm">{t("responsibilityBody")}</Text>
-      </SectionCard>
+      </SectionPanel>
 
-      <SectionCard title={t("companyDataTitle")}>
+      <SectionPanel title={t("companyDataTitle")}>
         <CompanyData settings={settings} />
         <Text size="sm" mt="xs">
           <strong>App:</strong> KIDEX v{APP_VERSION}
         </Text>
-      </SectionCard>
+      </SectionPanel>
 
       <Button component={Link} href="/dashboard" variant="default" style={{ alignSelf: "flex-start" }}>
         {t("backToDashboard")}

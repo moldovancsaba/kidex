@@ -6,7 +6,7 @@ import { useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
-import { AdminPageHeader as PageHeader } from "@doneisbetter/gds/client";
+import { AdminPageHeader as PageHeader, SectionPanel, StateBlock } from "@doneisbetter/gds/client";
 import { buildChildStateSummary } from "@/lib/child-state-summary";
 import { buildFamilyFriendlyReportSummary } from "@/lib/family-report";
 import { PdfService } from "@/lib/pdf-service";
@@ -27,7 +27,6 @@ import {
   RadarChart,
   ResponsiveContainer,
 } from "recharts";
-import { ErrorState, LoadingState, SectionCard } from "@/components/gds-local/core";
 import { ExportStatusNotice } from "@/components/reports/ExportStatusNotice";
 import { rapidSections } from "@/lib/kidex-schema";
 import { getDomainMainColor, type AssessmentDomain } from "@/lib/domain-colors";
@@ -187,11 +186,15 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
   }, [record, shouldPrint]);
 
   if (loading) {
-    return <LoadingState label={tc("loading")} minHeight="12rem" />;
+    return (
+      <Box style={{ minHeight: "12rem", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <StateBlock variant="loading" title={tc("loading")} compact />
+      </Box>
+    );
   }
 
   if (!record) {
-    return <ErrorState title={tc("error")} message={t("recordUnavailable")} />;
+    return <StateBlock variant="error" title={tc("error")} description={t("recordUnavailable")} compact />;
   }
 
   const radarData = {
@@ -317,7 +320,7 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
           />
         </Box>
       </Stack>
-      <SectionCard title={t("reportPreview")}>
+      <SectionPanel title={t("reportPreview")}>
         <Stack gap="xl">
           <ExportStatusNotice status={professionalExportStatus} onRetry={() => void downloadPdf()} />
           <ExportStatusNotice status={familyExportStatus} onRetry={() => void downloadPdf("family")} />
@@ -388,7 +391,7 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
             })}
           </Text>
 
-          <SectionCard title="Current State Summary" subheader="One shared interpretation of the child’s physical, social, and mental state for conductor review and parent communication.">
+          <SectionPanel title="Current State Summary" description="One shared interpretation of the child’s physical, social, and mental state for conductor review and parent communication.">
             <Stack gap="md">
               <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
                 <Paper withBorder p="md" radius="md">
@@ -438,9 +441,9 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
                 </Paper>
               ) : null}
             </Stack>
-          </SectionCard>
+          </SectionPanel>
 
-          <SectionCard title="Progress and Plan Effectiveness" subheader="One bounded explanation of what changed over time and whether the current support plan looks helpful yet.">
+          <SectionPanel title="Progress and Plan Effectiveness" description="One bounded explanation of what changed over time and whether the current support plan looks helpful yet.">
             <Stack gap="md">
               <Alert color={reassessmentSummary.status === "overdue" ? "red" : reassessmentSummary.status === "due_soon" ? "yellow" : reassessmentSummary.status === "on_track" ? "teal" : "gray"}>
                 <Text fw={700}>Reassessment cadence</Text>
@@ -504,9 +507,9 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
                 </Paper>
               ) : null}
             </Stack>
-          </SectionCard>
+          </SectionPanel>
 
-          <SectionCard title="Next Session Focus" subheader="Operational priorities for the next live conductor session, linked to the measured profile and current support plan.">
+          <SectionPanel title="Next Session Focus" description="Operational priorities for the next live conductor session, linked to the measured profile and current support plan.">
             <Stack gap="md">
               {sessionFocus.map((priority) => (
                 <Paper key={priority.id} withBorder p="md" radius="md">
@@ -533,9 +536,9 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
                 </Paper>
               ))}
             </Stack>
-          </SectionCard>
+          </SectionPanel>
 
-          <SectionCard title="Mental Wellbeing Track" subheader="This assessment includes baseline or follow-up mental-skills, recovery, readiness, and support-signal context.">
+          <SectionPanel title="Mental Wellbeing Track" description="This assessment includes baseline or follow-up mental-skills, recovery, readiness, and support-signal context.">
             <Stack gap="md">
               <Text size="sm" c="dimmed">
                 {recommendationSummary.mentalWellbeing.phase === "baseline" ? "Baseline" : "Follow-up"} · risk {recommendationSummary.mentalWellbeing.riskLevel}
@@ -578,9 +581,9 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
                 </Group>
               ) : null}
             </Stack>
-          </SectionCard>
+          </SectionPanel>
 
-          <SectionCard title={tr("recommendationsTitle")}>
+          <SectionPanel title={tr("recommendationsTitle")}>
             <Stack gap="sm">
               <Text size="sm" c="dimmed">
                 Standards version: {recommendationSummary.standardsVersionUsed || settings?.standards.activeVersion || "v1"}{recommendationSummary.standardsVariantUsed ? ` · benchmark ${recommendationSummary.standardsVariantUsed}` : ""}
@@ -616,9 +619,9 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
                 </Paper>
               ))}
             </Stack>
-          </SectionCard>
+          </SectionPanel>
 
-          <SectionCard title={tr("familyReportTitle")}>
+          <SectionPanel title={tr("familyReportTitle")}>
             <Stack gap="sm">
               <Text size="sm" c="dimmed">{tr("familyReportIntro")}</Text>
               <Paper withBorder p="sm">
@@ -658,10 +661,10 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
                 </Paper>
               ) : null}
             </Stack>
-          </SectionCard>
+          </SectionPanel>
 
           {(supportSummary.caregiverCompleted > 0 || supportSummary.activeMicroLearning > 0 || supportSummary.openReferrals > 0 || supportSummary.evidenceCount > 0) ? (
-            <SectionCard title="Support follow-through">
+            <SectionPanel title="Support follow-through">
               <SimpleGrid cols={{ base: 2, md: 4 }} spacing="md">
                 <Paper withBorder p="sm">
                   <Text size="sm" c="dimmed">Caregiver tools completed</Text>
@@ -690,7 +693,7 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
                   </Stack>
                 </Paper>
               ) : null}
-            </SectionCard>
+            </SectionPanel>
           ) : null}
 
           <SimpleGrid cols={{ base: 1, md: 3 }} spacing="md" mt="md">
@@ -699,10 +702,10 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
             <RecordRadarChart title={t("rapidMentalTitle")} data={radarData.mental} domain="mental" />
           </SimpleGrid>
         </Stack>
-      </SectionCard>
+      </SectionPanel>
 
       {sections.map((section) => (
-        <SectionCard key={section.key} title={ts(section.key)}>
+        <SectionPanel key={section.key} title={ts(section.key)}>
           <Paper withBorder radius="md" style={{ overflow: "hidden" }}>
             <Table striped highlightOnHover verticalSpacing="sm">
               <Table.Thead>
@@ -732,10 +735,10 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
               </Table.Tbody>
             </Table>
           </Paper>
-        </SectionCard>
+        </SectionPanel>
       ))}
 
-      <SectionCard title={t("evidenceImages")}>
+      <SectionPanel title={t("evidenceImages")}>
         {record.attachments.length === 0 ? (
           <Text size="sm" c="dimmed" fs="italic">
             {t("noImages")}
@@ -785,9 +788,9 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
             })}
           </SimpleGrid>
         )}
-      </SectionCard>
+      </SectionPanel>
 
-      <SectionCard title={t("professionalNotes")}>
+      <SectionPanel title={t("professionalNotes")}>
         <Stack gap="md">
           <Box>
             <Text size="sm" fw={600} mb={4}>
@@ -806,9 +809,9 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
             </Text>
           </Box>
         </Stack>
-      </SectionCard>
+      </SectionPanel>
 
-      <SectionCard title={t("historyLog") || "History Log"}>
+      <SectionPanel title={t("historyLog") || "History Log"}>
         <Stack gap="xs">
           <Text size="sm">
             <strong>{t("recordedAt") || "Recorded at"}:</strong> {new Date(record.createdAt).toLocaleString(undefined, {
@@ -845,7 +848,7 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
             </Text>
           )}
         </Stack>
-      </SectionCard>
+      </SectionPanel>
     </Box>
   );
 }

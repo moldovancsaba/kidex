@@ -1,6 +1,6 @@
 # KIDEX GDS Compliance Checklist
 
-Aligned GDS line: `2.6.4 / 2026-05-28`  
+Aligned GDS line: `2.6.4 / 2026-05-29`  
 Manifest: [gds-adoption.json](../gds-adoption.json)  
 Adapter: [design-system.md](./design-system.md)
 
@@ -9,7 +9,7 @@ Adapter: [design-system.md](./design-system.md)
 - [x] Shared SSOT documented with public GDS source links
 - [x] Local adapter states that GDS is the authority
 - [x] Adoption manifest exists and is versioned in-repo
-- [x] Thin adapters are enumerated and justified
+- [x] Local primitive adapters are either removed or explicitly justified
 - [x] Exception surfaces are explicit and temporary where required
 
 ## Runtime
@@ -26,7 +26,7 @@ Adapter: [design-system.md](./design-system.md)
 - [x] Children and records registries use `ResponsiveDataView`
 - [x] Major route headers use GDS `PageHeader`
 - [x] Assessment workflow uses GDS `EditorScaffold` and `FormSection`
-- [x] Shared cards/toolbars/state surfaces use GDS runtime components or approved thin adapters only
+- [x] Shared cards/toolbars/state surfaces use direct GDS runtime components
 
 ## Repo compliance
 
@@ -41,7 +41,7 @@ Adapter: [design-system.md](./design-system.md)
 
 - [x] Recharts documented as an approved rendering exception
 - [x] PDF/export rendering documented as an approved exception
-- [x] `SearchableSelect` documented as a reviewed thin-adapter exception
+- [x] Searchable selection documented as a bounded page-level exception
 - [x] Product-authored KIDEX experience blocks are documented as GDS-compliant compositions, not design-system exceptions
 
 ## Verification gates

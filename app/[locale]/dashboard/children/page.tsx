@@ -7,14 +7,13 @@ import { IconDownload, IconEdit, IconEye, IconRestore, IconTrash } from "@tabler
 import { useParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
-import { AdminPageHeader as PageHeader, DataToolbar, FilterDrawer, ResponsiveDataView, type ResponsiveDataViewFilterChip } from "@doneisbetter/gds/client";
+import { AdminPageHeader as PageHeader, DataToolbar, FilterDrawer, ProductCard, ResponsiveDataView, SectionPanel, StateBlock, type ResponsiveDataViewFilterChip } from "@doneisbetter/gds/client";
 import { ACCOMMODATION_OPTIONS, COMMUNICATION_SUPPORTS, defaultAccessibilityProfile, FAMILY_VIEW_MODES, type AccommodationOption, type ChildAccessibilityProfile, type CommunicationSupport, type FamilyViewMode } from "@/lib/accessibility-profile";
 import { defaultConsentPolicy, deriveLegacyConsents, getConsentAlerts, type ChildConsentPolicy, type ConsentPolicyKey } from "@/lib/consent-policy";
 import { normalizePreferredLocale } from "@/lib/locales";
 import { canPerformAction } from "@/lib/permissions";
 import { buildReassessmentSummary } from "@/lib/reassessment";
 import type { DataTableColumn } from "@doneisbetter/gds/client";
-import { LoadingState, ProductCard, SectionCard } from "@/components/gds-local/core";
 import { createEmptyFamilyCaregiver, FAMILY_ACCESS_LEVELS, FAMILY_CAREGIVER_STATUSES, FAMILY_RELATIONSHIPS, type FamilyCaregiver } from "@/lib/family-access";
 import { calculateAgeGroup } from "@/lib/utils/age";
 import { formatScore } from "@/lib/utils";
@@ -621,7 +620,11 @@ export default function ChildrenListPage() {
   }
 
   if (loading) {
-    return <LoadingState label={tc("loading")} minHeight="12rem" />;
+    return (
+      <Paper withBorder p="md" radius="md" style={{ minHeight: "12rem", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <StateBlock variant="loading" title={tc("loading")} compact />
+      </Paper>
+    );
   }
 
   return (
@@ -637,7 +640,7 @@ export default function ChildrenListPage() {
           ) : null
         }
       />
-      <SectionCard>
+      <SectionPanel>
         <Stack gap="md">
           {message ? (
             <Alert color={error ? "red" : "kidex"} withCloseButton onClose={() => setMessage("")}>
@@ -766,12 +769,11 @@ export default function ChildrenListPage() {
                     ...(canWriteChildren ? [{ label: t("deleteChild"), color: "red", onClick: () => { setDeleteTarget(child); setDeleteConfirmText(""); }, leftSection: <IconTrash size={16} /> }] : []),
                   ]
                 : [];
-              return (
+              const card = (
                 <ProductCard
                   title={child.name}
                   description={`${ta("birthDate")}: ${child.birthDate} · ${ta("ageGroup")}: ${ageGroup}`}
                   status={status}
-                  onClick={() => !showDeleted && (window.location.href = `/${locale}/dashboard/children/${child._id}`)}
                   metadata={[
                     { label: "Average SKI", value: child.avgSki !== undefined ? formatScore(child.avgSki) : "—" },
                     { label: t("location"), value: child.latestLocation || "—" },
@@ -828,11 +830,30 @@ export default function ChildrenListPage() {
                   secondaryActions={secondaryActions}
                 />
               );
+              if (showDeleted) return card;
+              return (
+                <Box
+                  role="link"
+                  tabIndex={0}
+                  style={{ cursor: "pointer" }}
+                  onClick={() => {
+                    window.location.href = `/${locale}/dashboard/children/${child._id}`;
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      window.location.href = `/${locale}/dashboard/children/${child._id}`;
+                    }
+                  }}
+                >
+                  {card}
+                </Box>
+              );
             }}
             getRowKey={(item) => item._id || item.name}
           />
         </Stack>
-      </SectionCard>
+      </SectionPanel>
       <Modal opened={canWriteChildren && Boolean(editing)} onClose={() => (saving ? null : setEditing(null))} title={t("editChild")} centered>
           <Stack gap="md" mt="xs">
             <TextInput

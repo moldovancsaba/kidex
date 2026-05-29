@@ -2,6 +2,7 @@
 
 import { PolarAngleAxis, PolarGrid, Radar, RadarChart, ResponsiveContainer, Tooltip } from "recharts";
 import { Box, Paper, Text, useMantineTheme } from "@mantine/core";
+import { StateBlock } from "@doneisbetter/gds/client";
 import { ANALYTICS_CONFIG } from "./AnalyticsConstants";
 
 interface SymmetryData {
@@ -16,6 +17,18 @@ interface SymmetryChartProps {
 
 export function SymmetryChart({ title, data }: SymmetryChartProps) {
   const theme = useMantineTheme();
+  const strongest = data.reduce<SymmetryData | null>((best, entry) => {
+    if (!best) return entry;
+    return entry.value > best.value ? entry : best;
+  }, null);
+
+  if (data.length === 0) {
+    return (
+      <Paper withBorder p="md" radius="md">
+        <StateBlock variant="empty" title={title || "Symmetry unavailable"} description="No symmetry data is available yet." compact />
+      </Paper>
+    );
+  }
 
   return (
     <Paper withBorder p="md" radius="md">
@@ -24,7 +37,11 @@ export function SymmetryChart({ title, data }: SymmetryChartProps) {
           {title}
         </Text>
       )}
-      <Box style={{ width: "100%", height: ANALYTICS_CONFIG.chartHeight }}>
+      <Box
+        style={{ width: "100%", height: ANALYTICS_CONFIG.chartHeight }}
+        role="img"
+        aria-label={`${title || "Symmetry chart"} with ${data.length} domains.`}
+      >
         <ResponsiveContainer width="100%" height="100%">
           <RadarChart cx="50%" cy="50%" outerRadius={ANALYTICS_CONFIG.radarOuterRadius} data={data}>
             <PolarGrid stroke={theme.colors.gray[4]} />
@@ -52,6 +69,11 @@ export function SymmetryChart({ title, data }: SymmetryChartProps) {
           </RadarChart>
         </ResponsiveContainer>
       </Box>
+      {strongest ? (
+        <Text size="sm" c="dimmed" mt="sm">
+          Highest symmetry score: {strongest.domain} at {strongest.value.toFixed(1)}.
+        </Text>
+      ) : null}
     </Paper>
   );
 }

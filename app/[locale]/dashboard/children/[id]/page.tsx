@@ -2,12 +2,11 @@
 
 import { startTransition, useEffect, useState, use } from "react";
 import { Alert, Badge, Box, Button, Checkbox, Group, Modal, MultiSelect, Paper, Select, SimpleGrid, Stack, Table, Text, TextInput, Textarea, useMantineTheme } from "@mantine/core";
-import { AdminPageHeader as PageHeader } from "@doneisbetter/gds/client";
+import { AdminPageHeader as PageHeader, SectionPanel, StateBlock } from "@doneisbetter/gds/client";
 import Image from "next/image";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { PolarAngleAxis, PolarGrid, PolarRadiusAxis, Radar, RadarChart, ResponsiveContainer, Tooltip } from "recharts";
-import { ErrorState, LoadingState, SectionCard } from "@/components/gds-local/core";
 import { ExportStatusNotice } from "@/components/reports/ExportStatusNotice";
 import { SyncStatusNotice } from "@/components/sync/SyncStatusNotice";
 import { useSyncQueueOperations } from "@/components/sync/useSyncQueue";
@@ -387,11 +386,15 @@ export default function ChildHistoryPage({ params }: { params: Promise<{ id: str
   const expiringConsentCount = consentAlerts.filter((alert) => alert.reason === "expiring_soon").length;
 
   if (loading) {
-    return <LoadingState label={tc("loading")} minHeight="12rem" />;
+    return (
+      <Box style={{ minHeight: "12rem", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <StateBlock variant="loading" title={tc("loading")} compact />
+      </Box>
+    );
   }
 
   if (!data) {
-    return <ErrorState title={tc("error")} message={t("childHistoryUnavailable")} />;
+    return <StateBlock variant="error" title={tc("error")} description={t("childHistoryUnavailable")} compact />;
   }
 
   const latestAssessmentId = data.assessments[0]?._id;
@@ -791,7 +794,7 @@ export default function ChildHistoryPage({ params }: { params: Promise<{ id: str
       <ConsentAlertPanel alerts={consentAlerts} title={t("consentAlertTitle")} t={t} />
 
       {data.child.caregivers?.length ? (
-        <SectionCard title={t("familyConsentLinksTitle")}>
+        <SectionPanel title={t("familyConsentLinksTitle")}>
           <Stack gap="sm">
             {data.child.caregivers.map((caregiver) => (
               <Paper key={caregiver.id} withBorder p="sm">
@@ -812,11 +815,11 @@ export default function ChildHistoryPage({ params }: { params: Promise<{ id: str
               </Paper>
             ))}
           </Stack>
-        </SectionCard>
+        </SectionPanel>
       ) : null}
 
       {data.child.accessibilityProfile ? (
-        <SectionCard title={td("accessibilityProfileTitle")}>
+        <SectionPanel title={td("accessibilityProfileTitle")}>
           <Stack gap="xs">
             <Text size="sm"><strong>{td("familyViewMode")}:</strong> {td(`familyViewModeLabel.${data.child.accessibilityProfile.familyViewMode}`)}</Text>
             <Text size="sm"><strong>{td("communicationSupport")}:</strong> {td(`communicationSupportLabel.${data.child.accessibilityProfile.communicationSupport}`)}</Text>
@@ -831,10 +834,10 @@ export default function ChildHistoryPage({ params }: { params: Promise<{ id: str
               <Text size="sm"><strong>{td("strengthsNotes")}:</strong> {data.child.accessibilityProfile.strengthsNotes}</Text>
             ) : null}
           </Stack>
-        </SectionCard>
+        </SectionPanel>
       ) : null}
 
-      <SectionCard title="Communication Log">
+      <SectionPanel title="Communication Log">
         <Stack gap="md">
           <Text size="sm" c="dimmed">
             This workflow logs caregiver-visible updates and internal notes with policy-aware review history. Direct adult-minor messaging is not supported.
@@ -917,9 +920,9 @@ export default function ChildHistoryPage({ params }: { params: Promise<{ id: str
             </Stack>
           )}
         </Stack>
-      </SectionCard>
+      </SectionPanel>
 
-      <SectionCard title={td("skiProgression")}>
+      <SectionPanel title={td("skiProgression")}>
         <LongitudinalChart 
           data={data.assessments.slice().reverse().map(a => ({ 
             date: a.session.date, 
@@ -933,11 +936,11 @@ export default function ChildHistoryPage({ params }: { params: Promise<{ id: str
             baseline: formatScore(baseline?.computed.ski || 0)
           })}
         </Text>
-      </SectionCard>
+      </SectionPanel>
 
       <SimpleGrid cols={{ base: 1, md: 2 }} spacing="lg">
         <Box>
-          <SectionCard title={t("longitudinalTrends")}>
+          <SectionPanel title={t("longitudinalTrends")}>
             <Stack gap="md">
               <LongitudinalChart 
                 title={ts("movement")}
@@ -955,7 +958,7 @@ export default function ChildHistoryPage({ params }: { params: Promise<{ id: str
                 color={getDomainMainColor("mental")}
               />
             </Stack>
-          </SectionCard>
+          </SectionPanel>
         </Box>
         <Box>
           <BenchmarkChart 
@@ -1000,7 +1003,7 @@ export default function ChildHistoryPage({ params }: { params: Promise<{ id: str
         </Box>
       </SimpleGrid>
 
-      <SectionCard title={t("rapidSpiderSummaryTitle")} subheader={t("rapidSpiderSummarySubtitle")}>
+      <SectionPanel title={t("rapidSpiderSummaryTitle")} description={t("rapidSpiderSummarySubtitle")}>
         <Stack gap="md" style={{ flexDirection: "row", flexWrap: "wrap" }}>
           <Box style={{ flex: 1, minWidth: 0 }}>
             <RapidRadarChart title={t("rapidMovementTitle")} data={rapidDomainSummary.movement} domain="movement" />
@@ -1012,10 +1015,10 @@ export default function ChildHistoryPage({ params }: { params: Promise<{ id: str
             <RapidRadarChart title={t("rapidMentalTitle")} data={rapidDomainSummary.mental} domain="mental" />
           </Box>
         </Stack>
-      </SectionCard>
+      </SectionPanel>
 
       {childStateSummary ? (
-        <SectionCard title="Current State Summary" subheader="One shared interpretation of the child’s current physical, social, and mental state for the conductor and the parent conversation.">
+        <SectionPanel title="Current State Summary" description="One shared interpretation of the child’s current physical, social, and mental state for the conductor and the parent conversation.">
           <Stack gap="md">
             <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
               <Paper withBorder p="md" radius="md">
@@ -1065,11 +1068,11 @@ export default function ChildHistoryPage({ params }: { params: Promise<{ id: str
               </Paper>
             ) : null}
           </Stack>
-        </SectionCard>
+        </SectionPanel>
       ) : null}
 
       {progressSummary ? (
-        <SectionCard title="Progress and Plan Effectiveness" subheader="A bounded explanation of what changed over time and whether the current plan looks helpful yet.">
+        <SectionPanel title="Progress and Plan Effectiveness" description="A bounded explanation of what changed over time and whether the current plan looks helpful yet.">
           <Stack gap="md">
             <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
               <Paper withBorder p="md" radius="md">
@@ -1128,11 +1131,11 @@ export default function ChildHistoryPage({ params }: { params: Promise<{ id: str
               </Paper>
             ) : null}
           </Stack>
-        </SectionCard>
+        </SectionPanel>
       ) : null}
 
       {recommendationSummary ? (
-        <SectionCard title="Mental Wellbeing Track" subheader="Baseline and follow-up mental-skills, readiness, recovery, and support signals linked to this child record.">
+        <SectionPanel title="Mental Wellbeing Track" description="Baseline and follow-up mental-skills, readiness, recovery, and support signals linked to this child record.">
           <Stack gap="md">
             <Text size="sm" c="dimmed">
               {recommendationSummary.mentalWellbeing.phase === "baseline" ? "Baseline" : "Follow-up"} · risk {recommendationSummary.mentalWellbeing.riskLevel}
@@ -1179,11 +1182,11 @@ export default function ChildHistoryPage({ params }: { params: Promise<{ id: str
               </Paper>
             ) : null}
           </Stack>
-        </SectionCard>
+        </SectionPanel>
       ) : null}
 
       {recommendationSummary ? (
-        <SectionCard title={tr("recommendationsTitle")}>
+        <SectionPanel title={tr("recommendationsTitle")}>
           <Stack gap="md">
             <Text size="sm" c="dimmed">
               Standards version: {recommendationSummary.standardsVersionUsed || settings?.standards.activeVersion || "v1"}{recommendationSummary.standardsVariantUsed ? ` · benchmark ${recommendationSummary.standardsVariantUsed}` : ""} · SKI target {formatScore(recommendationSummary.ski.target)} · minimum {formatScore(recommendationSummary.ski.min)}
@@ -1219,11 +1222,11 @@ export default function ChildHistoryPage({ params }: { params: Promise<{ id: str
               </Paper>
             ))}
           </Stack>
-        </SectionCard>
+        </SectionPanel>
       ) : null}
 
       {sessionFocus.length > 0 ? (
-        <SectionCard title="Next Session Focus" subheader="Practical next-session priorities for the conductor, linked to the current measured profile.">
+        <SectionPanel title="Next Session Focus" description="Practical next-session priorities for the conductor, linked to the current measured profile.">
           <Stack gap="md">
             {sessionFocus.map((priority) => (
               <Paper key={priority.id} withBorder p="md" radius="md">
@@ -1250,12 +1253,12 @@ export default function ChildHistoryPage({ params }: { params: Promise<{ id: str
               </Paper>
             ))}
           </Stack>
-        </SectionCard>
+        </SectionPanel>
       ) : null}
 
-      <SectionCard
+      <SectionPanel
         title="Development Plan"
-        subheader="Translate the latest support recommendations into practical assignments, checkpoints, and family-safe follow-up."
+        description="Translate the latest support recommendations into practical assignments, checkpoints, and family-safe follow-up."
         action={canWritePlans ? (
           <Group gap="xs">
             {!plan ? (
@@ -1423,11 +1426,11 @@ export default function ChildHistoryPage({ params }: { params: Promise<{ id: str
             </Paper>
           </Stack>
         )}
-      </SectionCard>
+      </SectionPanel>
 
-      <SectionCard
+      <SectionPanel
         title="Support Workspace"
-        subheader="Caregiver tools, coach guidance, micro-learning, referrals, and evidence journaling for this child."
+        description="Caregiver tools, coach guidance, micro-learning, referrals, and evidence journaling for this child."
         action={canWritePlans ? (
           <Button color="kidex" onClick={() => void saveSupport()} loading={savingSupportWorkspace} disabled={!effectiveSupportWorkspace}>
             Save support workspace
@@ -1715,10 +1718,10 @@ export default function ChildHistoryPage({ params }: { params: Promise<{ id: str
             </Paper>
           </Stack>
         )}
-      </SectionCard>
+      </SectionPanel>
 
       {recommendationSummary ? (
-      <SectionCard title={tr("familyReportTitle")}>
+      <SectionPanel title={tr("familyReportTitle")}>
         <Stack gap="sm">
           <Text size="sm" c="dimmed">{tr("familyReportIntro")}</Text>
           <Paper withBorder p="sm">
@@ -1768,10 +1771,10 @@ export default function ChildHistoryPage({ params }: { params: Promise<{ id: str
               </Paper>
             ) : null}
           </Stack>
-        </SectionCard>
+        </SectionPanel>
       ) : null}
 
-      <SectionCard title={t("assessmentHistory")}>
+      <SectionPanel title={t("assessmentHistory")}>
         <Paper withBorder p={0}>
           <Table striped highlightOnHover verticalSpacing="sm">
             <Table.Thead>
@@ -1817,9 +1820,9 @@ export default function ChildHistoryPage({ params }: { params: Promise<{ id: str
         <Text size="sm" c="dimmed" mt="xs">
           {td("insightChildHistoryCount", { count: data.assessments.length })}
         </Text>
-      </SectionCard>
+      </SectionPanel>
 
-      <SectionCard title={t("evidenceImages")}>
+      <SectionPanel title={t("evidenceImages")}>
         {assessmentsWithImages.length === 0 ? (
           <Text c="dimmed">{t("noImages")}</Text>
         ) : (
@@ -1872,7 +1875,7 @@ export default function ChildHistoryPage({ params }: { params: Promise<{ id: str
             ))}
           </Stack>
         )}
-      </SectionCard>
+      </SectionPanel>
       <DeleteSurveyModal
         opened={canWriteAssessments && deleteModalOpen}
         onClose={() => setDeleteModalOpen(false)}

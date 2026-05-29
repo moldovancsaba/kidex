@@ -1,8 +1,8 @@
 # KIDEX Design System Adapter
 
 SSOT: [sovereignsquad/general-design-system](https://github.com/sovereignsquad/general-design-system)  
-Aligned package/runtime line: `2.6.4 / 2026-05-28`  
-Local status: `umbrella package adoption with a reduced thin-adapter set`
+Aligned package/runtime line: `2.6.4 / 2026-05-29`  
+Local status: `direct umbrella package adoption with exceptions only`
 
 This file is a local adapter only. If it conflicts with the shared GDS repository, the shared repository wins.
 
@@ -17,7 +17,7 @@ KIDEX now consumes the published GDS package line from npm:
 - `@doneisbetter/gds-eslint-config`
 - `@doneisbetter/gds-compliance`
 
-The app is GDS-governed and GDS-runtime-backed. Remaining local UI wrappers are thin adapters only, documented in [gds-adoption.json](../gds-adoption.json).
+The app is GDS-governed and GDS-runtime-backed. The former `components/gds-local/core` adapter layer has been removed. Remaining divergence is tracked only as approved exception surfaces in [gds-adoption.json](../gds-adoption.json).
 
 ## Runtime contract
 
@@ -43,27 +43,24 @@ The granular `@doneisbetter/gds-*` packages remain the underlying published lane
 - Shared primitives:
   - direct `DataToolbar`
   - direct `FilterDrawer`
-  - thin-adapter `MetricCard`
-  - thin-adapter `ProductCard`
-  - thin-adapter `SectionPanel`
-  - thin-adapter `StateBlock`
+  - direct `MetricCard`
+  - direct `ProductCard`
+  - direct `SectionPanel`
+  - direct `StateBlock`
 
-## Approved thin adapters
+## Adapter status
 
-Thin adapters remain in [components/gds-local](/Users/Shared/Projects/kidex/components/gds-local) only where KIDEX still needs:
+KIDEX no longer keeps a shared local primitive adapter layer for metric, product-card, section-panel, or state-block contracts. Any remaining non-GDS behavior must now be:
 
-- legacy prop-shape preservation where KIDEX still passes product-specific props that do not map 1:1 to current GDS contracts
-- temporary contract bridging for `SearchableSelect`
-- local composition helpers for state-block family usage
-
-These adapters are governed by [gds-adoption.json](../gds-adoption.json) and checked by `gds-compliance`.
+- a documented approved exception surface in [gds-adoption.json](../gds-adoption.json), or
+- a product-authored composition built directly from GDS primitives
 
 ## Approved exception surfaces
 
 - Current KIDEX exceptions:
   - Recharts rendering: GDS governs chrome/layout, mobile priority, and state handling, not the chart engine
   - PDF and document export rendering
-  - `SearchableSelect` until the upstream searchable-selection contract is finalized
+  - searchable selection behavior in the assessment and settings flows until the upstream searchable-selection contract is finalized
 - Product-authored but still GDS-compliant surfaces:
   - child-state summaries
   - recommendation evidence blocks

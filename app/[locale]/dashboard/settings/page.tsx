@@ -4,8 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Alert, Badge, Box, Button, Checkbox, Divider, Group, MultiSelect, NumberInput, Paper, Select, Stack, Table, Tabs, Text, Textarea, TextInput } from "@mantine/core";
 import { useTranslations } from "next-intl";
 import { useParams } from "next/navigation";
-import { AdminPageHeader as PageHeader } from "@doneisbetter/gds/client";
-import { LoadingState, SearchableSelect, SectionCard } from "@/components/gds-local/core";
+import { AdminPageHeader as PageHeader, SectionPanel, StateBlock } from "@doneisbetter/gds/client";
 import { ExportStatusNotice } from "@/components/reports/ExportStatusNotice";
 import { DEFAULT_KIDEX_SETTINGS, getSettings, type KidexSettings, saveSettings } from "@/services/settings-service";
 import { getUsers, saveUser, type User } from "@/services/user-service";
@@ -833,7 +832,11 @@ export default function SettingsPage() {
   }
 
   if (loading) {
-    return <LoadingState label={tc("loading")} minHeight="12rem" />;
+    return (
+      <Box style={{ minHeight: "12rem", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <StateBlock variant="loading" title={tc("loading")} compact />
+      </Box>
+    );
   }
 
   return (
@@ -846,7 +849,7 @@ export default function SettingsPage() {
         </Alert>
       ) : null}
 
-      <SectionCard title={t("userRights")}>
+      <SectionPanel title={t("userRights")}>
         <Stack gap="md">
           {!canWriteUsers ? <Text size="sm" c="dimmed">This area is read-only for your role.</Text> : null}
           <Group gap="xs" align="end" wrap="wrap">
@@ -1030,9 +1033,9 @@ export default function SettingsPage() {
             </Table>
           </Paper>
         </Stack>
-      </SectionCard>
+      </SectionPanel>
 
-      <SectionCard title="Institution Directory">
+      <SectionPanel title="Institution Directory">
         <Stack gap="md">
           {!canWriteSettings ? <Text size="sm" c="dimmed">Institution directory is read-only for your role.</Text> : null}
           <Group gap="xs" align="end" wrap="wrap">
@@ -1101,17 +1104,17 @@ export default function SettingsPage() {
             ))}
           </Stack>
         </Stack>
-      </SectionCard>
+      </SectionPanel>
 
-      <SectionCard title="Institution Scope">
+      <SectionPanel title="Institution Scope">
         <Stack gap="xs">
           <Text size="sm">Primary institution: {defaultPrimaryInstitutionId}</Text>
           <Text size="sm">Institution memberships: {defaultInstitutionIds.join(", ")}</Text>
           {!isAdmin ? <Text size="sm" c="dimmed">Institution membership changes are currently admin-managed.</Text> : null}
         </Stack>
-      </SectionCard>
+      </SectionPanel>
 
-      <SectionCard
+      <SectionPanel
         title="Communication Policy"
         action={
           <Button color="kidex" onClick={() => void handleSaveSettings()} disabled={saving || !canWriteSettings}>
@@ -1159,19 +1162,23 @@ export default function SettingsPage() {
             This policy applies to the safeguarded communication log and prevents unreviewed adult-minor direct messaging by limiting the system to caregiver-visible or internal institutional communication.
           </Text>
         </Stack>
-      </SectionCard>
+      </SectionPanel>
 
-      <SectionCard title={t("locations")}>
+      <SectionPanel title={t("locations")}>
         <Stack gap="md">
           {!canWriteSettings ? <Text size="sm" c="dimmed">Location settings are read-only for your role.</Text> : null}
           <Group gap="xs" align="end" wrap="wrap">
             <Box style={{ minWidth: 280, width: 420, maxWidth: "100%" }}>
-              <SearchableSelect
+              <Select
+                searchable
+                clearable
                 label={t("addLocation")}
-                value={locationDraft}
-                options={settings.locations.map((name) => ({ id: name, name }))}
-                onChange={setLocationDraft}
-                allowAdd
+                value={settings.locations.includes(locationDraft) ? locationDraft : null}
+                searchValue={locationDraft}
+                data={settings.locations.map((name) => ({ value: name, label: name }))}
+                nothingFoundMessage={t("addLocation")}
+                onSearchChange={setLocationDraft}
+                onChange={(value) => setLocationDraft(value?.trim() || "")}
               />
             </Box>
             <Button variant="default" onClick={addLocation} disabled={!locationDraft.trim() || !canWriteSettings}>
@@ -1197,9 +1204,9 @@ export default function SettingsPage() {
             </Stack>
           )}
         </Stack>
-      </SectionCard>
+      </SectionPanel>
 
-      <SectionCard
+      <SectionPanel
         title={t("legalAndCompany")}
         action={
           <Button color="kidex" onClick={() => void handleSaveSettings()} disabled={saving || !canWriteSettings}>
@@ -1217,9 +1224,9 @@ export default function SettingsPage() {
           <TextInput label={tl("vatNo")} disabled={!canWriteSettings} value={settings.company.vatNo} onChange={(event) => updateCompanyField("vatNo", event.target.value)} />
           <TextInput label={tl("website")} disabled={!canWriteSettings} value={settings.company.website} onChange={(event) => updateCompanyField("website", event.target.value)} />
         </Stack>
-      </SectionCard>
+      </SectionPanel>
 
-      <SectionCard
+      <SectionPanel
         title={t("emailIntegration")}
         action={
           <Button color="kidex" onClick={() => void handleSaveSettings()} disabled={saving || !canWriteSettings}>
@@ -1278,9 +1285,9 @@ export default function SettingsPage() {
             ))}
           </Tabs>
         </Stack>
-      </SectionCard>
+      </SectionPanel>
 
-      <SectionCard title="Standards Version Manager">
+      <SectionPanel title="Standards Version Manager">
         <Stack gap="md">
           {!canWriteSettings ? <Text size="sm" c="dimmed">Standards configuration is read-only for your role.</Text> : null}
           <Group align="end" wrap="wrap">
@@ -1585,9 +1592,9 @@ export default function SettingsPage() {
             {saving ? tc("saving") : tc("save")}
           </Button>
         </Stack>
-      </SectionCard>
+      </SectionPanel>
 
-      <SectionCard title={t("restoreBinTitle")}>
+      <SectionPanel title={t("restoreBinTitle")}>
         <Stack gap="lg">
           <Box>
             <Text fw={700} mb="sm">{t("restoreDeletedChildren")}</Text>
@@ -1629,9 +1636,9 @@ export default function SettingsPage() {
             )}
           </Box>
         </Stack>
-      </SectionCard>
+      </SectionPanel>
 
-      <SectionCard title="Governance Center">
+      <SectionPanel title="Governance Center">
         <Stack gap="lg">
           <Stack gap="xs">
             <Text fw={700}>Compliance snapshot</Text>
@@ -1740,9 +1747,9 @@ export default function SettingsPage() {
             )}
           </Stack>
         </Stack>
-      </SectionCard>
+      </SectionPanel>
 
-      <SectionCard title="Culture Voice and Trust Surveys">
+      <SectionPanel title="Culture Voice and Trust Surveys">
         <Stack gap="lg">
           <Stack gap="xs">
             <Text fw={700}>Anonymous launch and review</Text>
@@ -1862,10 +1869,10 @@ export default function SettingsPage() {
             </Table>
           </Paper>
         </Stack>
-      </SectionCard>
+      </SectionPanel>
 
       {isAdmin ? (
-        <SectionCard title="Audit Trail">
+        <SectionPanel title="Audit Trail">
           <Stack gap="sm">
             <Text size="sm" c="dimmed">
               Recent sensitive actions across settings, users, child records, assessments, media uploads, and report exports.
@@ -1905,7 +1912,7 @@ export default function SettingsPage() {
               </Paper>
             )}
           </Stack>
-        </SectionCard>
+        </SectionPanel>
       ) : null}
     </Stack>
   );

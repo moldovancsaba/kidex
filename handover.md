@@ -34,9 +34,9 @@ For the fuller current product description, use:
 
 Design/UI/UX SSOT:
 
-- [sovereignsquad/general-design-system README](https://github.com/sovereignsquad/general-design-system/blob/main/README.md) (aligned version `2.6.4 / 2026-05-28`)
+- [sovereignsquad/general-design-system README](https://github.com/sovereignsquad/general-design-system/blob/main/README.md) (aligned version `2.6.4 / 2026-05-29`)
 
-KIDEX local design docs are adapters only. The shared design-system repository above is the authority for design, UI, UX, pattern service, navigation, responsive rules, component contracts, governance, and the Mantine-only product primitive policy. Local status is **umbrella package adoption with thin adapters** — see [docs/design-system.md](/Users/Shared/Projects/kidex/docs/design-system.md), [docs/gds-compliance-checklist.md](/Users/Shared/Projects/kidex/docs/gds-compliance-checklist.md), [docs/gds-pr-review-checklist.md](/Users/Shared/Projects/kidex/docs/gds-pr-review-checklist.md), and [gds-adoption.json](/Users/Shared/Projects/kidex/gds-adoption.json).
+KIDEX local design docs are adapters only. The shared design-system repository above is the authority for design, UI, UX, pattern service, navigation, responsive rules, component contracts, governance, and the Mantine-only product primitive policy. Local status is **direct umbrella package adoption with documented exceptions only** — see [docs/design-system.md](/Users/Shared/Projects/kidex/docs/design-system.md), [docs/gds-compliance-checklist.md](/Users/Shared/Projects/kidex/docs/gds-compliance-checklist.md), [docs/gds-pr-review-checklist.md](/Users/Shared/Projects/kidex/docs/gds-pr-review-checklist.md), and [gds-adoption.json](/Users/Shared/Projects/kidex/gds-adoption.json).
 
 ## UI / GDS track
 
@@ -60,7 +60,7 @@ Current GDS runtime facts:
 - supporting published packages: `@doneisbetter/gds-theme`, `@doneisbetter/gds-core`, `@doneisbetter/gds-admin`
 - canonical install source: npm
 - verified consumer baseline: Next `15.5.18`, React `19.2.0`, Mantine `8.3.6`
-- KIDEX now consumes the published umbrella package directly and keeps only reviewed thin adapters plus documented exception surfaces
+- KIDEX now consumes the published umbrella package directly with no shared local primitive adapter layer
 
 Delivered locally:
 
@@ -68,8 +68,9 @@ Delivered locally:
 - child registry mobile filter drawer, active-filter badges, follow-up shortcuts, and local `ResponsiveDataView` / `ProductCard` parity
 - survey mobile save/setup bar, clearer selected-child resume context, and local `EditorScaffold` / `FormSection` parity
 - child and record detail headers with reassessment, consent, family-report visibility, and unified `PageHeader` action contract
-- local `gds-local` compatibility boundary for admin/core contracts
-- shared state/metric contracts, theme consolidation, and ESLint token guards
+- direct GDS page/shell/state/card usage, theme consolidation, and ESLint token guards
+- chart and export exception hardening with GDS-governed framing and state handling
+- searchable-selection wrapper removal with a narrowed page-level exception only where GDS still lacks a canonical contract
 
 ## Current Versions
 
@@ -145,7 +146,11 @@ Branch state:
 
 Current next execution order:
 
-No remaining committed execution issues are open after `#65`. Current local work is a GDS `2.6.4` conformance pass that replaces the remaining custom dashboard shell navigation with `DiscoveryShell` and `SidebarNav`.
+No remaining committed execution issues are open after `#70`. The current state is a GDS `2.6.4` runtime with documented exception surfaces only:
+
+- `recharts` chart rendering
+- PDF/document export rendering
+- page-level searchable selection behavior in the assessment and settings flows until GDS ships a canonical searchable-selection contract
 
 For UI work, continue using:
 

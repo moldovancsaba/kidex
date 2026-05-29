@@ -64,6 +64,7 @@ Saved assessments produce:
 - next-session conductor focus priorities
 - reassessment status and follow-up timing
 - detail-page header status for follow-up, consent risk, and family-report availability
+- chart surfaces framed by GDS panels with textual summaries and explicit no-data states
 
 Primary surfaces:
 
@@ -105,6 +106,8 @@ They now also expose explicit delivery state:
 - success after delivery completes
 - retryable or terminal failure when export generation fails
 
+The in-app export lifecycle is GDS-governed even though the PDF/document renderer remains an approved runtime exception.
+
 ### 6. Governance and operations
 
 The settings and governance stack includes:
@@ -131,6 +134,7 @@ KIDEX now fails soft under unstable connectivity for selected write-critical wor
 - governed follow-up notes can queue locally and retry automatically
 - the authenticated shell exposes a pending-sync banner with retry visibility
 - conflict and retryable failure states are explicit instead of silently dropping work
+- current browser-level verification baseline covers public legal routes and authenticated-dashboard redirect behavior on a production-like local server
 
 ## Current implemented modules
 

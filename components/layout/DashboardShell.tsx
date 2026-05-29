@@ -12,12 +12,12 @@ import {
   SidebarNav,
   SidebarNavItem,
   SidebarNavSection,
+  StateBlock,
   type SemanticActionId,
 } from "@doneisbetter/gds/client";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Link, usePathname, useRouter } from "@/i18n/navigation";
-import { LoadingState } from "@/components/gds-local/core";
 import { AppFooter } from "@/components/layout/AppFooter";
 import { GlobalChildQuickSwitch } from "@/components/layout/GlobalChildQuickSwitch";
 import { LocaleSwitcher } from "@/components/preferences/LocaleSwitcher";
@@ -200,7 +200,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
             px={{ base: "md", md: "lg" }}
           >
             <SyncQueueBanner />
-            {!userLoaded || !routeAllowed ? <LoadingState label={tc("loading")} /> : children}
+            {!userLoaded || !routeAllowed ? <StateBlock variant="loading" title={tc("loading")} compact /> : children}
           </Box>
         </Box>
         <AppFooter />

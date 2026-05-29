@@ -2,6 +2,7 @@
 
 import { PolarAngleAxis, PolarGrid, PolarRadiusAxis, Radar, RadarChart, ResponsiveContainer, Tooltip, Legend } from "recharts";
 import { Box, Paper, Text, useMantineTheme } from "@mantine/core";
+import { StateBlock } from "@doneisbetter/gds/client";
 import { ANALYTICS_CONFIG } from "./AnalyticsConstants";
 
 interface RadarPoint {
@@ -26,6 +27,18 @@ export function MaturityRadarChart({
   labels = { A: "Current" }
 }: MaturityRadarChartProps) {
   const theme = useMantineTheme();
+  const strongest = data.reduce<RadarPoint | null>((best, entry) => {
+    if (!best) return entry;
+    return entry.A > best.A ? entry : best;
+  }, null);
+
+  if (data.length === 0) {
+    return (
+      <Paper withBorder p="md" radius="md">
+        <StateBlock variant="empty" title={title || "Profile unavailable"} description="No radar profile data is available yet." compact />
+      </Paper>
+    );
+  }
 
   return (
     <Paper withBorder p="md" radius="md">
@@ -34,7 +47,11 @@ export function MaturityRadarChart({
           {title}
         </Text>
       )}
-      <Box style={{ width: "100%", height: ANALYTICS_CONFIG.chartHeight }}>
+      <Box
+        style={{ width: "100%", height: ANALYTICS_CONFIG.chartHeight }}
+        role="img"
+        aria-label={`${title || "Radar profile"} chart with ${data.length} dimensions.`}
+      >
         <ResponsiveContainer width="100%" height="100%">
           <RadarChart cx="50%" cy="50%" outerRadius={ANALYTICS_CONFIG.radarOuterRadius} data={data}>
             <PolarGrid stroke={theme.colors.gray[4]} />
@@ -87,6 +104,11 @@ export function MaturityRadarChart({
           </RadarChart>
         </ResponsiveContainer>
       </Box>
+      {strongest ? (
+        <Text size="sm" c="dimmed" mt="sm">
+          Strongest current dimension: {strongest.subject} at {strongest.A.toFixed(1)}.
+        </Text>
+      ) : null}
     </Paper>
   );
 }

@@ -23,7 +23,7 @@ import { useMediaQuery } from "@mantine/hooks";
 import Image from "next/image";
 import { useParams, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { AdminPageHeader as PageHeader, EditorScaffold, FormSection } from "@doneisbetter/gds/client";
+import { AdminPageHeader as PageHeader, EditorScaffold, FormSection, MetricCard, SectionPanel, StateBlock } from "@doneisbetter/gds/client";
 import { sectionsForMode } from "@/lib/kidex-schema";
 import {
   ASSESSMENT_DRAFT_STORAGE_KEY,
@@ -49,7 +49,6 @@ import { getStandardForAgeGroup } from "@/lib/standards";
 import { formatScore } from "@/lib/utils";
 import { buildSyncQueueOperation, isRetryableSyncResponseStatus, readSyncQueueFromStorage, removeSyncQueueOperationByKey, upsertSyncQueueOperation, writeSyncQueueToStorage } from "@/lib/offline-sync";
 
-import { LoadingState, MetricCard, SearchableSelect, SectionCard } from "@/components/gds-local/core";
 import { SyncStatusNotice } from "@/components/sync/SyncStatusNotice";
 import { useSyncQueueOperations } from "@/components/sync/useSyncQueue";
 import { getSettings, saveSettings } from "@/services/settings-service";
@@ -938,7 +937,11 @@ export function KidexAssessmentApp() {
     .slice(0, 3);
 
   if (hydratingRecord) {
-    return <LoadingState label={tc("loading")} minHeight="12rem" />;
+    return (
+      <Box style={{ minHeight: "12rem", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <StateBlock variant="loading" title={tc("loading")} compact />
+      </Box>
+    );
   }
 
   return (
@@ -1038,13 +1041,13 @@ export function KidexAssessmentApp() {
       }
       preview={
         <Stack gap="xl">
-          <SectionCard title={t("reportPreview")}>
+          <SectionPanel title={t("reportPreview")}>
             <Stack gap="lg">
               <SimpleGrid cols={{ base: 2, sm: 2 }} spacing="md">
-                <MetricCard label={ts("movement")} value={formatScore(computed.movementAverage)} target={standard?.movement.target} />
-                <MetricCard label={ts("social")} value={formatScore(computed.socialAverage)} target={standard?.social.target} />
-                <MetricCard label={ts("mental")} value={formatScore(computed.mentalAverage)} target={standard?.mental.target} />
-                <MetricCard label="SKI" value={formatScore(computed.ski)} target={standard?.ski.target} />
+                <MetricCard label={ts("movement")} value={formatScore(computed.movementAverage)} description={typeof standard?.movement.target === "number" ? `Target ${standard.movement.target}` : undefined} />
+                <MetricCard label={ts("social")} value={formatScore(computed.socialAverage)} description={typeof standard?.social.target === "number" ? `Target ${standard.social.target}` : undefined} />
+                <MetricCard label={ts("mental")} value={formatScore(computed.mentalAverage)} description={typeof standard?.mental.target === "number" ? `Target ${standard.mental.target}` : undefined} />
+                <MetricCard label="SKI" value={formatScore(computed.ski)} description={typeof standard?.ski.target === "number" ? `Target ${standard.ski.target}` : undefined} />
               </SimpleGrid>
               <ReportList title={t("strengths")} items={strengths.map(([key, entry]) => `${ts(`${key}.title`)} (${entry.score})`)} emptyText={t("noData")} />
               <ReportList title={t("developmentPriorities")} items={needs.map(([key, entry]) => `${ts(`${key}.title`)} (${entry.score})`)} emptyText={t("noData")} />
@@ -1057,12 +1060,12 @@ export function KidexAssessmentApp() {
                 </Text>
               </Box>
             </Stack>
-          </SectionCard>
+          </SectionPanel>
         </Stack>
       }
       settings={
         mobileLayout ? null : (
-          <SectionCard title="Assessment Consistency">
+          <SectionPanel title="Assessment Consistency">
             <Stack gap="sm">
               <SimpleGrid cols={{ base: 2, md: 1 }} spacing="md">
                 <MetricCard label="Scored items" value={`${consistencySummary.scoredCount}`} />
@@ -1082,7 +1085,7 @@ export function KidexAssessmentApp() {
                 </Alert>
               ) : null}
             </Stack>
-          </SectionCard>
+          </SectionPanel>
         )
       }
       footer={
@@ -1125,7 +1128,7 @@ export function KidexAssessmentApp() {
       form={
         <Stack gap="xl" id="setup">
           <FormSection title={t("setupTitle")} description={t("appSubtitle")} withDivider={false}>
-            <SectionCard>
+            <SectionPanel>
           <Stack gap="md">
             <SimpleGrid cols={{ base: 1, sm: 2, md: 3, lg: 4 }} spacing="md">
               <Select
@@ -1184,27 +1187,36 @@ export function KidexAssessmentApp() {
                   setDraftTouched(true);
                 }}
               />
-              <SearchableSelect 
-                label={t("conductor")} 
-                value={assessment.session.conductor} 
-                options={conductorOptions} 
-                onChange={(value) => update("session", "conductor", value)} 
+              <Select
+                searchable
+                clearable
+                label={t("conductor")}
+                value={assessment.session.conductor || null}
+                data={conductorOptions.map((option) => ({ value: option.name, label: option.name }))}
+                onChange={(value) => update("session", "conductor", value?.trim() || "")}
               />
-              <SearchableSelect
+              <Select
+                searchable
+                clearable
                 label={t("location")}
-                value={assessment.session.location}
-                options={locationOptions}
+                value={locationOptions.some((option) => option.name === assessment.session.location) ? assessment.session.location : null}
+                searchValue={assessment.session.location}
+                data={locationOptions.map((option) => ({ value: option.name, label: option.name }))}
+                nothingFoundMessage={t("location")}
+                onSearchChange={(value) => update("session", "location", value.trim())}
                 onChange={(value) => {
-                  appendLocationIfMissing(value);
-                  update("session", "location", value);
+                  const nextValue = value?.trim() || "";
+                  appendLocationIfMissing(nextValue);
+                  update("session", "location", nextValue);
                 }}
-                allowAdd
               />
-              <SearchableSelect 
-                label={t("observers")} 
-                value={assessment.session.observers} 
-                options={observerOptions} 
-                onChange={(value) => update("session", "observers", value)} 
+              <Select
+                searchable
+                clearable
+                label={t("observers")}
+                value={assessment.session.observers || null}
+                data={observerOptions.map((option) => ({ value: option.name, label: option.name }))}
+                onChange={(value) => update("session", "observers", value?.trim() || "")}
               />
               <Select
                 label={t("context")}
@@ -1249,11 +1261,11 @@ export function KidexAssessmentApp() {
               />
             </Group>
           </Stack>
-            </SectionCard>
+            </SectionPanel>
           </FormSection>
 
           <FormSection title={t("evidenceImages")} withDivider={false}>
-          <SectionCard>
+          <SectionPanel>
           <Stack gap="md">
             <Text size="sm" c="dimmed">
               {t("uploadSecurityNote")}
@@ -1302,7 +1314,7 @@ export function KidexAssessmentApp() {
               </Stack>
             )}
           </Stack>
-          </SectionCard>
+          </SectionPanel>
           </FormSection>
 
       <Modal opened={cameraOpen} onClose={closeCameraDialog} title={t("takePhoto")} centered size="lg">
@@ -1428,7 +1440,7 @@ export function KidexAssessmentApp() {
       <FormSection title={t("mode")} description="Scored observation sections and evidence-linked confidence handling." withDivider={false}>
       <div id="scoring" />
       {sections.map((section, sectionIndex) => (
-        <SectionCard
+        <SectionPanel
           key={section.key}
           title={`${ts(section.key)} (${Math.round(section.weight * 100)}%)`}
           action={<Badge variant="light" color="kidex" size="lg">{ts(section.domain)}</Badge>}
@@ -1529,12 +1541,12 @@ export function KidexAssessmentApp() {
               );
             })}
           </Stack>
-        </SectionCard>
+        </SectionPanel>
       ))}
       </FormSection>
 
       <FormSection title="Mental Growth and Wellbeing" description="Baseline and follow-up mental skills, recovery, readiness, and safe support signals." withDivider={false}>
-      <SectionCard
+      <SectionPanel
         action={
           <Badge
             variant="light"
@@ -1664,12 +1676,12 @@ export function KidexAssessmentApp() {
             </Stack>
           </Paper>
         </Stack>
-      </SectionCard>
+      </SectionPanel>
       </FormSection>
 
       <FormSection title={t("professionalNotes")} description={t("reportPreview")} withDivider={false}>
       <SimpleGrid cols={{ base: 1, lg: 2 }} spacing="xl" id="report">
-        <SectionCard title={t("professionalNotes")}>
+        <SectionPanel title={t("professionalNotes")}>
           <Stack gap="md">
             <Textarea
               label={t("generalObservation")}
@@ -1690,7 +1702,7 @@ export function KidexAssessmentApp() {
               minRows={4}
             />
           </Stack>
-        </SectionCard>
+        </SectionPanel>
       </SimpleGrid>
       </FormSection>
         </Stack>

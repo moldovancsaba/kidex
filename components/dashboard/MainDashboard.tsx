@@ -14,8 +14,7 @@ import {
   CHART_READINESS_STACK_COLORS,
   CHART_RISK_COLORS,
 } from "@/components/analytics/chart-series-colors";
-import { AdminPageHeader as PageHeader } from "@doneisbetter/gds/client";
-import { LoadingState, MetricCard, SectionCard } from "@/components/gds-local/core";
+import { AdminPageHeader as PageHeader, MetricCard, SectionPanel, StateBlock } from "@doneisbetter/gds/client";
 import { rapidSections } from "@/lib/kidex-schema";
 import { getDomainMainColor, type AssessmentDomain } from "@/lib/domain-colors";
 import { buildDashboardAnalytics } from "@/lib/dashboard-analytics";
@@ -277,9 +276,9 @@ export function MainDashboard() {
 
   const operationalSections = (
     <>
-      <SectionCard
+      <SectionPanel
         title={t("followUpCenter")}
-        subheader={t("followUpCenterDescription")}
+        description={t("followUpCenterDescription")}
         action={
           <Button component={Link} href="/dashboard/follow-up" variant="default" size="sm">
             {t("followUpOpenActionCenter")}
@@ -327,9 +326,9 @@ export function MainDashboard() {
             ))}
           </Stack>
         )}
-      </SectionCard>
+      </SectionPanel>
 
-      <SectionCard title={t("watchlistTitle")} subheader={t("watchlistSubtitle")}>
+      <SectionPanel title={t("watchlistTitle")} description={t("watchlistSubtitle")}>
         {analytics.watchlist.length === 0 ? (
           <Alert color="teal">{t("watchlistEmpty")}</Alert>
         ) : (
@@ -379,12 +378,16 @@ export function MainDashboard() {
             ))}
           </Stack>
         )}
-      </SectionCard>
+      </SectionPanel>
     </>
   );
 
   if (loading) {
-    return <LoadingState label={tc("loading")} minHeight="12rem" />;
+    return (
+      <Box style={{ minHeight: "12rem", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <StateBlock variant="loading" title={tc("loading")} compact />
+      </Box>
+    );
   }
 
   const followUpMetricStrip = (
@@ -423,7 +426,7 @@ export function MainDashboard() {
       {mobileLayout ? null : overviewMetricStrip}
 
       {data?.cultureAnalytics ? (
-        <SectionCard title="Culture and trust pulse" subheader="Anonymous voice launches and culture-index signals across teams and institutions.">
+        <SectionPanel title="Culture and trust pulse" description="Anonymous voice launches and culture-index signals across teams and institutions.">
           <Stack gap="md">
             <Stack gap="md" style={{ flexDirection: "row", flexWrap: "wrap" }}>
               <MetricCard label="Publishable launches" value={String(data.cultureAnalytics.headline.publishableLaunches)} />
@@ -485,10 +488,10 @@ export function MainDashboard() {
               </Table>
             </Paper>
           </Stack>
-        </SectionCard>
+        </SectionPanel>
       ) : null}
 
-      <SectionCard title={t("cohortTrajectoryTitle")} subheader={t("cohortTrajectorySubtitle")}>
+      <SectionPanel title={t("cohortTrajectoryTitle")} description={t("cohortTrajectorySubtitle")}>
         <Stack gap="md" style={{ flexDirection: "row", flexWrap: "wrap" }}>
           <Box style={{ flex: "1 1 260px" }}>
             <LongitudinalChart
@@ -519,7 +522,7 @@ export function MainDashboard() {
             wellbeing: formatScore(analytics.monthlyTrend.at(-1)?.wellbeing ?? 0),
           })}
         </Text>
-      </SectionCard>
+      </SectionPanel>
 
       <Stack gap="md" style={{ flexDirection: "row", flexWrap: "wrap" }}>
         <Box style={{ flex: "1 1 340px", minWidth: 0 }}>
@@ -550,7 +553,7 @@ export function MainDashboard() {
 
       <Stack gap="md" style={{ flexDirection: "row", flexWrap: "wrap" }}>
         <Box style={{ flex: 1, minWidth: 320 }}>
-          <SectionCard title={t("firstTimeSuccessTitle")} subheader={t("firstTimeSuccessSubtitle")}>
+          <SectionPanel title={t("firstTimeSuccessTitle")} description={t("firstTimeSuccessSubtitle")}>
             <Box style={{ height: 220 }}>
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
@@ -570,7 +573,7 @@ export function MainDashboard() {
                 developing: successRatio.find((item) => item.name === t("developing"))?.value ?? 0,
               })}
             </Text>
-          </SectionCard>
+          </SectionPanel>
         </Box>
 
         <Box style={{ flex: 1, minWidth: 320 }}>
@@ -585,7 +588,7 @@ export function MainDashboard() {
         </Box>
       </Stack>
 
-      <SectionCard title={t("locationPerformanceTitle")} subheader={t("locationPerformanceSubtitle")}>
+      <SectionPanel title={t("locationPerformanceTitle")} description={t("locationPerformanceSubtitle")}>
         <Box style={{ height: 240 }}>
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={locationPerformance} layout="vertical" margin={{ left: 40, right: 20 }}>
@@ -618,9 +621,9 @@ export function MainDashboard() {
             value: formatScore(locationPerformance[0]?.value ?? 0),
           })}
         </Text>
-      </SectionCard>
+      </SectionPanel>
 
-      <SectionCard title={t("rapidSpiderSummaryTitle")} subheader={t("rapidSpiderSummarySubtitle")}>
+      <SectionPanel title={t("rapidSpiderSummaryTitle")} description={t("rapidSpiderSummarySubtitle")}>
         <Stack gap="md" style={{ flexDirection: "row", flexWrap: "wrap" }}>
           <Box style={{ flex: 1, minWidth: 0 }}>
             <RapidRadarChart title={t("rapidMovementTitle")} data={rapidDomainSummary.movement} domain="movement" />
@@ -632,23 +635,27 @@ export function MainDashboard() {
             <RapidRadarChart title={t("rapidMentalTitle")} data={rapidDomainSummary.mental} domain="mental" />
           </Box>
         </Stack>
-      </SectionCard>
+      </SectionPanel>
 
       <Stack gap="md" style={{ flexDirection: "row", flexWrap: "wrap" }}>
         <Box style={{ flex: 1, minWidth: 0, display: "flex" }}>
-          <SectionCard title={t("recordsChartTitle")} subheader={t("recordsChartSubtitle")} sx={{ width: "100%", height: "100%", mb: 0 }}>
-            <RecordsLineChart points={recordsByDay} />
-          </SectionCard>
+          <Box style={{ width: "100%", height: "100%" }}>
+            <SectionPanel title={t("recordsChartTitle")} description={t("recordsChartSubtitle")}>
+              <RecordsLineChart points={recordsByDay} />
+            </SectionPanel>
+          </Box>
         </Box>
 
         <Box style={{ flex: 1, minWidth: 0, display: "flex" }}>
-          <SectionCard title={t("usersChartTitle")} subheader={t("usersChartSubtitle")} sx={{ width: "100%", height: "100%", mb: 0 }}>
-            <UserRolePieChart items={userRoleStats} />
-          </SectionCard>
+          <Box style={{ width: "100%", height: "100%" }}>
+            <SectionPanel title={t("usersChartTitle")} description={t("usersChartSubtitle")}>
+              <UserRolePieChart items={userRoleStats} />
+            </SectionPanel>
+          </Box>
         </Box>
       </Stack>
 
-      <SectionCard title={t("dailyAverageTrendsTitle")} subheader={t("dailyAverageTrendsSubtitle")}>
+      <SectionPanel title={t("dailyAverageTrendsTitle")} description={t("dailyAverageTrendsSubtitle")}>
         <Stack gap="lg">
           <DailyAverageBarChart title={ts("movement")} data={dailyAverages} dataKey="movement" domain="movement" />
           <DailyAverageBarChart title={ts("social")} data={dailyAverages} dataKey="social" domain="social" />
@@ -661,7 +668,7 @@ export function MainDashboard() {
             mental: formatScore(dailyAverages[dailyAverages.length - 1]?.mental ?? 0),
           })}
         </Text>
-      </SectionCard>
+      </SectionPanel>
     </Stack>
   );
 }
@@ -757,7 +764,8 @@ function ReadinessAgeBandChart({
   subtitle: string;
 }) {
   return (
-    <SectionCard title={title} subheader={subtitle} sx={{ mb: 0 }}>
+    <Box>
+      <SectionPanel title={title} description={subtitle}>
       <Box style={{ width: "100%", height: 240 }}>
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data}>
@@ -772,7 +780,8 @@ function ReadinessAgeBandChart({
           </BarChart>
         </ResponsiveContainer>
       </Box>
-    </SectionCard>
+      </SectionPanel>
+    </Box>
   );
 }
 
@@ -786,7 +795,8 @@ function BenchmarkCoverageChart({
   subtitle: string;
 }) {
   return (
-    <SectionCard title={title} subheader={subtitle} sx={{ mb: 0 }}>
+    <Box>
+      <SectionPanel title={title} description={subtitle}>
       <Box style={{ width: "100%", height: 240 }}>
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data}>
@@ -801,7 +811,8 @@ function BenchmarkCoverageChart({
           </BarChart>
         </ResponsiveContainer>
       </Box>
-    </SectionCard>
+      </SectionPanel>
+    </Box>
   );
 }
 
@@ -816,7 +827,8 @@ function OrientationMixChart({
 }) {
   const colors = [...CHART_ORIENTATION_COLORS];
   return (
-    <SectionCard title={title} subheader={subtitle} sx={{ mb: 0 }}>
+    <Box>
+      <SectionPanel title={title} description={subtitle}>
       <Box style={{ width: "100%", height: 240 }}>
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
@@ -830,7 +842,8 @@ function OrientationMixChart({
           </PieChart>
         </ResponsiveContainer>
       </Box>
-    </SectionCard>
+      </SectionPanel>
+    </Box>
   );
 }
 
@@ -850,7 +863,8 @@ function RiskBucketChart({
   ];
 
   return (
-    <SectionCard title={title} subheader={subtitle} sx={{ mb: 0 }}>
+    <Box>
+      <SectionPanel title={title} description={subtitle}>
       <Box style={{ width: "100%", height: 240 }}>
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={chartData}>
@@ -866,7 +880,8 @@ function RiskBucketChart({
           </BarChart>
         </ResponsiveContainer>
       </Box>
-    </SectionCard>
+      </SectionPanel>
+    </Box>
   );
 }
 

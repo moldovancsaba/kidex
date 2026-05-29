@@ -2,6 +2,7 @@
 
 import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { Box, Paper, Text, useMantineTheme } from "@mantine/core";
+import { StateBlock } from "@doneisbetter/gds/client";
 import { ANALYTICS_CONFIG } from "./AnalyticsConstants";
 
 interface BenchmarkData {
@@ -25,6 +26,18 @@ export function BenchmarkChart({
   labels = { individual: "Individual", average: "Age Group Avg" }
 }: BenchmarkChartProps) {
   const theme = useMantineTheme();
+  const strongestGap = data.reduce<BenchmarkData | null>((best, entry) => {
+    if (!best) return entry;
+    return entry.individual - entry.average > best.individual - best.average ? entry : best;
+  }, null);
+
+  if (data.length === 0) {
+    return (
+      <Paper withBorder p="md" radius="md">
+        <StateBlock variant="empty" title={title || "Benchmark unavailable"} description="No benchmark comparison data is available yet." compact />
+      </Paper>
+    );
+  }
 
   return (
     <Paper withBorder p="md" radius="md">
@@ -33,7 +46,11 @@ export function BenchmarkChart({
           {title}
         </Text>
       )}
-      <Box style={{ width: "100%", height: ANALYTICS_CONFIG.chartHeight }}>
+      <Box
+        style={{ width: "100%", height: ANALYTICS_CONFIG.chartHeight }}
+        role="img"
+        aria-label={`${title || "Benchmark comparison"} chart with ${data.length} subjects.`}
+      >
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data} margin={ANALYTICS_CONFIG.margins} barGap={8}>
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={theme.colors.gray[3]} />
@@ -88,6 +105,11 @@ export function BenchmarkChart({
           </BarChart>
         </ResponsiveContainer>
       </Box>
+      {strongestGap ? (
+        <Text size="sm" c="dimmed" mt="sm">
+          Largest positive gap: {strongestGap.subject} at {(strongestGap.individual - strongestGap.average).toFixed(1)} above average.
+        </Text>
+      ) : null}
     </Paper>
   );
 }

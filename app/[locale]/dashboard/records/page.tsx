@@ -5,11 +5,10 @@ import { Badge, Button, Group, Modal, Stack, Text, TextInput } from "@mantine/co
 import { useParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
-import { AdminPageHeader as PageHeader, DataToolbar, ResponsiveDataView } from "@doneisbetter/gds/client";
+import { AdminPageHeader as PageHeader, DataToolbar, ProductCard, ResponsiveDataView, SectionPanel, StateBlock } from "@doneisbetter/gds/client";
 import type { DataTableColumn } from "@doneisbetter/gds/client";
 import { canPerformAction } from "@/lib/permissions";
 import { formatScore } from "@/lib/utils";
-import { LoadingState, ProductCard, SectionCard } from "@/components/gds-local/core";
 import type { AssessmentRecord } from "@/types/assessment";
 import type { SupportedRuntimeRole } from "@/lib/roles";
 
@@ -138,7 +137,11 @@ export default function RecordsPage() {
   }
 
   if (loading) {
-    return <LoadingState label={tc("loading")} minHeight="12rem" />;
+    return (
+      <Stack style={{ minHeight: "12rem", alignItems: "center", justifyContent: "center" }}>
+        <StateBlock variant="loading" title={tc("loading")} compact />
+      </Stack>
+    );
   }
 
   return (
@@ -153,7 +156,7 @@ export default function RecordsPage() {
           ) : null
         }
       />
-      <SectionCard>
+      <SectionPanel>
         <ResponsiveDataView<RecordRow>
           data={filtered as RecordRow[]}
           columns={columns}
@@ -175,7 +178,7 @@ export default function RecordsPage() {
           filterDrawer={null}
           renderCard={(item) => {
             const record = item;
-            return (
+            const card = (
               <ProductCard
                 title={record.child.name || "---"}
                 description={`${record.session.date}${record.session.location ? ` · ${record.session.location}` : ""}`}
@@ -188,7 +191,6 @@ export default function RecordsPage() {
                   { label: tc("date"), value: record.session.date },
                   { label: t("location"), value: record.session.location || "—" },
                 ]}
-                onClick={!showDeleted ? () => (window.location.href = `/${locale}/dashboard/records/${record._id}`) : undefined}
                 primaryAction={
                   !showDeleted ? (
                     <Group gap="sm">
@@ -218,10 +220,29 @@ export default function RecordsPage() {
                 }
               />
             );
+            if (showDeleted) return card;
+            return (
+              <Group
+                style={{ cursor: "pointer" }}
+                role="link"
+                tabIndex={0}
+                onClick={() => {
+                  window.location.href = `/${locale}/dashboard/records/${record._id}`;
+                }}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    window.location.href = `/${locale}/dashboard/records/${record._id}`;
+                  }
+                }}
+              >
+                {card}
+              </Group>
+            );
           }}
           getRowKey={(item) => item._id || `${item.child.name}-${item.session.date}`}
         />
-      </SectionCard>
+      </SectionPanel>
       <Modal opened={canWriteAssessments && Boolean(restoreTargetId)} onClose={() => setRestoreTargetId(null)} title={t("restoreAssessment")} centered>
         <Stack gap="md">
           <Text size="sm">{t("typeRestoreAssessmentToConfirm")}</Text>
