@@ -42,17 +42,8 @@ KIDEX local design docs are adapters only. The shared design-system repository a
 
 Delivered GDS migration track:
 
-- [#50](https://github.com/moldovancsaba/kidex/issues/50) `Done`
-- [#51](https://github.com/moldovancsaba/kidex/issues/51) `Done`
-- [#52](https://github.com/moldovancsaba/kidex/issues/52) `Done`
-- [#53](https://github.com/moldovancsaba/kidex/issues/53) `Done`
-- [#54](https://github.com/moldovancsaba/kidex/issues/54) `Done`
-- [#55](https://github.com/moldovancsaba/kidex/issues/55) `Done`
-- [#56](https://github.com/moldovancsaba/kidex/issues/56) `Done`
-- [#57](https://github.com/moldovancsaba/kidex/issues/57) `Done`
-- [#58](https://github.com/moldovancsaba/kidex/issues/58) `Done`
-- [#59](https://github.com/moldovancsaba/kidex/issues/59) `Done`
-- [#60](https://github.com/moldovancsaba/kidex/issues/60) `Done`
+- [#50-#60](https://github.com/moldovancsaba/kidex/issues?q=repo%3Amoldovancsaba%2Fkidex+50..60) `Done`
+- [#66-#70](https://github.com/moldovancsaba/kidex/issues?q=repo%3Amoldovancsaba%2Fkidex+66..70) `Done`
 
 Current GDS runtime facts:
 
@@ -65,12 +56,13 @@ Current GDS runtime facts:
 Delivered locally:
 
 - mobile shell and operational-first dashboard
-- child registry mobile filter drawer, active-filter badges, follow-up shortcuts, and local `ResponsiveDataView` / `ProductCard` parity
-- survey mobile save/setup bar, clearer selected-child resume context, and local `EditorScaffold` / `FormSection` parity
+- child registry mobile filter drawer, active-filter badges, follow-up shortcuts, and direct `ResponsiveDataView` / `ProductCard` usage
+- survey mobile save/setup bar, clearer selected-child resume context, and direct `EditorScaffold` / `FormSection` usage
 - child and record detail headers with reassessment, consent, family-report visibility, and unified `PageHeader` action contract
 - direct GDS page/shell/state/card usage, theme consolidation, and ESLint token guards
 - chart and export exception hardening with GDS-governed framing and state handling
 - searchable-selection wrapper removal with a narrowed page-level exception only where GDS still lacks a canonical contract
+- obsolete local adapter shim removal and dashboard sidebar branding cleanup
 
 ## Current Versions
 
@@ -82,7 +74,7 @@ Current resolved local versions at the time of this handover:
 - React: `19.2.5`
 - TypeScript: `5.9.3`
 - MongoDB driver: `6.21.0`
-- Mantine Core: `8.3.6`
+- Mantine Core: `8.3.18`
 - Recharts: `3.8.1`
 - next-intl: `4.9.2`
 
@@ -90,36 +82,41 @@ Current resolved local versions at the time of this handover:
 
 The latest completed code delivery on `origin/main` covered:
 
-- `#65` offline-safe conductor workflow protection and sync recovery
+- `#66-#70` GDS exception normalization, remaining adapter removal, accessibility hardening, export UX normalization, and verification baseline closure
+- cleanup after `#70`: obsolete local adapter shim removal and dashboard sidebar branding polish
 - repo compliance wiring remains active through the direct `@doneisbetter/*` GDS package line
 
 Main implementation files for the latest UI slice:
 
 - [components/forms/KidexAssessmentApp.tsx](/Users/Shared/Projects/kidex/components/forms/KidexAssessmentApp.tsx)
 - [components/layout/DashboardShell.tsx](/Users/Shared/Projects/kidex/components/layout/DashboardShell.tsx)
+- [components/analytics/BenchmarkChart.tsx](/Users/Shared/Projects/kidex/components/analytics/BenchmarkChart.tsx)
+- [components/analytics/LongitudinalChart.tsx](/Users/Shared/Projects/kidex/components/analytics/LongitudinalChart.tsx)
+- [components/analytics/MaturityRadarChart.tsx](/Users/Shared/Projects/kidex/components/analytics/MaturityRadarChart.tsx)
+- [components/analytics/SymmetryChart.tsx](/Users/Shared/Projects/kidex/components/analytics/SymmetryChart.tsx)
+- [components/reports/ExportStatusNotice.tsx](/Users/Shared/Projects/kidex/components/reports/ExportStatusNotice.tsx)
 - [components/sync/SyncQueueBanner.tsx](/Users/Shared/Projects/kidex/components/sync/SyncQueueBanner.tsx)
 - [components/sync/SyncStatusNotice.tsx](/Users/Shared/Projects/kidex/components/sync/SyncStatusNotice.tsx)
 - [components/sync/useSyncQueue.ts](/Users/Shared/Projects/kidex/components/sync/useSyncQueue.ts)
 - [app/[locale]/dashboard/children/[id]/page.tsx](/Users/Shared/Projects/kidex/app/%5Blocale%5D/dashboard/children/%5Bid%5D/page.tsx)
 - [lib/offline-sync.ts](/Users/Shared/Projects/kidex/lib/offline-sync.ts)
+- [gds-adoption.json](/Users/Shared/Projects/kidex/gds-adoption.json)
 - [docs/product-overview.md](/Users/Shared/Projects/kidex/docs/product-overview.md)
 
 Verification passed for that slice:
 
+- `npm run gds:manifest`
+- `npm run gds:compliance`
 - `npm test`
 - `npm run lint`
 - `npm run build`
 - `npm run typecheck`
 
-Immediate follow-up from current local continuation:
-
-- fixed duplicated dashboard sidebar branding by reducing sidebar header to a single logo+name row
-
 ## Git State
 
-Latest pushed commit on `origin/main` before the current local work:
+Latest pushed commit on `origin/main` before this documentation reconciliation pass:
 
-- `c76dc70` `Add offline-safe workflow protection`
+- `2e48195` `Polish dashboard sidebar branding presentation`
 
 Branch state:
 
@@ -128,23 +125,10 @@ Branch state:
 
 ## GitHub Board State
 
-- `#1` — `Done`
-- `#50` — `Done`
-- `#51` — `Done`
-- `#52` — `Done`
-- `#53` — `Done`
-- `#56` — `Done` after current sync
-- `#57` — `Done` after current sync
-- `#58` — `Done` after current sync
-- `#59` — `Done` after current sync
-- `#60` — `Done` after current sync
-- `#54` — `Done`
-- `#55` — `Done`
-- `#61` — `Done`
-- `#62` — `Done`
-- `#63` — `Done`
-- `#64` — `Done`
-- `#65` — `Done`
+- GitHub project: [{kidex} - From IDEA to LIVE](https://github.com/users/moldovancsaba/projects/9)
+- Project item count: `70`
+- Current status alignment: `#1-#70` are closed and in the project `Done` column
+- Current committed execution track: no open KIDEX execution issues remain after `#70`
 
 ## Recommended Next Work
 

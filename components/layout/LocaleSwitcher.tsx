@@ -1,8 +1,8 @@
 "use client";
 
 import { Button, Menu } from "@mantine/core";
-import { usePathname, useRouter } from "@/i18n/navigation";
 import { useLocale } from "next-intl";
+import { usePathname, useRouter } from "@/i18n/navigation";
 
 export function LocaleSwitcher() {
   const locale = useLocale();

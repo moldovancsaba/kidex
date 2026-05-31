@@ -83,7 +83,7 @@ Current resolved local versions:
 - React DOM: `19.2.5`
 - TypeScript: `5.9.3`
 - MongoDB driver: `6.21.0`
-- Mantine Core: `8.3.6`
+- Mantine Core: `8.3.18`
 - Recharts: `3.8.1`
 - next-intl: `4.9.2`
 

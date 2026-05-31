@@ -35,7 +35,8 @@ Adapter: [design-system.md](./design-system.md)
 - [x] Manifest validation script exists
 - [x] Compliance check script exists
 - [x] No legacy placeholder GDS imports remain
-- [x] No `@/components/ui/` imports remain in app and component surfaces
+- [x] No obsolete local adapter imports remain in app and component surfaces
+- [x] No `@/components/ui/*` imports remain in app and component surfaces
 
 ## Exceptions
 

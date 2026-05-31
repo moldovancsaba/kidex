@@ -1,4 +1,4 @@
-/** Canonical brand palette — import only from `theme/*` and chart/domain helpers. */
+/** Product brand palette extension; GDS remains the canonical UI system. */
 export const KIDEX_BRAND_COLORS = {
   brandNavy: "#3D3F4D",
   brandTeal: "#13A59E",

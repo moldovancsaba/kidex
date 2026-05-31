@@ -1,10 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { Button, Paper, Stack, Text } from "@mantine/core";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
-import { useSyncExternalStore } from "react";
 
 const CONSENT_COOKIE_NAME = "kidex_cookie_consent";
 const THEME_COOKIE_NAME = "kidex_theme";
@@ -20,7 +19,7 @@ export function CookieConsentBanner() {
   const consentAccepted = useSyncExternalStore(
     () => () => undefined,
     () => hasConsentCookie(),
-    () => false
+    () => false,
   );
   const [dismissed, setDismissed] = useState(false);
 
@@ -31,6 +30,7 @@ export function CookieConsentBanner() {
       localStorage.getItem(LEGACY_THEME_STORAGE_KEY) ??
       document.documentElement.getAttribute("data-theme") ??
       "light";
+
     if (themeValue === "light" || themeValue === "dark") {
       document.cookie = `${THEME_COOKIE_NAME}=${themeValue}; path=/; max-age=31536000; samesite=lax`;
     }
@@ -48,7 +48,7 @@ export function CookieConsentBanner() {
         left: 16,
         right: 16,
         bottom: 16,
-        zIndex: 400
+        zIndex: 400,
       }}
     >
       <Stack
@@ -57,8 +57,7 @@ export function CookieConsentBanner() {
         style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap" }}
       >
         <Text size="sm">
-          {t("cookieConsentMessage")}{" "}
-          <Link href="/dashboard/legal/privacy">{t("cookiePolicyLink")}</Link>
+          {t("cookieConsentMessage")} <Link href="/dashboard/legal/privacy">{t("cookiePolicyLink")}</Link>
         </Text>
         <Button color="kidex" onClick={acceptCookies}>
           {t("cookieAccept")}

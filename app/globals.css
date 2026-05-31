@@ -1,4 +1,4 @@
-/* Global reset, print helpers, and chart font overrides. Brand tokens live in theme/mantine-theme.ts. */
+/* Global reset, print helpers, and chart font overrides. GDS remains the UI authority; local theme files only extend product tokens. */
 
 * {
   box-sizing: border-box;

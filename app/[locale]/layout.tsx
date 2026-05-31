@@ -5,7 +5,7 @@ import { Noto_Sans, Noto_Sans_Arabic } from "next/font/google";
 import { ColorSchemeScript } from "@mantine/core";
 import { getGdsMessages } from "@doneisbetter/gds/server";
 import { Providers } from "@/app/providers";
-import { CookieConsentBanner } from "@/components/ui/CookieConsentBanner";
+import { CookieConsentBanner } from "@/components/layout/CookieConsentBanner";
 import { getKidexMantineTheme } from "@/theme/mantine-theme";
 import "@mantine/core/styles.css";
 import "@mantine/notifications/styles.css";

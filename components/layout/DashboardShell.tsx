@@ -21,7 +21,7 @@ import Image from "next/image";
 import { Link, usePathname, useRouter } from "@/i18n/navigation";
 import { AppFooter } from "@/components/layout/AppFooter";
 import { GlobalChildQuickSwitch } from "@/components/layout/GlobalChildQuickSwitch";
-import { LocaleSwitcher } from "@/components/ui/LocaleSwitcher";
+import { LocaleSwitcher } from "@/components/layout/LocaleSwitcher";
 import { SyncQueueBanner } from "@/components/sync/SyncQueueBanner";
 import { requiredActionForDashboardPath } from "@/lib/dashboard-access";
 import { canPerformAction } from "@/lib/permissions";
@@ -126,7 +126,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
               KIDEX
             </Text>
           </Group>
-          <Text c="dimmed" size="xs" fw={600}>
+          <Text c="dimmed" size="sm" fw={600}>
             {t("workspaceDescription")}
           </Text>
         </Group>
