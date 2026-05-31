@@ -15,7 +15,9 @@ export async function listAssessmentSummaries(): Promise<AssessmentRecord[]> {
         session: 1,
         mode: 1,
         scores: 1,
+        attachments: 1,
         computed: 1,
+        quality: 1,
         createdAt: 1,
         updatedAt: 1,
         updateHistory: 1
@@ -32,7 +34,7 @@ export async function listDeletedAssessmentSummaries(): Promise<AssessmentRecord
   const db = await getDatabase();
   const assessments = await db
     .collection(collectionName)
-    .find({ deletedAt: { $exists: true } }, { projection: { child: 1, session: 1, mode: 1, computed: 1, createdAt: 1, updatedAt: 1 } })
+    .find({ deletedAt: { $exists: true } }, { projection: { child: 1, session: 1, mode: 1, scores: 1, attachments: 1, computed: 1, quality: 1, createdAt: 1, updatedAt: 1 } })
     .sort({ updatedAt: -1 })
     .limit(200)
     .toArray();

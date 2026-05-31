@@ -17,7 +17,7 @@ import { buildSessionFocusPriorities } from "@/lib/session-focus";
 import { getConsentAlerts, hasActiveConsent } from "@/lib/consent-policy";
 import { getUsers } from "@/services/user-service";
 import { withDisplayNamesForReport } from "@/lib/report-user-display";
-import { logPdfExportTelemetry, validatePdfExport } from "@/lib/pdf-export-guards";
+import { logPdfExportTelemetry, qualityBlocksParentExport, validatePdfExport } from "@/lib/pdf-export-guards";
 import { blockedExportStatus, classifyExportFailure, exportNowMs, failedExportStatus, generatingExportStatus, idleExportStatus, queuedExportStatus, successfulExportStatus, type ExportDeliveryStatus } from "@/lib/export-delivery";
 import {
   PolarAngleAxis,
@@ -28,6 +28,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { ExportStatusNotice } from "@/components/reports/ExportStatusNotice";
+import { AssessmentQualityNotice } from "@/components/reports/AssessmentQualityNotice";
 import { rapidSections } from "@/lib/kidex-schema";
 import { getDomainMainColor, type AssessmentDomain } from "@/lib/domain-colors";
 import { sectionsForMode } from "@/lib/kidex-schema";
@@ -88,6 +89,11 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
     }
     if (audience === "family" && !hasActiveConsent(child?.consentPolicy, "familyReport")) {
       setFamilyExportStatus(blockedExportStatus("consent", "Family report export is blocked because family-report consent is not active."));
+      return;
+    }
+
+    if (audience === "family" && qualityBlocksParentExport(record)) {
+      setFamilyExportStatus(blockedExportStatus("missing_data", "Family report export is blocked until the assessment quality issues are reviewed."));
       return;
     }
 
@@ -287,6 +293,11 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
                       {tr("familyReportTitle")}
                     </Badge>
                   ) : null}
+                  {record.quality ? (
+                    <Badge color={record.quality.state === "ready" ? "teal" : record.quality.state === "review_needed" ? "yellow" : "red"} variant="light">
+                      quality {record.quality.score}/100
+                    </Badge>
+                  ) : null}
                 </Group>
               </Stack>
             }
@@ -324,6 +335,7 @@ export default function RecordDetailPage({ params }: { params: Promise<{ id: str
         <Stack gap="xl">
           <ExportStatusNotice status={professionalExportStatus} onRetry={() => void downloadPdf()} />
           <ExportStatusNotice status={familyExportStatus} onRetry={() => void downloadPdf("family")} />
+          <AssessmentQualityNotice quality={record.quality} />
           <ConsentAlertPanel alerts={consentAlerts} title={t("consentAlertTitle")} t={t} />
           {child?.accessibilityProfile ? (
             <Paper withBorder p="md" radius="md">

@@ -1,4 +1,5 @@
 import { computeAssessment } from "@/lib/scoring";
+import { evaluateAssessmentQuality } from "@/lib/assessment-quality";
 import { buildAssessmentConsentSnapshot, deriveLegacyConsents, normalizeConsentPolicy } from "@/lib/consent-policy";
 import { applyActorOwnershipToAssessment, applyActorOwnershipToChild, type AuthenticatedActor } from "@/lib/authorization";
 import { parseAssessmentPayload } from "@/lib/validations";
@@ -7,6 +8,7 @@ import { getChildById, updateChildById, upsertChild } from "@/repositories/child
 import { getGlobalSettings } from "@/repositories/settings.repository";
 import { getActiveVariantName } from "@/lib/standards-config";
 import { ObjectId } from "mongodb";
+import type { AssessmentRecord } from "@/types/assessment";
 
 export function parseObjectId(id: string) {
   return ObjectId.isValid(id) ? new ObjectId(id) : null;
@@ -17,14 +19,21 @@ export async function listAssessments() {
     return { assessments: [], configured: false };
   }
 
-  return { assessments: await listAssessmentSummaries(), configured: true };
+  return { assessments: (await listAssessmentSummaries()).map(withAssessmentQuality), configured: true };
 }
 
 export async function listDeletedAssessments() {
   if (!process.env.MONGODB_URI) {
     return { assessments: [], configured: false };
   }
-  return { assessments: await listDeletedAssessmentSummaries(), configured: true };
+  return { assessments: (await listDeletedAssessmentSummaries()).map(withAssessmentQuality), configured: true };
+}
+
+export function withAssessmentQuality<T extends AssessmentRecord>(assessment: T): T {
+  return {
+    ...assessment,
+    quality: assessment.quality ?? evaluateAssessmentQuality(assessment, assessment.updatedAt || assessment.createdAt),
+  };
 }
 
 export async function createAssessmentFromPayload(input: unknown, actor?: AuthenticatedActor | null) {
@@ -75,6 +84,8 @@ export async function createAssessmentFromPayload(input: unknown, actor?: Authen
   const activeVersion = settings?.standards?.versions?.[standardsVersionUsed];
   const standardsVariantUsed = getActiveVariantName(activeVersion);
   const activeFormula = activeVersion?.formula;
+  const computed = computeAssessment(payload, activeFormula);
+  const quality = evaluateAssessmentQuality(payload, now);
 
   return createAssessment(applyActorOwnershipToAssessment(actor || null, {
     ...payload,
@@ -87,7 +98,8 @@ export async function createAssessmentFromPayload(input: unknown, actor?: Authen
     childId: child._id,
     standardsVersionUsed,
     standardsVariantUsed,
-    computed: computeAssessment(payload, activeFormula),
+    computed,
+    quality,
     createdAt: now,
     updatedAt: now,
     updateHistory: integrityIssues.length > 0 ? [`integrity:${integrityIssues.join(",")}:${now}`] : []
@@ -95,7 +107,8 @@ export async function createAssessmentFromPayload(input: unknown, actor?: Authen
 }
 
 export async function getAssessment(id: ObjectId) {
-  return getAssessmentById(id);
+  const assessment = await getAssessmentById(id);
+  return assessment ? withAssessmentQuality(assessment) : null;
 }
 
 export async function updateAssessmentFromPayload(id: ObjectId, input: unknown, actor?: AuthenticatedActor | null) {
@@ -149,6 +162,8 @@ export async function updateAssessmentFromPayload(id: ObjectId, input: unknown, 
   const activeVersion = settings?.standards?.versions?.[standardsVersionUsed];
   const standardsVariantUsed = getActiveVariantName(activeVersion, existing?.standardsVariantUsed);
   const activeFormula = activeVersion?.formula;
+  const computed = computeAssessment(payload, activeFormula);
+  const quality = evaluateAssessmentQuality(payload, now);
 
   return updateAssessmentById(id, applyActorOwnershipToAssessment(actor || null, {
     ...payload,
@@ -161,7 +176,8 @@ export async function updateAssessmentFromPayload(id: ObjectId, input: unknown, 
     childId: child._id,
     standardsVersionUsed,
     standardsVariantUsed,
-    computed: computeAssessment(payload, activeFormula),
+    computed,
+    quality,
     updatedAt: now,
     updateHistory: [...updateHistory, ...(integrityIssues.length > 0 ? [`integrity:${integrityIssues.join(",")}:${now}`] : []), now]
   }));

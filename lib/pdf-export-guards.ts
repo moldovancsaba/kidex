@@ -11,8 +11,14 @@ export function validatePdfExport(record: AssessmentRecord | null | undefined, h
   if (!record?.child?.name) warnings.push("Missing child name.");
   if (!record?.session?.date) warnings.push("Missing session date.");
   if (!record?.computed?.ski && record?.computed?.ski !== 0) warnings.push("Missing computed SKI.");
+  if (record?.quality?.state === "review_needed") warnings.push("Assessment quality needs conductor review before sharing.");
+  if (record?.quality?.state === "insufficient") warnings.push("Assessment quality is insufficient for parent-facing export.");
   if (history.length < 2) warnings.push("Only one assessment available; trend charts are limited.");
   return { ok: warnings.length < 4, warnings };
+}
+
+export function qualityBlocksParentExport(record: AssessmentRecord | null | undefined) {
+  return record?.quality?.state === "insufficient";
 }
 
 export async function logPdfExportTelemetry(event: {

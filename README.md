@@ -7,6 +7,7 @@ KIDEX is a conductor-facing child assessment and development-intelligence platfo
 KIDEX currently includes:
 
 - rapid and full assessment workflows
+- deterministic assessment-quality scoring with parent-export readiness gating
 - centralized child profiles with longitudinal assessment history
 - weighted bio-psycho-social scoring with SKI calculation
 - benchmarked recommendations and standards-version-aware interpretation
@@ -27,6 +28,7 @@ KIDEX currently includes:
 - detail-page reassessment and consent status headers
 - development plans, caregiver tools, coach guidance, and micro-learning
 - family-safe and professional PDF reports
+- parent-facing report export blocking for insufficient-quality assessments
 - export status notices for professional reports, family reports, and governance bundles
 - local buffering for queued plan saves and governed follow-up notes during weak connectivity
 - consent governance for media, family reports, and data sharing

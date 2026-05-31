@@ -29,6 +29,29 @@ export interface EvidenceAttachment {
   uploadedAt: string;
 }
 
+export type AssessmentQualityState = "ready" | "review_needed" | "insufficient";
+export type AssessmentQualityReasonCode =
+  | "low_domain_coverage"
+  | "low_scorer_confidence"
+  | "missing_observer_context"
+  | "missing_evidence"
+  | "large_domain_variance"
+  | "quality_derivation_failed";
+
+export interface AssessmentQualityReason {
+  code: AssessmentQualityReasonCode;
+  severity: "info" | "warning" | "blocking";
+  messageKey: string;
+  message: string;
+}
+
+export interface AssessmentQualitySummary {
+  score: number;
+  state: AssessmentQualityState;
+  reasons: AssessmentQualityReason[];
+  computedAt: string;
+}
+
 export interface AssessmentPayload {
   childId?: string;
   mode: AssessmentMode;
@@ -89,4 +112,5 @@ export interface AssessmentRecord extends AssessmentPayload {
       total: number;
     };
   };
+  quality?: AssessmentQualitySummary;
 }

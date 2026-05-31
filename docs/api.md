@@ -232,6 +232,11 @@ Assessments currently include:
   - guided modules
   - concern signals
 - attachment metadata
+- `quality`
+  - `score`
+  - `state`: `ready`, `review_needed`, or `insufficient`
+  - `reasons` with severity, code, message key, and display message
+  - `computedAt`
 
 Computed assessment output includes:
 
@@ -262,6 +267,7 @@ The current downstream interpretation stack includes:
 - next-session conductor focus priorities
 - reassessment cadence and follow-up status
 - confidence / reliability context
+- assessment-quality readiness state and review reasons
 
 ## Export delivery behavior
 
@@ -281,7 +287,7 @@ This lifecycle is surfaced in:
 - record-detail professional and family report export actions
 - governance export actions in settings
 
-Blocked states are used when policy prevents export, such as missing active `familyReport` or `dataSharing` consent.
+Blocked states are used when policy prevents export, such as missing active `familyReport` or `dataSharing` consent. Family report export also blocks when the assessment quality state is `insufficient`; professional export remains available so conductors can review and correct the record.
 
 ## Weak-network buffering behavior
 

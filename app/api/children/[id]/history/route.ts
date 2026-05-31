@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getChildById } from "@/repositories/child.repository";
 import { listAssessmentsByChildId } from "@/repositories/assessment.repository";
+import { withAssessmentQuality } from "@/services/assessment.service";
 import { ObjectId } from "mongodb";
 import { canReadAssessment, canReadChild, requirePermission } from "@/lib/authorization";
 import { jsonError } from "@/lib/api";
@@ -30,7 +31,12 @@ export async function GET(
     }
     
     const assessments = await listAssessmentsByChildId(id);
-    return NextResponse.json({ child, assessments: assessments.filter((assessment) => canReadAssessment(actor, assessment as AssessmentRecord)) });
+    return NextResponse.json({
+      child,
+      assessments: assessments
+        .filter((assessment) => canReadAssessment(actor, assessment as AssessmentRecord))
+        .map(withAssessmentQuality),
+    });
   } catch (error) {
     return jsonError((error as Error).message);
   }

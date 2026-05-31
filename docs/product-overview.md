@@ -42,6 +42,7 @@ The assessment flow supports:
 - physical, mental, and social scoring
 - mental wellbeing baseline or follow-up capture
 - evidence attachments
+- deterministic assessment-quality scoring with parent-export readiness state
 - mobile sticky save/setup actions
 - clearer selected-child resume context
 - queued assessment sync recovery when final save cannot reach the server
@@ -60,6 +61,7 @@ Saved assessments produce:
 - child-state summary
 - progress comparison and plan-effectiveness interpretation
 - confidence and reliability context
+- assessment quality status with blocking reasons before parent-facing use
 - parent improvement guidance
 - next-session conductor focus priorities
 - reassessment status and follow-up timing
@@ -108,6 +110,8 @@ They now also expose explicit delivery state:
 
 The in-app export lifecycle is GDS-governed even though the PDF/document renderer remains an approved runtime exception.
 
+Family-safe export is also guarded by assessment quality. Records with insufficient scored coverage, missing traceability, missing evidence, or other blocking quality reasons remain visible to conductors but cannot generate parent-facing reports until reviewed.
+
 ### 6. Governance and operations
 
 The settings and governance stack includes:
@@ -145,6 +149,7 @@ KIDEX now fails soft under unstable connectivity for selected write-critical wor
 - standards version manager
 - recommendation engine
 - scorer confidence context
+- deterministic assessment-quality gate for readiness, review-needed, and insufficient states
 
 ### Child and family support
 
@@ -154,6 +159,7 @@ KIDEX now fails soft under unstable connectivity for selected write-critical wor
 - reassessment cadence and due-soon / overdue follow-up visibility
 - family-safe reporting
 - export lifecycle notices with retry and block-state explanation
+- parent-facing export block when the latest assessment quality is insufficient
 - support workspace
 - mobile-first child and record detail orientation
 

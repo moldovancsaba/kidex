@@ -7,6 +7,7 @@ import Image from "next/image";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { PolarAngleAxis, PolarGrid, PolarRadiusAxis, Radar, RadarChart, ResponsiveContainer, Tooltip } from "recharts";
+import { AssessmentQualityNotice } from "@/components/reports/AssessmentQualityNotice";
 import { ExportStatusNotice } from "@/components/reports/ExportStatusNotice";
 import { SyncStatusNotice } from "@/components/sync/SyncStatusNotice";
 import { useSyncQueueOperations } from "@/components/sync/useSyncQueue";
@@ -20,7 +21,7 @@ import { formatScore } from "@/lib/utils";
 import { PdfService } from "@/lib/pdf-service";
 import { getUsers } from "@/services/user-service";
 import { withDisplayNamesForReport } from "@/lib/report-user-display";
-import { logPdfExportTelemetry, validatePdfExport } from "@/lib/pdf-export-guards";
+import { logPdfExportTelemetry, qualityBlocksParentExport, validatePdfExport } from "@/lib/pdf-export-guards";
 import { blockedExportStatus, classifyExportFailure, exportNowMs, failedExportStatus, generatingExportStatus, idleExportStatus, queuedExportStatus, successfulExportStatus, type ExportDeliveryStatus } from "@/lib/export-delivery";
 import { getDomainMainColor, type AssessmentDomain } from "@/lib/domain-colors";
 import { LongitudinalChart } from "@/components/analytics/LongitudinalChart";
@@ -234,6 +235,11 @@ export default function ChildHistoryPage({ params }: { params: Promise<{ id: str
 
     if (!hasActiveConsent(data.child.consentPolicy, "familyReport")) {
       setFamilyExportStatus(blockedExportStatus("consent", "Family report export is blocked because family-report consent is not active."));
+      return;
+    }
+
+    if (qualityBlocksParentExport(latestRecord)) {
+      setFamilyExportStatus(blockedExportStatus("missing_data", "Family report export is blocked until the assessment quality issues are reviewed."));
       return;
     }
 
@@ -732,6 +738,11 @@ export default function ChildHistoryPage({ params }: { params: Promise<{ id: str
                   {tr("familyReportTitle")}
                 </Badge>
               ) : null}
+              {latest?.quality ? (
+                <Badge color={latest.quality.state === "ready" ? "teal" : latest.quality.state === "review_needed" ? "yellow" : "red"} variant="light">
+                  quality {latest.quality.score}/100
+                </Badge>
+              ) : null}
             </Group>
           </Stack>
         }
@@ -791,6 +802,7 @@ export default function ChildHistoryPage({ params }: { params: Promise<{ id: str
 
       <ExportStatusNotice status={professionalExportStatus} onRetry={() => void downloadPdf()} />
       <ExportStatusNotice status={familyExportStatus} onRetry={() => void downloadFamilyReport()} />
+      <AssessmentQualityNotice quality={latest?.quality} />
       <ConsentAlertPanel alerts={consentAlerts} title={t("consentAlertTitle")} t={t} />
 
       {data.child.caregivers?.length ? (
