@@ -70,7 +70,7 @@ KIDEX currently includes:
 
 Design/UI/UX SSOT:
 
-- [General Design System README](https://github.com/sovereignsquad/general-design-system/blob/main/README.md) (current KIDEX alignment `2.6.4 / 2026-05-29`)
+- [General Design System README](https://github.com/sovereignsquad/general-design-system/blob/main/README.md) (current KIDEX alignment `3.0.0 / 2026-06-01`)
 
 KIDEX-specific design documentation is an adapter only ([docs/design-system.md](docs/design-system.md)). The shared SSOT above is the authority for foundation rules, component and pattern contracts, pattern service, navigation, responsive behavior, governance, portfolio operations, and the Mantine-only product primitive policy.
 
@@ -79,8 +79,8 @@ KIDEX-specific design documentation is an adapter only ([docs/design-system.md](
 Current resolved local versions:
 
 - App version: `0.5.0`
-- Node.js: `22.x`
-- Next.js: `15.5.15`
+- Node.js: `>=22 <27`
+- Next.js: `15.5.18`
 - React: `19.2.5`
 - React DOM: `19.2.5`
 - TypeScript: `5.9.3`

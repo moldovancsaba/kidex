@@ -7,7 +7,7 @@
 
 ## Runtime requirements
 
-- Node.js: `22.x`
+- Node.js: `>=22 <27`
 - Build command: `npm run build`
 - Install command: `npm install`
 

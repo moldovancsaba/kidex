@@ -1,7 +1,7 @@
 # KIDEX Design System Adapter
 
 SSOT: [sovereignsquad/general-design-system](https://github.com/sovereignsquad/general-design-system)  
-Aligned package/runtime line: `2.6.4 / 2026-05-29`  
+Aligned package/runtime line: `3.0.0 / 2026-06-01`
 Local status: `direct umbrella package adoption with exceptions only`
 
 This file is a local adapter only. If it conflicts with the shared GDS repository, the shared repository wins.
@@ -32,7 +32,7 @@ Current runtime usage follows the canonical GDS umbrella split:
 - interactive imports:
   - `@doneisbetter/gds/client`
 
-The granular `@doneisbetter/gds-*` packages remain the underlying published lanes, but KIDEX runtime code now treats the umbrella package as the canonical import surface.
+The granular `@doneisbetter/gds-*` packages remain the underlying published lanes, but KIDEX runtime code now treats the umbrella package as the canonical import surface. KIDEX consumes `@doneisbetter/gds@3.0.0` directly and keeps `@doneisbetter/gds-eslint-config@3.0.0` plus `@doneisbetter/gds-compliance@3.0.0` as repo-level governance tooling.
 
 ## Canonical surfaces in KIDEX
 

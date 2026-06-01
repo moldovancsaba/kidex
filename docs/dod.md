@@ -30,7 +30,7 @@ If one check cannot be completed, the reason must be stated explicitly.
 
 - all new user-facing strings must live in `messages/*`
 - new UI must align with the shared design/UI/UX SSOT at [sovereignsquad/general-design-system](https://github.com/sovereignsquad/general-design-system)
-- project-local UI docs are adapters only; they must not redefine shared design-system behavior (aligned GDS line `2.6.4`)
+- project-local UI docs are adapters only; they must not redefine shared design-system behavior (aligned GDS line `3.0.0`)
 - new product UI must use GDS primitives/patterns first; page-local Mantine usage is allowed only inside documented GDS exception surfaces or product-authored compositions that do not create a parallel design-system authority
 - workflow additions should avoid unnecessary friction, especially inside assessment and child-history surfaces
 

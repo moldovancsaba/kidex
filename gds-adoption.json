@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "gdsVersion": "2.6.4",
+  "gdsVersion": "3.0.0",
   "productArchetype": "hybrid",
   "requiredContracts": [
     "AppShell",
@@ -21,8 +21,13 @@
       "surface": "Chart rendering",
       "category": "runtime-constraint",
       "scope": [
-        "components/analytics/**/*.tsx",
-        "components/dashboard/**/*.tsx"
+        "components/analytics/BenchmarkChart.tsx",
+        "components/analytics/LongitudinalChart.tsx",
+        "components/analytics/MaturityRadarChart.tsx",
+        "components/analytics/ReadinessGauge.tsx",
+        "components/analytics/SparklineChart.tsx",
+        "components/analytics/SymmetryChart.tsx",
+        "components/dashboard/MainDashboard.tsx"
       ],
       "dependency": "recharts",
       "allowImports": [
@@ -35,7 +40,7 @@
       "exitCondition": "Remove this exception only if GDS ships a first-class governed chart engine contract that replaces direct Recharts usage.",
       "status": "approved",
       "owner": "kidex-platform",
-      "reviewDate": "2026-05-28"
+      "reviewDate": "2026-06-01"
     },
     {
       "surface": "PDF and document export rendering",
@@ -52,7 +57,7 @@
       "exitCondition": "Remove this exception only if GDS adds a sanctioned document-rendering contract that covers printable report generation.",
       "status": "approved",
       "owner": "kidex-platform",
-      "reviewDate": "2026-05-28"
+      "reviewDate": "2026-06-01"
     },
     {
       "surface": "Searchable selection behavior",
@@ -68,7 +73,7 @@
       "exitCondition": "Remove this exception once GDS publishes a canonical searchable-selection component or contract export and KIDEX migrates these page-local usages to it.",
       "status": "temporary",
       "owner": "kidex-platform",
-      "reviewDate": "2026-05-29"
+      "reviewDate": "2026-06-01"
     }
   ],
   "compliance": {
@@ -89,5 +94,5 @@
   },
   "migrationStatus": "exceptions-only",
   "owner": "kidex-platform",
-  "lastReviewedAt": "2026-05-29"
+  "lastReviewedAt": "2026-06-01"
 }

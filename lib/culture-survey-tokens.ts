@@ -1,4 +1,6 @@
-import { SignJWT, jwtVerify, type JWTPayload } from "jose";
+import type { JWTPayload } from "jose";
+import { SignJWT } from "jose/jwt/sign";
+import { jwtVerify } from "jose/jwt/verify";
 import { requireServerEnv } from "@/config/env";
 
 export interface CultureSurveyTokenPayload extends JWTPayload {

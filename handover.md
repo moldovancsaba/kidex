@@ -36,7 +36,7 @@ For the fuller current product description, use:
 
 Design/UI/UX SSOT:
 
-- [sovereignsquad/general-design-system README](https://github.com/sovereignsquad/general-design-system/blob/main/README.md) (aligned version `2.6.4 / 2026-05-29`)
+- [sovereignsquad/general-design-system README](https://github.com/sovereignsquad/general-design-system/blob/main/README.md) (aligned version `3.0.0 / 2026-06-01`)
 
 KIDEX local design docs are adapters only. The shared design-system repository above is the authority for design, UI, UX, pattern service, navigation, responsive rules, component contracts, governance, and the Mantine-only product primitive policy. Local status is **direct umbrella package adoption with documented exceptions only** — see [docs/design-system.md](/Users/Shared/Projects/kidex/docs/design-system.md), [docs/gds-compliance-checklist.md](/Users/Shared/Projects/kidex/docs/gds-compliance-checklist.md), [docs/gds-pr-review-checklist.md](/Users/Shared/Projects/kidex/docs/gds-pr-review-checklist.md), and [gds-adoption.json](/Users/Shared/Projects/kidex/gds-adoption.json).
 
@@ -71,8 +71,8 @@ Delivered locally:
 Current resolved local versions at the time of this handover:
 
 - App version: `0.5.0`
-- Node.js: `22.x`
-- Next.js: `15.5.15`
+- Node.js: `>=22 <27`
+- Next.js: `15.5.18`
 - React: `19.2.5`
 - TypeScript: `5.9.3`
 - MongoDB driver: `6.21.0`
@@ -84,6 +84,8 @@ Current resolved local versions at the time of this handover:
 
 The latest completed implementation pass covers:
 
+- GDS package upgrade to `3.0.0` across runtime, lint, and compliance tooling
+- stricter GDS 3.0.0 manifest exception scopes without wildcard patterns
 - `#71` measurement session quality scoring and assessment readiness gate
 - deterministic quality derivation for new, updated, and legacy-read assessment records
 - record and child-detail quality notices plus parent-facing export blocking for insufficient-quality assessments
@@ -149,7 +151,7 @@ Current next execution order after `#71` is delivered:
 - `#74` Reliability: Assessment inconsistency alerts - conductor review loop
 - `#75` Reassessment: Guided follow-up workflow - previous findings to next session
 
-The current UI state is a GDS `2.6.4` runtime with documented exception surfaces only:
+The current UI state is a GDS `3.0.0` runtime with documented exception surfaces only:
 
 - `recharts` chart rendering
 - PDF/document export rendering
